@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "asao",
-        "width": 800,
-        "height": 600
+        "title": "SYSTEMA",
+        "width": 1320,
+        "height": 840,
+        "minWidth": 1024,
+        "minHeight": 680
       }
     ],
     "security": {
