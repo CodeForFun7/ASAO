@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lunar-bg: #0A0C0F;
+  --color-lunar-surface: #101318;
+  --color-lunar-surface-2: #15191F;
+  --color-lunar-elevated: #1A1F26;
+  --color-lunar-border: #262C34;
+  --color-lunar-text: #E8EAED;
+  --color-lunar-text-sec: #969DA8;
+  --color-lunar-muted: #626A75;
+  --color-lunar-white: #F5F6F7;
+  --color-lunar-healthy: #9BAE9F;
+  --color-lunar-warning: #B8A477;
+  --color-lunar-critical: #A87878;
+  --color-lunar-ai: #A6A1B8;
+
+  --font-sans: "Segoe UI Variable Display", "Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+}
+
+:root {
+  --bg-primary: #0A0C0F;
+  --surface-primary: #101318;
+  --surface-secondary: #15191F;
+  --surface-elevated: #1A1F26;
+  --border-subtle: #262C34;
+  --text-primary: #E8EAED;
+  --text-secondary: #969DA8;
+  --text-muted: #626A75;
+  --accent-white: #F5F6F7;
+  --semantic-healthy: #9BAE9F;
+  --semantic-warning: #B8A477;
+  --semantic-critical: #A87878;
+  --semantic-ai: #A6A1B8;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Subtle Lunar Instrumentation Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0C0F;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262C34;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #37404C;
+}
