@@ -58,7 +58,7 @@ export const Topbar: React.FC = () => {
           void handleToggleMaximize();
         }
       }}
-      className="h-11 bg-lunar-surface border-b border-lunar-border pl-5 flex items-center justify-between shrink-0 select-none"
+      className="h-11 bg-lunar-surface backdrop-blur-xl border-b border-lunar-border pl-5 flex items-center justify-between shrink-0 select-none"
     >
       {/* Left: Clean ASAO Brand Text Only */}
       <div
