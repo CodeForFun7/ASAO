@@ -100,6 +100,14 @@ pub fn update_settings(
 }
 
 #[tauri::command]
+pub fn get_widget_visibility(app: AppHandle) -> Result<bool, String> {
+    if let Some(widget_win) = app.get_webview_window("widget") {
+        return widget_win.is_visible().map_err(|e| e.to_string());
+    }
+    Ok(false)
+}
+
+#[tauri::command]
 pub fn show_widget(
     app: AppHandle,
     state: State<'_, AppMonitoringState>,
@@ -111,6 +119,7 @@ pub fn show_widget(
         .clone();
 
     if !settings.widget_enabled {
+        let _ = app.emit("widget:visibility", false);
         return Ok(false);
     }
 
@@ -118,6 +127,7 @@ pub fn show_widget(
         apply_widget_window_geometry(&widget_win, &settings);
         let _ = widget_win.show();
         let _ = widget_win.set_focus();
+        let _ = app.emit("widget:visibility", true);
         return Ok(true);
     }
 
@@ -129,7 +139,24 @@ pub fn hide_widget(app: AppHandle) -> Result<(), String> {
     if let Some(widget_win) = app.get_webview_window("widget") {
         let _ = widget_win.hide();
     }
+    let _ = app.emit("widget:visibility", false);
     Ok(())
+}
+
+#[tauri::command]
+pub fn toggle_widget(
+    app: AppHandle,
+    state: State<'_, AppMonitoringState>,
+) -> Result<bool, String> {
+    if let Some(widget_win) = app.get_webview_window("widget") {
+        let currently_visible = widget_win.is_visible().unwrap_or(false);
+        if currently_visible {
+            let _ = widget_win.hide();
+            let _ = app.emit("widget:visibility", false);
+            return Ok(false);
+        }
+    }
+    show_widget(app, state)
 }
 
 #[tauri::command]
