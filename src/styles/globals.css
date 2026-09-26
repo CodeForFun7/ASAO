@@ -66,6 +66,14 @@ body,
   overflow: hidden;
 }
 
+html.widget-window,
+html.widget-window body,
+html.widget-window #root {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 /* Lunar Glassmorphism Card Surfaces */
 .lunar-glass-card {
   background: linear-gradient(
