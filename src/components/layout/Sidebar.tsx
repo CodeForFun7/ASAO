@@ -21,7 +21,7 @@ export const Sidebar: React.FC = () => {
     }`;
 
   return (
-    <aside className="w-56 bg-lunar-surface border-r border-lunar-border flex flex-col justify-between shrink-0 select-none">
+    <aside className="w-56 bg-lunar-surface backdrop-blur-xl border-r border-lunar-border flex flex-col justify-between shrink-0 select-none">
       {/* Top Navigation Sections */}
       <div className="p-3 space-y-6">
         {/* OVERVIEW */}
