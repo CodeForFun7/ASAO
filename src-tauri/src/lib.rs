@@ -4,7 +4,9 @@ pub mod commands;
 pub mod db;
 
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
-use commands::system::{get_full_snapshot, get_system_metrics};
+use commands::system::{
+    get_full_snapshot, get_system_metrics, window_close, window_minimize, window_toggle_maximize,
+};
 use commands::AppMonitoringState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,7 +25,10 @@ pub fn run() {
             get_system_metrics,
             get_full_snapshot,
             start_monitoring,
-            stop_monitoring
+            stop_monitoring,
+            window_minimize,
+            window_toggle_maximize,
+            window_close
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
