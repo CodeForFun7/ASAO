@@ -5,13 +5,13 @@ pub mod db;
 pub mod settings;
 pub mod tray;
 
-use tauri::{Manager, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
 use commands::system::{
-    get_full_snapshot, get_settings, get_system_metrics, get_widget_update, hide_widget,
-    open_main_window, set_widget_mode, show_widget, update_settings, window_close, window_minimize,
-    window_toggle_maximize,
+    get_full_snapshot, get_settings, get_system_metrics, get_widget_update, get_widget_visibility,
+    hide_widget, open_main_window, set_widget_mode, show_widget, toggle_widget, update_settings,
+    window_close, window_minimize, window_toggle_maximize,
 };
 use commands::AppMonitoringState;
 use settings::{apply_widget_window_geometry, load_settings, save_settings};
@@ -45,8 +45,10 @@ pub fn run() {
                 apply_widget_window_geometry(&widget_win, &loaded_settings);
                 if loaded_settings.widget_enabled && loaded_settings.launch_widget_on_startup {
                     let _ = widget_win.show();
+                    let _ = handle.emit("widget:visibility", true);
                 } else {
                     let _ = widget_win.hide();
+                    let _ = handle.emit("widget:visibility", false);
                 }
             }
 
@@ -62,6 +64,7 @@ pub fn run() {
                         // Closing the widget hides it rather than terminating Asao
                         api.prevent_close();
                         let _ = window.hide();
+                        let _ = window.app_handle().emit("widget:visibility", false);
                     }
                     WindowEvent::Moved(pos) => {
                         // Persist manual dragging position safely inside screen bounds
@@ -86,10 +89,12 @@ pub fn run() {
             get_system_metrics,
             get_full_snapshot,
             get_widget_update,
+            get_widget_visibility,
             get_settings,
             update_settings,
             show_widget,
             hide_widget,
+            toggle_widget,
             set_widget_mode,
             open_main_window,
             start_monitoring,
