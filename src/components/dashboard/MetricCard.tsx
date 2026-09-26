@@ -33,10 +33,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             }
           : undefined
       }
-      className={`group relative rounded-lg bg-lunar-surface border border-lunar-border p-4 flex flex-col justify-between min-h-[124px] transition-colors ${
+      className={`group relative rounded-xl p-4 flex flex-col justify-between min-h-[124px] ${
         onClick
-          ? "hover:bg-lunar-surface-2 hover:border-lunar-text-sec/40 cursor-pointer"
-          : ""
+          ? "lunar-glass-card-interactive cursor-pointer"
+          : "lunar-glass-card"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -45,7 +45,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </span>
         {onClick && (
           <span
-            className="text-lunar-muted group-hover:text-lunar-text transition-colors flex items-center gap-1 text-[10px] font-mono"
+            className="text-lunar-muted group-hover:text-lunar-white transition-colors flex items-center gap-1 text-[10px] font-mono"
             title={actionHint}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
