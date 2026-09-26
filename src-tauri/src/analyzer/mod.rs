@@ -87,3 +87,44 @@ pub struct ProcessSnapshotPayload {
     pub processes: Vec<ProcessInfo>,
     pub metrics: SystemMetrics,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompactProcessContext {
+    pub pid: u32,
+    pub name: String,
+    pub category: ProcessCategory,
+    pub cpu_percent: f32,
+    pub memory_bytes: u64,
+    pub status: ProcessStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetRecommendation {
+    pub id: String,
+    pub title: String,
+    pub message: String,
+    pub priority: String, // "normal" | "interesting" | "important"
+    pub process_pid: Option<u32>,
+    pub process_name: Option<String>,
+    pub metric_highlight: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetSystemUpdate {
+    pub cpu_usage: f32,
+    pub memory_usage: f32,
+    pub memory_used_bytes: u64,
+    pub memory_total_bytes: u64,
+    pub gpu_usage: f32,
+    pub process_count: usize,
+    pub attention_count: usize,
+    pub condition: String, // "GOOD" | "ELEVATED" | "ATTENTION"
+    pub condition_reason: String,
+    pub recommendation: WidgetRecommendation,
+    pub top_cpu_processes: Vec<CompactProcessContext>,
+    pub top_memory_processes: Vec<CompactProcessContext>,
+    pub timestamp: u64,
+}
