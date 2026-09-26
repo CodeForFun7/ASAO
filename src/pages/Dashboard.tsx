@@ -8,6 +8,7 @@ import { ProcessAttention } from "../components/dashboard/ProcessAttention";
 
 export const Dashboard: React.FC = () => {
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
+  const systemHistory = useProcessStore((s) => s.systemHistory);
   const processes = useProcessStore((s) => s.processes);
   const monitoringStatus = useProcessStore((s) => s.monitoringStatus);
   const errorMessage = useProcessStore((s) => s.errorMessage);
@@ -22,6 +23,7 @@ export const Dashboard: React.FC = () => {
   const navigateToCpuProcesses = useProcessStore(
     (s) => s.navigateToCpuProcesses
   );
+  const setCategoryFilter = useProcessStore((s) => s.setCategoryFilter);
   const setRoute = useProcessStore((s) => s.setRoute);
   const selectProcess = useProcessStore((s) => s.selectProcess);
 
@@ -73,6 +75,7 @@ export const Dashboard: React.FC = () => {
 
   const cpuDelta = systemMetrics.cpuDeltaPercent;
   const memDelta = systemMetrics.memoryDeltaPercent;
+  const gpuDelta = systemMetrics.gpuDeltaPercent ?? 0;
 
   const statusConfig =
     systemMetrics.systemStatus === "critical"
@@ -80,6 +83,11 @@ export const Dashboard: React.FC = () => {
       : systemMetrics.systemStatus === "warning"
       ? { label: "Moderate Load", dot: "bg-lunar-warning", sub: "Resource thresholds active" }
       : { label: "Healthy", dot: "bg-lunar-healthy", sub: "Nominal operating parameters" };
+
+  const handleSelectGpu = () => {
+    setCategoryFilter("drivers");
+    setRoute("processes");
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -99,8 +107,8 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top Metric Cards (CPU, MEMORY, GPU, PROCESSES, SYSTEM STATUS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* CPU Card */}
         <MetricCard
           label="CPU"
@@ -115,7 +123,7 @@ export const Dashboard: React.FC = () => {
                 <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
               )}
               <span>
-                {Math.abs(cpuDelta).toFixed(1)}% from recent average
+                {Math.abs(cpuDelta).toFixed(1)}% from avg
               </span>
             </>
           }
@@ -135,7 +143,27 @@ export const Dashboard: React.FC = () => {
                 <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
               )}
               <span>
-                {Math.abs(memDelta).toFixed(1)}% from recent average
+                {Math.abs(memDelta).toFixed(1)}% from avg
+              </span>
+            </>
+          }
+        />
+
+        {/* GPU Card */}
+        <MetricCard
+          label="GPU"
+          value={`${(systemMetrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
+          onClick={handleSelectGpu}
+          actionHint="Inspect graphics and driver processes"
+          subtitle={
+            <>
+              {gpuDelta <= 0 ? (
+                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
+              ) : (
+                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
+              )}
+              <span>
+                {Math.abs(gpuDelta).toFixed(1)}% from avg
               </span>
             </>
           }
@@ -169,12 +197,13 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* System Health Gauges */}
+      {/* Live CPU, Memory & GPU Telemetry Charts */}
       <SystemHealth
         metrics={systemMetrics}
+        history={systemHistory}
         onSelectCpu={navigateToCpuProcesses}
         onSelectMemory={navigateToMemoryProcesses}
-        onSelectAttention={navigateToAttentionProcesses}
+        onSelectGpu={handleSelectGpu}
       />
 
       {/* Bottom Split: AI Insights + Process Attention */}
