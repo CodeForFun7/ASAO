@@ -32,6 +32,18 @@ export async function stopMonitoring(): Promise<void> {
   return invoke<void>("stop_monitoring");
 }
 
+export async function minimizeWindow(): Promise<void> {
+  return invoke<void>("window_minimize");
+}
+
+export async function toggleMaximizeWindow(): Promise<boolean> {
+  return invoke<boolean>("window_toggle_maximize");
+}
+
+export async function closeWindow(): Promise<void> {
+  return invoke<void>("window_close");
+}
+
 export interface TelemetrySubscriptionHandlers {
   onProcessSnapshot: (processes: ProcessInfo[]) => void;
   onSystemMetrics: (metrics: SystemMetrics) => void;
