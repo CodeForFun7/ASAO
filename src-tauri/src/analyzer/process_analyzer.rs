@@ -253,4 +253,164 @@ impl ProcessAnalyzerEngine {
         self.cached_snapshot = Some(snapshot.clone());
         Ok(snapshot)
     }
+
+    pub fn build_widget_update(snapshot: &ProcessSnapshotPayload) -> crate::analyzer::WidgetSystemUpdate {
+        use crate::analyzer::{CompactProcessContext, WidgetRecommendation, WidgetSystemUpdate};
+
+        let m = &snapshot.metrics;
+
+        // Deterministic condition calculation: GOOD | ELEVATED | ATTENTION
+        let (condition, condition_reason) = if m.cpu_usage_percent >= 80.0
+            || m.memory_usage_percent >= 88.0
+            || m.attention_processes >= 6
+        {
+            (
+                "ATTENTION".to_string(),
+                format!(
+                    "Sustained load detected ({:.0}% CPU, {:.0}% RAM, {} flagged)",
+                    m.cpu_usage_percent, m.memory_usage_percent, m.attention_processes
+                ),
+            )
+        } else if m.cpu_usage_percent >= 45.0
+            || m.memory_usage_percent >= 72.0
+            || m.attention_processes >= 2
+        {
+            (
+                "ELEVATED".to_string(),
+                format!(
+                    "Moderate resource activity ({:.0}% CPU, {:.0}% RAM)",
+                    m.cpu_usage_percent, m.memory_usage_percent
+                ),
+            )
+        } else {
+            (
+                "GOOD".to_string(),
+                "System operating within nominal resource thresholds.".to_string(),
+            )
+        };
+
+        // Top CPU & Top Memory processes for contextual AI & deterministic recommendation
+        let mut by_cpu: Vec<&ProcessInfo> = snapshot.processes.iter().collect();
+        by_cpu.sort_by(|a, b| {
+            b.cpu_percent
+                .partial_cmp(&a.cpu_percent)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        let mut by_mem: Vec<&ProcessInfo> = snapshot.processes.iter().collect();
+        by_mem.sort_by(|a, b| b.memory_bytes.cmp(&a.memory_bytes));
+
+        let top_cpu_processes: Vec<CompactProcessContext> = by_cpu
+            .iter()
+            .take(5)
+            .map(|p| CompactProcessContext {
+                pid: p.pid,
+                name: p.name.clone(),
+                category: p.category,
+                cpu_percent: p.cpu_percent,
+                memory_bytes: p.memory_bytes,
+                status: p.status,
+            })
+            .collect();
+
+        let top_memory_processes: Vec<CompactProcessContext> = by_mem
+            .iter()
+            .take(5)
+            .map(|p| CompactProcessContext {
+                pid: p.pid,
+                name: p.name.clone(),
+                category: p.category,
+                cpu_percent: p.cpu_percent,
+                memory_bytes: p.memory_bytes,
+                status: p.status,
+            })
+            .collect();
+
+        // Deterministic Recommendation Builder (Normal / Interesting / Important)
+        let top_non_crit_mem = by_mem.iter().find(|p| !p.is_system_critical).copied();
+        let top_non_crit_cpu = by_cpu.iter().find(|p| !p.is_system_critical).copied();
+
+        let recommendation = if let Some(proc) = top_non_crit_cpu.filter(|p| p.cpu_percent >= 25.0) {
+            WidgetRecommendation {
+                id: format!("cpu-high-{}", proc.pid),
+                title: "Sustained CPU Activity".to_string(),
+                message: format!(
+                    "{} is currently using {:.1}% CPU across {} threads.",
+                    proc.name, proc.cpu_percent, proc.thread_count
+                ),
+                priority: if proc.cpu_percent >= 50.0 {
+                    "important".to_string()
+                } else {
+                    "interesting".to_string()
+                },
+                process_pid: Some(proc.pid),
+                process_name: Some(proc.name.clone()),
+                metric_highlight: Some(format!("{:.1}% CPU", proc.cpu_percent)),
+            }
+        } else if let Some(proc) = top_non_crit_mem.filter(|p| p.memory_bytes >= 350 * 1024 * 1024) {
+            let mb = proc.memory_bytes as f64 / (1024.0 * 1024.0);
+            let formatted_mem = if mb >= 1024.0 {
+                format!("{:.1} GB", mb / 1024.0)
+            } else {
+                format!("{:.0} MB", mb)
+            };
+            WidgetRecommendation {
+                id: format!("mem-high-{}", proc.pid),
+                title: "Memory Allocation Notice".to_string(),
+                message: format!(
+                    "{} is currently using unusually high memory ({}).",
+                    proc.name, formatted_mem
+                ),
+                priority: if proc.memory_bytes >= 1200 * 1024 * 1024 {
+                    "important".to_string()
+                } else {
+                    "interesting".to_string()
+                },
+                process_pid: Some(proc.pid),
+                process_name: Some(proc.name.clone()),
+                metric_highlight: Some(formatted_mem),
+            }
+        } else if let Some(proc) = top_non_crit_mem {
+            let mb = (proc.memory_bytes as f64 / (1024.0 * 1024.0)).max(1.0);
+            WidgetRecommendation {
+                id: format!("nominal-{}", proc.pid),
+                title: "Background Telemetry Nominal".to_string(),
+                message: format!(
+                    "{} is the largest active user process at {:.0} MB RAM.",
+                    proc.name, mb
+                ),
+                priority: "normal".to_string(),
+                process_pid: Some(proc.pid),
+                process_name: Some(proc.name.clone()),
+                metric_highlight: Some(format!("{:.0} MB", mb)),
+            }
+        } else {
+            WidgetRecommendation {
+                id: "system-nominal".to_string(),
+                title: "System Condition Nominal".to_string(),
+                message: "All background processes are operating within expected thresholds."
+                    .to_string(),
+                priority: "normal".to_string(),
+                process_pid: None,
+                process_name: None,
+                metric_highlight: None,
+            }
+        };
+
+        WidgetSystemUpdate {
+            cpu_usage: m.cpu_usage_percent,
+            memory_usage: m.memory_usage_percent,
+            memory_used_bytes: m.memory_used_bytes,
+            memory_total_bytes: m.memory_total_bytes,
+            gpu_usage: m.gpu_usage_percent,
+            process_count: m.total_processes,
+            attention_count: m.attention_processes,
+            condition,
+            condition_reason,
+            recommendation,
+            top_cpu_processes,
+            top_memory_processes,
+            timestamp: m.timestamp_ms,
+        }
+    }
 }
