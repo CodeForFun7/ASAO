@@ -70,6 +70,7 @@ pub fn setup_system_tray(
                         apply_widget_window_geometry(&w, &settings);
                         let _ = w.show();
                         let _ = w.set_focus();
+                        let _ = app_handle.emit("widget:visibility", true);
                     }
                 }
             }
@@ -77,6 +78,7 @@ pub fn setup_system_tray(
                 if let Some(w) = app_handle.get_webview_window("widget") {
                     let _ = w.hide();
                 }
+                let _ = app_handle.emit("widget:visibility", false);
             }
             "open_asao" => {
                 if let Some(main_win) = app_handle.get_webview_window("main") {
