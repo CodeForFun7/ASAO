@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{State, WebviewWindow};
 
 use crate::analyzer::{ProcessSnapshotPayload, SystemMetrics};
 use crate::commands::AppMonitoringState;
@@ -22,4 +22,26 @@ pub fn get_full_snapshot(
         .lock()
         .map_err(|_| "Failed to acquire system analyzer lock".to_string())?;
     engine.get_latest_or_collect()
+}
+
+#[tauri::command]
+pub fn window_minimize(window: WebviewWindow) -> Result<(), String> {
+    window.minimize().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn window_toggle_maximize(window: WebviewWindow) -> Result<bool, String> {
+    let is_max = window.is_maximized().map_err(|e| e.to_string())?;
+    if is_max {
+        window.unmaximize().map_err(|e| e.to_string())?;
+        Ok(false)
+    } else {
+        window.maximize().map_err(|e| e.to_string())?;
+        Ok(true)
+    }
+}
+
+#[tauri::command]
+pub fn window_close(window: WebviewWindow) -> Result<(), String> {
+    window.close().map_err(|e| e.to_string())
 }
