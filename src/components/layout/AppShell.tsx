@@ -8,11 +8,11 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   return (
-    <div className="h-screen w-screen flex flex-col bg-lunar-bg text-lunar-text overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-transparent text-lunar-text overflow-hidden">
       <Topbar />
       <div className="flex-1 flex min-h-0 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-lunar-bg">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-transparent">
           {children}
         </main>
       </div>
