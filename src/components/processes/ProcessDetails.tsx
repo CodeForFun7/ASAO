@@ -49,7 +49,7 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
     process.diskBytesPerSec > 0;
 
   return (
-    <aside className="w-96 lunar-glass-card border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
+    <aside className="w-96 bg-[#101318] border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
       {/* Top Panel Header */}
       <div className="p-4 border-b border-lunar-border flex items-start justify-between gap-3 bg-lunar-surface-2/50">
         <div className="min-w-0 flex-1">
