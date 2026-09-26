@@ -135,7 +135,7 @@ export const WidgetSettings: React.FC = () => {
         {/* Left 7 Cols: Desktop Widget & Startup Controls */}
         <div className="lg:col-span-7 space-y-6">
           {/* Startup & Background Service Section */}
-          <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5">
+          <section className="rounded-xl lunar-glass-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <Sliders className="w-3.5 h-3.5 text-lunar-text-sec" />
               <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
@@ -156,7 +156,7 @@ export const WidgetSettings: React.FC = () => {
           </section>
 
           {/* Desktop Widget Configuration Section */}
-          <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5">
+          <section className="rounded-xl lunar-glass-card p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <AppWindow className="w-3.5 h-3.5 text-lunar-white" />
@@ -224,7 +224,7 @@ export const WidgetSettings: React.FC = () => {
         <div className="lg:col-span-5 space-y-6">
           {/* Position & Opacity */}
           <section
-            className={`rounded-lg bg-lunar-surface border border-lunar-border p-5 space-y-5 ${
+            className={`rounded-xl lunar-glass-card p-5 space-y-5 ${
               !settings.widgetEnabled ? "opacity-45 pointer-events-none" : ""
             }`}
           >
@@ -314,7 +314,7 @@ export const WidgetSettings: React.FC = () => {
           </section>
 
           {/* Subsystem Readiness Cards */}
-          <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5 space-y-3">
+          <section className="rounded-xl lunar-glass-card p-5 space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-lunar-white">
               <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
               <span>AI &amp; Persistence Boundaries</span>
