@@ -7,16 +7,21 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
+use crate::settings::AsaoSettings;
+use crate::tray::TrayMenuHandles;
 
 pub const EVENT_PROCESS_SNAPSHOT: &str = "PROCESS_SNAPSHOT";
 pub const EVENT_SYSTEM_METRICS: &str = "SYSTEM_METRICS";
 pub const EVENT_PROCESS_ERROR: &str = "PROCESS_ERROR";
+pub const EVENT_SYSTEM_UPDATE: &str = "system:update";
 
 #[derive(Clone)]
 pub struct AppMonitoringState {
     pub engine: Arc<Mutex<ProcessAnalyzerEngine>>,
     pub is_monitoring: Arc<AtomicBool>,
     pub worker_started: Arc<AtomicBool>,
+    pub settings: Arc<Mutex<AsaoSettings>>,
+    pub tray_handles: Arc<Mutex<Option<TrayMenuHandles>>>,
 }
 
 impl AppMonitoringState {
@@ -25,6 +30,8 @@ impl AppMonitoringState {
             engine: Arc::new(Mutex::new(ProcessAnalyzerEngine::new())),
             is_monitoring: Arc::new(AtomicBool::new(true)),
             worker_started: Arc::new(AtomicBool::new(false)),
+            settings: Arc::new(Mutex::new(AsaoSettings::default())),
+            tray_handles: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -53,8 +60,10 @@ impl AppMonitoringState {
 
                 match result {
                     Ok(snapshot) => {
+                        let widget_update = ProcessAnalyzerEngine::build_widget_update(&snapshot);
                         let _ = app_handle.emit(EVENT_PROCESS_SNAPSHOT, &snapshot.processes);
                         let _ = app_handle.emit(EVENT_SYSTEM_METRICS, &snapshot.metrics);
+                        let _ = app_handle.emit(EVENT_SYSTEM_UPDATE, &widget_update);
                     }
                     Err(err_msg) => {
                         let _ = app_handle.emit(EVENT_PROCESS_ERROR, err_msg);
