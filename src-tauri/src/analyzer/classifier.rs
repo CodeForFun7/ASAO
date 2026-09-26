@@ -269,7 +269,7 @@ pub fn classify_process(
             "cargo.exe" | "rustc.exe" | "rust-analyzer.exe" => ("Rust Project Developers", "Rust Toolchain", "Rust Compiler & Language Server"),
             "windowsterminal.exe" | "openconsole.exe" => ("Microsoft Corporation", "Windows Terminal", "Modern Terminal Host Application"),
             "powershell.exe" | "pwsh.exe" => ("Microsoft Corporation", "PowerShell", "Command Shell & Scripting Engine"),
-            "asao.exe" => ("SYSTEMA Instrumentation", "SYSTEMA Control Center", "System Telemetry & Process Analyzer"),
+            "asao.exe" => ("ASAO Instrumentation", "ASAO Control Center", "System Telemetry & Process Analyzer"),
             _ => ("Developer Toolchain", "Development Environment", "Software Development Runtime / Tool"),
         };
 
