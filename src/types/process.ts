@@ -48,12 +48,21 @@ export interface SystemMetrics {
   memoryUsedBytes: number;
   memoryTotalBytes: number;
   memoryDeltaPercent: number;
+  gpuUsagePercent: number;
+  gpuDeltaPercent: number;
   totalProcesses: number;
   attentionProcesses: number;
   protectedProcesses: number;
   highResourceProcesses: number;
   systemStatus: "healthy" | "warning" | "critical";
   timestampMs: number;
+}
+
+export interface SystemTelemetryPoint {
+  timestamp: number;
+  cpuPercent: number;
+  memoryPercent: number;
+  gpuPercent: number;
 }
 
 export interface ProcessSnapshotPayload {
