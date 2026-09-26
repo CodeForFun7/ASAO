@@ -33,7 +33,7 @@ export const AIInsight: React.FC<AIInsightProps> = ({
   };
 
   return (
-    <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5 flex flex-col justify-between">
+    <section className="rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export const AIInsight: React.FC<AIInsightProps> = ({
         </p>
 
         {analysis ? (
-          <div className="mt-3 p-3 rounded bg-lunar-bg border border-lunar-border space-y-1.5 font-mono text-[11px]">
+          <div className="mt-3 p-3 rounded-lg lunar-glass-sub space-y-1.5 font-mono text-[11px]">
             <div className="text-lunar-text flex items-center gap-1.5">
               <Terminal className="w-3 h-3 text-lunar-ai shrink-0" />
               <span>Telemetry Context Prepared</span>
@@ -69,7 +69,7 @@ export const AIInsight: React.FC<AIInsightProps> = ({
             )}
           </div>
         ) : (
-          <div className="mt-4 p-3 rounded bg-lunar-bg/60 border border-lunar-border/80 text-[11px] font-mono text-lunar-muted space-y-1">
+          <div className="mt-4 p-3 rounded-lg lunar-glass-sub text-[11px] font-mono text-lunar-muted space-y-1">
             <div>• Deterministic process classifier: ACTIVE</div>
             <div>• Resource history sampler: ACTIVE (1.0Hz)</div>
             <div>• LLM inference adapter: DISCONNECTED</div>
