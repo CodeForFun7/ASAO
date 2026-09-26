@@ -71,6 +71,8 @@ pub struct SystemMetrics {
     pub memory_used_bytes: u64,
     pub memory_total_bytes: u64,
     pub memory_delta_percent: f32,
+    pub gpu_usage_percent: f32,
+    pub gpu_delta_percent: f32,
     pub total_processes: usize,
     pub attention_processes: usize,
     pub protected_processes: usize,
