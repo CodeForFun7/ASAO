@@ -85,7 +85,7 @@ const TelemetryMiniChart: React.FC<TelemetryMiniChartProps> = ({
           onClick();
         }
       }}
-      className="group rounded-lg bg-lunar-bg/70 hover:bg-lunar-surface-2 border border-lunar-border hover:border-lunar-text-sec/40 p-4 flex flex-col justify-between transition-colors cursor-pointer"
+      className="group rounded-xl lunar-glass-card-interactive p-4 flex flex-col justify-between cursor-pointer"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -231,7 +231,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
   const gpuSeries = useMemo(() => history.map((h) => h.gpuPercent), [history]);
 
   return (
-    <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5">
+    <section className="rounded-xl lunar-glass-card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <h2 className="text-[11px] font-mono uppercase tracking-[0.14em] text-lunar-text-sec">
