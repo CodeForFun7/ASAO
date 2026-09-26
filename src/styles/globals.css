@@ -2,9 +2,9 @@
 
 @theme {
   --color-lunar-bg: #0A0C0F;
-  --color-lunar-surface: rgba(18, 22, 29, 0.52);
-  --color-lunar-surface-2: rgba(25, 31, 40, 0.58);
-  --color-lunar-elevated: rgba(34, 41, 52, 0.65);
+  --color-lunar-surface: #101318;
+  --color-lunar-surface-2: #15191F;
+  --color-lunar-elevated: #1A1F26;
   --color-lunar-border: rgba(255, 255, 255, 0.09);
   --color-lunar-text: #E8EAED;
   --color-lunar-text-sec: #969DA8;
@@ -21,9 +21,9 @@
 
 :root {
   --bg-primary: #0A0C0F;
-  --surface-primary: rgba(18, 22, 29, 0.52);
-  --surface-secondary: rgba(25, 31, 40, 0.58);
-  --surface-elevated: rgba(34, 41, 52, 0.65);
+  --surface-primary: #101318;
+  --surface-secondary: #15191F;
+  --surface-elevated: #1A1F26;
   --border-subtle: rgba(255, 255, 255, 0.09);
   --text-primary: #E8EAED;
   --text-secondary: #969DA8;
