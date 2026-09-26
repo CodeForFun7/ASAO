@@ -17,7 +17,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
   onResetFilters,
 }) => {
   return (
-    <div className="flex-1 flex flex-col min-h-0 rounded-lg bg-lunar-surface border border-lunar-border overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 rounded-xl lunar-glass-card overflow-hidden">
       {/* Table Column Header */}
       <div className="grid grid-cols-12 items-center gap-3 px-4 py-2.5 bg-lunar-surface-2 border-b border-lunar-border text-[10px] font-mono uppercase tracking-[0.14em] text-lunar-muted shrink-0">
         <div className="col-span-4 sm:col-span-3">Process</div>
