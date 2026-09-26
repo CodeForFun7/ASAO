@@ -92,7 +92,7 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-1 w-44 rounded-lg bg-lunar-surface border border-lunar-border shadow-2xl z-50 py-1 text-xs">
+            <div className="absolute right-0 mt-1 w-44 rounded-lg bg-[#101318] border border-[#262C34] shadow-2xl z-50 py-1 text-xs">
               <button
                 type="button"
                 onClick={() => {
