@@ -177,7 +177,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
           </button>
 
           {filterOpen && (
-            <div className="absolute right-0 mt-1.5 w-80 rounded-lg bg-lunar-surface border border-lunar-border shadow-2xl z-30 p-4 space-y-4 text-xs">
+            <div className="absolute right-0 mt-1.5 w-80 rounded-xl bg-[#101318] border border-[#262C34] shadow-2xl z-50 p-4 space-y-4 text-xs">
               {/* Category Checkboxes */}
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mb-2">
@@ -323,7 +323,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
           </button>
 
           {sortOpen && (
-            <div className="absolute right-0 mt-1.5 w-64 rounded-lg bg-lunar-surface border border-lunar-border shadow-2xl z-30 py-1.5 text-xs">
+            <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-[#101318] border border-[#262C34] shadow-2xl z-50 py-1.5 text-xs">
               {SORT_OPTIONS.map((opt) => {
                 const active = sort === opt.value;
                 return (
