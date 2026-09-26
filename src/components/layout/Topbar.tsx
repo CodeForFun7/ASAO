@@ -1,15 +1,19 @@
-import React from "react";
-import { Search, Pause, Play, Radio, X } from "lucide-react";
+import React, { useState } from "react";
+import { Search, Minus, Square, Copy, X } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useProcessStore } from "../../stores/process-store";
+import {
+  closeWindow,
+  minimizeWindow,
+  toggleMaximizeWindow,
+} from "../../services/tauri";
 
 export const Topbar: React.FC = () => {
   const searchQuery = useProcessStore((s) => s.searchQuery);
   const setSearchQuery = useProcessStore((s) => s.setSearchQuery);
   const currentRoute = useProcessStore((s) => s.currentRoute);
   const setRoute = useProcessStore((s) => s.setRoute);
-  const monitoringStatus = useProcessStore((s) => s.monitoringStatus);
-  const togglePauseMonitoring = useProcessStore((s) => s.togglePauseMonitoring);
-  const systemMetrics = useProcessStore((s) => s.systemMetrics);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const handleGlobalSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -19,21 +23,50 @@ export const Topbar: React.FC = () => {
     }
   };
 
+  const handleMinimize = async () => {
+    try {
+      await minimizeWindow();
+    } catch {
+      await getCurrentWindow().minimize();
+    }
+  };
+
+  const handleToggleMaximize = async () => {
+    try {
+      const nextMax = await toggleMaximizeWindow();
+      setIsMaximized(nextMax);
+    } catch {
+      const win = getCurrentWindow();
+      await win.toggleMaximize();
+      setIsMaximized(await win.isMaximized());
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      await closeWindow();
+    } catch {
+      await getCurrentWindow().close();
+    }
+  };
+
   return (
-    <header className="h-12 bg-lunar-surface border-b border-lunar-border px-4 flex items-center justify-between shrink-0 select-none">
-      {/* Left: Brand Identity */}
-      <div className="flex items-center gap-3 w-56">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-            <span className="h-2.5 w-2.5 rounded-full border border-lunar-white bg-lunar-white/20" />
-            <span className="absolute h-1 w-1 rounded-full bg-lunar-white" />
-          </span>
-          <span className="font-mono text-xs font-semibold tracking-[0.2em] text-lunar-white">
-            SYSTEMA
-          </span>
-        </div>
-        <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-lunar-surface-2 text-lunar-muted border border-lunar-border">
-          INSTRUMENT
+    <header
+      data-tauri-drag-region
+      onDoubleClick={(e) => {
+        if (e.target === e.currentTarget) {
+          void handleToggleMaximize();
+        }
+      }}
+      className="h-11 bg-lunar-surface border-b border-lunar-border pl-5 flex items-center justify-between shrink-0 select-none"
+    >
+      {/* Left: Clean ASAO Brand Text Only */}
+      <div
+        data-tauri-drag-region
+        className="flex items-center w-48 pointer-events-none"
+      >
+        <span className="text-sm font-semibold tracking-wider text-lunar-white">
+          ASAO
         </span>
       </div>
 
@@ -46,13 +79,13 @@ export const Topbar: React.FC = () => {
             value={searchQuery}
             onChange={handleGlobalSearchChange}
             placeholder="Search processes, publishers, paths, or categories..."
-            className="w-full h-8 pl-8 pr-7 bg-lunar-bg border border-lunar-border rounded-md text-xs text-lunar-text placeholder:text-lunar-muted focus:outline-none focus:border-lunar-text-sec transition-colors"
+            className="w-full h-7 pl-8 pr-7 bg-lunar-bg border border-lunar-border rounded-md text-xs text-lunar-text placeholder:text-lunar-muted focus:outline-none focus:border-lunar-text-sec transition-colors"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 text-lunar-muted hover:text-lunar-text p-0.5"
+              className="absolute right-2 text-lunar-muted hover:text-lunar-text p-0.5 cursor-pointer"
               title="Clear search"
             >
               <X className="w-3 h-3" />
@@ -61,47 +94,37 @@ export const Topbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Telemetry Stream Controls & Instrumentation Readout */}
-      <div className="flex items-center gap-3">
-        {systemMetrics && (
-          <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-lunar-text-sec border-r border-lunar-border pr-3">
-            <span>
-              CPU{" "}
-              <strong className="text-lunar-text font-normal">
-                {systemMetrics.cpuUsagePercent.toFixed(0)}%
-              </strong>
-            </span>
-            <span>
-              MEM{" "}
-              <strong className="text-lunar-text font-normal">
-                {systemMetrics.memoryUsagePercent.toFixed(0)}%
-              </strong>
-            </span>
-          </div>
-        )}
+      {/* Right: Custom Window Controls (Minimize, Maximize/Restore, Close) */}
+      <div className="flex items-center h-full">
+        <button
+          type="button"
+          onClick={() => void handleMinimize()}
+          className="h-full w-11 flex items-center justify-center text-lunar-text-sec hover:bg-lunar-surface-2 hover:text-lunar-white transition-colors cursor-pointer"
+          title="Minimize"
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
 
         <button
           type="button"
-          onClick={() => void togglePauseMonitoring()}
-          className="flex items-center gap-1.5 h-7 px-2.5 rounded bg-lunar-surface-2 hover:bg-lunar-elevated border border-lunar-border text-[11px] font-mono text-lunar-text-sec hover:text-lunar-text transition-colors cursor-pointer"
-          title={
-            monitoringStatus === "paused"
-              ? "Resume 1Hz telemetry stream"
-              : "Pause live telemetry stream"
-          }
+          onClick={() => void handleToggleMaximize()}
+          className="h-full w-11 flex items-center justify-center text-lunar-text-sec hover:bg-lunar-surface-2 hover:text-lunar-white transition-colors cursor-pointer"
+          title={isMaximized ? "Restore Down" : "Maximize"}
         >
-          {monitoringStatus === "paused" ? (
-            <>
-              <Play className="w-3 h-3 text-lunar-warning" />
-              <span>PAUSED</span>
-            </>
+          {isMaximized ? (
+            <Copy className="w-3 h-3 rotate-180" />
           ) : (
-            <>
-              <Radio className="w-3 h-3 text-lunar-healthy animate-pulse" />
-              <span>1.0Hz LIVE</span>
-              <Pause className="w-2.5 h-2.5 ml-0.5 text-lunar-muted" />
-            </>
+            <Square className="w-3 h-3" />
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => void handleClose()}
+          className="h-full w-11 flex items-center justify-center text-lunar-text-sec hover:bg-lunar-critical hover:text-lunar-white transition-colors cursor-pointer"
+          title="Close"
+        >
+          <X className="w-4 h-4" />
         </button>
       </div>
     </header>
