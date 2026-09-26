@@ -9,12 +9,17 @@ import type {
 export const WIDGET_EVENTS = {
   SYSTEM_UPDATE: "system:update",
   SETTINGS_UPDATED: "settings:updated",
+  VISIBILITY_UPDATED: "widget:visibility",
   NAVIGATE_INSPECT: "asao:navigate-inspect",
   NAVIGATE_ROUTE: "asao:navigate",
 } as const;
 
 export async function getWidgetUpdate(): Promise<WidgetSystemUpdate> {
   return invoke<WidgetSystemUpdate>("get_widget_update");
+}
+
+export async function getWidgetVisibility(): Promise<boolean> {
+  return invoke<boolean>("get_widget_visibility");
 }
 
 export async function getSettings(): Promise<AsaoSettings> {
@@ -35,6 +40,10 @@ export async function hideWidget(): Promise<void> {
   return invoke<void>("hide_widget");
 }
 
+export async function toggleWidget(): Promise<boolean> {
+  return invoke<boolean>("toggle_widget");
+}
+
 export async function setWidgetMode(mode: WidgetMode): Promise<void> {
   return invoke<void>("set_widget_mode", { mode });
 }
@@ -52,6 +61,7 @@ export async function openMainWindow(
 export async function subscribeToWidgetEvents(handlers: {
   onSystemUpdate?: (update: WidgetSystemUpdate) => void;
   onSettingsUpdated?: (settings: AsaoSettings) => void;
+  onVisibilityChanged?: (visible: boolean) => void;
 }): Promise<() => void> {
   const unlisteners: UnlistenFn[] = [];
 
@@ -73,6 +83,16 @@ export async function subscribeToWidgetEvents(handlers: {
       }
     );
     unlisteners.push(unlistenSettings);
+  }
+
+  if (handlers.onVisibilityChanged) {
+    const unlistenVis = await listen<boolean>(
+      WIDGET_EVENTS.VISIBILITY_UPDATED,
+      (event) => {
+        handlers.onVisibilityChanged?.(event.payload);
+      }
+    );
+    unlisteners.push(unlistenVis);
   }
 
   return () => {
