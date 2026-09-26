@@ -62,6 +62,21 @@ CREATE TABLE IF NOT EXISTS optimization_history (
     applied_at INTEGER NOT NULL,
     rolled_back_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS widget_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    start_with_windows INTEGER NOT NULL DEFAULT 0,
+    widget_enabled INTEGER NOT NULL DEFAULT 1,
+    launch_widget_on_startup INTEGER NOT NULL DEFAULT 0,
+    always_on_top INTEGER NOT NULL DEFAULT 1,
+    show_recommendations INTEGER NOT NULL DEFAULT 1,
+    notifications INTEGER NOT NULL DEFAULT 1,
+    widget_position TEXT NOT NULL DEFAULT 'bottom-right',
+    custom_x INTEGER,
+    custom_y INTEGER,
+    widget_opacity INTEGER NOT NULL DEFAULT 80,
+    updated_at INTEGER NOT NULL
+);
 "#;
 
 pub trait TelemetryRepository: Send + Sync {
