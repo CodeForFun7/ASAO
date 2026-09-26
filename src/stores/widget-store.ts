@@ -9,8 +9,10 @@ import type {
 import {
   getSettings,
   getWidgetUpdate,
+  getWidgetVisibility,
   setWidgetMode,
   subscribeToWidgetEvents,
+  toggleWidget,
   updateSettings,
 } from "../services/widget";
 import { chatService, systemContextService } from "../services/chat";
@@ -33,6 +35,7 @@ const DEFAULT_SETTINGS: AsaoSettings = {
 
 interface WidgetStoreState {
   mode: WidgetMode;
+  widgetVisible: boolean;
   settings: AsaoSettings;
   telemetry: WidgetSystemUpdate | null;
   history: WidgetHistorySample[];
@@ -40,6 +43,7 @@ interface WidgetStoreState {
   isSendingChat: boolean;
 
   initializeWidget: () => Promise<() => void>;
+  toggleWidgetVisibility: () => Promise<void>;
   switchMode: (mode: WidgetMode, initialQuestion?: string) => Promise<void>;
   updateSettingsPatch: (patch: Partial<AsaoSettings>) => Promise<void>;
   sendChatPrompt: (promptText: string) => Promise<void>;
@@ -47,6 +51,7 @@ interface WidgetStoreState {
 
 export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
   mode: "monitor",
+  widgetVisible: false,
   settings: DEFAULT_SETTINGS,
   telemetry: null,
   history: [],
@@ -83,11 +88,13 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
     };
 
     try {
-      const [initialSettings, initialUpdate] = await Promise.all([
-        getSettings(),
-        getWidgetUpdate(),
-      ]);
-      set({ settings: initialSettings });
+      const [initialSettings, initialUpdate, initialVisible] =
+        await Promise.all([
+          getSettings(),
+          getWidgetUpdate(),
+          getWidgetVisibility(),
+        ]);
+      set({ settings: initialSettings, widgetVisible: initialVisible });
       pushUpdate(initialUpdate);
     } catch {
       // Fallback if initialized before first snapshot
@@ -98,11 +105,26 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
         pushUpdate(update);
       },
       onSettingsUpdated: (newSettings) => {
-        set({ settings: newSettings });
+        set({
+          settings: newSettings,
+          widgetVisible: newSettings.widgetEnabled ? get().widgetVisible : false,
+        });
+      },
+      onVisibilityChanged: (visible) => {
+        set({ widgetVisible: visible });
       },
     });
 
     return cleanup;
+  },
+
+  toggleWidgetVisibility: async () => {
+    try {
+      const nextVisible = await toggleWidget();
+      set({ widgetVisible: nextVisible });
+    } catch {
+      // Ignore error
+    }
   },
 
   switchMode: async (mode, initialQuestion) => {
