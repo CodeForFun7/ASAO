@@ -35,10 +35,11 @@ function App() {
   // Transparent background override for the frameless widget window
   useEffect(() => {
     if (isWidgetWindow) {
-      document.documentElement.style.backgroundColor = "transparent";
-      document.body.style.backgroundColor = "transparent";
+      document.documentElement.classList.add("widget-window");
+      document.documentElement.style.background = "transparent";
+      document.body.style.background = "transparent";
       const root = document.getElementById("root");
-      if (root) root.style.backgroundColor = "transparent";
+      if (root) root.style.background = "transparent";
       return;
     }
 
