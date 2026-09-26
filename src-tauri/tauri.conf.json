@@ -12,12 +12,28 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "ASAO",
         "width": 1320,
         "height": 840,
         "minWidth": 1024,
         "minHeight": 680,
         "decorations": false
+      },
+      {
+        "label": "widget",
+        "title": "ASAO Companion",
+        "url": "index.html?window=widget",
+        "width": 328,
+        "height": 412,
+        "minWidth": 296,
+        "minHeight": 350,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": true
       }
     ],
     "security": {
