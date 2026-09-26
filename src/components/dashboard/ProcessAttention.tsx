@@ -18,7 +18,7 @@ export const ProcessAttention: React.FC<ProcessAttentionProps> = ({
   const topCandidates = attentionProcesses.slice(0, 3);
 
   return (
-    <section className="rounded-lg bg-lunar-surface border border-lunar-border p-5 flex flex-col justify-between">
+    <section className="rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
