@@ -9,6 +9,7 @@ import type {
   ResourceUsageFilter,
   SortOption,
   SystemMetrics,
+  SystemTelemetryPoint,
 } from "../types/process";
 import {
   getFullSnapshot,
@@ -27,6 +28,7 @@ interface ProcessStoreState {
   // Live Telemetry Data
   processes: ProcessInfo[];
   systemMetrics: SystemMetrics | null;
+  systemHistory: SystemTelemetryPoint[];
   selectedProcessPid: number | null;
   resourceHistory: Record<number, ProcessResourceSample[]>;
 
@@ -71,6 +73,7 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
 
   processes: [],
   systemMetrics: null,
+  systemHistory: [],
   selectedProcessPid: null,
   resourceHistory: {},
 
@@ -205,14 +208,32 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
       });
     };
 
+    const applySystemMetrics = (metrics: SystemMetrics) => {
+      const prevSys = get().systemHistory;
+      const point: SystemTelemetryPoint = {
+        timestamp: metrics.timestampMs || Date.now(),
+        cpuPercent: metrics.cpuUsagePercent,
+        memoryPercent: metrics.memoryUsagePercent,
+        gpuPercent: metrics.gpuUsagePercent ?? 0,
+      };
+      const nextSys =
+        prevSys.length >= MAX_HISTORY_SAMPLES
+          ? [...prevSys.slice(prevSys.length - MAX_HISTORY_SAMPLES + 1), point]
+          : [...prevSys, point];
+
+      set({
+        systemMetrics: metrics,
+        systemHistory: nextSys,
+        monitoringStatus:
+          get().monitoringStatus === "paused" ? "paused" : "active",
+      });
+    };
+
     try {
       const initial = await getFullSnapshot();
       applyProcessSnapshot(initial.processes);
-      set({
-        systemMetrics: initial.metrics,
-        monitoringStatus: "active",
-        errorMessage: null,
-      });
+      applySystemMetrics(initial.metrics);
+      set({ errorMessage: null });
     } catch (err) {
       set({
         monitoringStatus: "error",
@@ -231,7 +252,7 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
       },
       onSystemMetrics: (metrics) => {
         if (get().monitoringStatus !== "paused") {
-          set({ systemMetrics: metrics, monitoringStatus: "active" });
+          applySystemMetrics(metrics);
         }
       },
       onError: (errMsg) => {
