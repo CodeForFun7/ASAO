@@ -63,10 +63,10 @@ export const ProcessCategoryTabs: React.FC<ProcessCategoryTabsProps> = ({
             type="button"
             onClick={() => onSelectCategory(cat)}
             title={meta.description}
-            className={`text-left px-3 py-2 rounded-md border transition-colors cursor-pointer flex flex-col justify-between min-h-[54px] ${
+            className={`text-left px-3 py-2 rounded-xl transition-all cursor-pointer flex flex-col justify-between min-h-[54px] ${
               isSelected
-                ? "bg-lunar-elevated border-lunar-text-sec/60 text-lunar-white"
-                : "bg-lunar-surface border-lunar-border text-lunar-text-sec hover:bg-lunar-surface-2 hover:text-lunar-text"
+                ? "lunar-glass-card border-lunar-white/30 text-lunar-white"
+                : "lunar-glass-card-interactive text-lunar-text-sec hover:text-lunar-text"
             }`}
           >
             <span className="text-[11px] font-medium truncate w-full">
