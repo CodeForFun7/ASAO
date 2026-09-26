@@ -5,8 +5,9 @@ use crate::analyzer::classifier::classify_process;
 use crate::analyzer::resource_analyzer::{
     classify_cpu_level, classify_memory_level, determine_process_status,
 };
-use crate::analyzer::{ProcessInfo, ProcessSnapshotPayload, ProcessStatus, SystemMetrics};
+use crate::analyzer::{ProcessCategory, ProcessInfo, ProcessSnapshotPayload, ProcessStatus, SystemMetrics};
 use crate::collector::cpu::CpuCollector;
+use crate::collector::gpu::GpuCollector;
 use crate::collector::memory::MemoryCollector;
 use crate::collector::processes::ProcessCollector;
 
@@ -20,6 +21,7 @@ struct PidSampleState {
 pub struct ProcessAnalyzerEngine {
     cpu_collector: CpuCollector,
     memory_collector: MemoryCollector,
+    gpu_collector: GpuCollector,
     process_collector: ProcessCollector,
     pid_states: HashMap<u32, PidSampleState>,
     last_sample_instant: Option<Instant>,
@@ -31,6 +33,7 @@ impl ProcessAnalyzerEngine {
         let mut engine = Self {
             cpu_collector: CpuCollector::new(),
             memory_collector: MemoryCollector::new(),
+            gpu_collector: GpuCollector::new(),
             process_collector: ProcessCollector::new(),
             pid_states: HashMap::with_capacity(512),
             last_sample_instant: None,
@@ -206,6 +209,20 @@ impl ProcessAnalyzerEngine {
             "healthy".to_string()
         };
 
+        // Compute graphics/compositor process CPU sum as fallback input for GPU collector
+        let dwm_and_gpu_cpu: f32 = analyzed_processes
+            .iter()
+            .filter(|p| {
+                p.category == ProcessCategory::Drivers
+                    || p.category == ProcessCategory::Gaming
+                    || p.category == ProcessCategory::Browser
+                    || p.name.eq_ignore_ascii_case("dwm.exe")
+            })
+            .map(|p| p.cpu_percent)
+            .sum();
+
+        let gpu_sample = self.gpu_collector.sample(sys_cpu_percent, dwm_and_gpu_cpu);
+
         let timestamp_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
@@ -218,6 +235,8 @@ impl ProcessAnalyzerEngine {
             memory_used_bytes: mem_sample.used_bytes,
             memory_total_bytes: mem_sample.total_bytes,
             memory_delta_percent: mem_sample.delta_percent,
+            gpu_usage_percent: gpu_sample.usage_percent,
+            gpu_delta_percent: gpu_sample.delta_percent,
             total_processes: analyzed_processes.len(),
             attention_processes: attention_count,
             protected_processes: protected_count,
