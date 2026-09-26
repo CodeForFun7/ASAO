@@ -67,34 +67,42 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       : 100;
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      {/* Top Card: System Strain with Sleep-Time style Semi-Circle Gauge */}
-      <div className="flex-1 rounded-xl lunar-glass-card p-5 flex items-center justify-between gap-4">
-        <div className="flex flex-col justify-between h-full space-y-3">
-          <div>
-            <span className="text-sm font-semibold text-lunar-white tracking-tight block">
-              System Strain
-            </span>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${statusConfig.dot}`}
-              />
-              <span className="text-xs font-medium text-lunar-text">
-                {statusConfig.label}
-              </span>
-            </div>
-            <p className="text-xs text-lunar-text-sec mt-1">
-              {statusConfig.sub}
-            </p>
-          </div>
-
-          <div className="text-[11px] font-mono text-lunar-muted pt-1">
-            Threshold &lt; 75% strain
-          </div>
+    <div
+      onClick={onSelectProcesses}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelectProcesses();
+        }
+      }}
+      className="group h-full rounded-xl lunar-glass-card-interactive p-6 flex flex-col justify-between cursor-pointer"
+    >
+      {/* Top: System Strain Header & Status */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="text-sm font-semibold text-lunar-white tracking-tight block">
+            System Strain &amp; Processes
+          </span>
+          <p className="text-xs text-lunar-text-sec mt-1">
+            {statusConfig.sub}
+          </p>
         </div>
 
-        {/* Right Side: Open-Bottom Semi-Circle Gauge Chart (Sleep Time style) */}
-        <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-lunar-bg/70 border border-lunar-border shrink-0">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${statusConfig.dot}`}
+          />
+          <span className="text-xs font-medium text-lunar-text">
+            {statusConfig.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Middle: Centered Semi-Circle Strain Gauge Chart */}
+      <div className="my-4 flex flex-col items-center justify-center">
+        <div className="relative w-40 h-40 flex items-center justify-center">
           <svg viewBox="0 0 104 104" className="w-full h-full">
             {/* Background Track Arc */}
             <circle
@@ -123,45 +131,34 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-lg font-semibold text-lunar-white font-mono leading-none">
+            <span className="text-2xl font-semibold text-lunar-white font-mono leading-none">
               {strainPercent}%
             </span>
-            <span className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted mt-1">
-              STRAIN
+            <span className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mt-1.5">
+              SYSTEM STRAIN
             </span>
           </div>
         </div>
       </div>
 
-      {/* Bottom Card: Processes Card (moved from top row & structured with breakdown + bar) */}
-      <div
-        onClick={onSelectProcesses}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelectProcesses();
-          }
-        }}
-        className="group flex-1 rounded-xl lunar-glass-card-interactive p-5 flex flex-col justify-between cursor-pointer"
-      >
-        <div className="flex items-start justify-between gap-2">
+      {/* Bottom: Merged Processes Overview & Distribution Bar */}
+      <div className="pt-4 border-t border-lunar-border/60">
+        <div className="flex items-end justify-between gap-2 mb-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-lunar-white tracking-tight">
-                Processes
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-lunar-text-sec group-hover:text-lunar-white transition-colors">
+                Active Processes
               </span>
               <ArrowUpRight className="w-3.5 h-3.5 text-lunar-muted group-hover:text-lunar-white transition-colors" />
             </div>
-            <div className="text-2xl font-semibold text-lunar-white font-mono tracking-tight mt-1">
+            <div className="text-2xl font-semibold text-lunar-white font-mono tracking-tight mt-0.5">
               {metrics.totalProcesses}
             </div>
           </div>
 
           <div className="text-right font-mono">
             <span
-              className={`text-xs font-medium ${
+              className={`text-xs font-medium block ${
                 metrics.attentionProcesses > 0
                   ? "text-lunar-warning"
                   : "text-lunar-healthy"
@@ -169,27 +166,26 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
             >
               {metrics.attentionProcesses} require attention
             </span>
-            <div className="text-[11px] text-lunar-muted mt-0.5">
+            <span className="text-[11px] text-lunar-muted">
               {nominalRatioPercent}% nominal
-            </div>
+            </span>
           </div>
         </div>
 
-        {/* Horizontal Progress Bar & Footer Labels */}
-        <div className="mt-4">
-          <div className="h-2.5 w-full rounded-full bg-lunar-bg/90 border border-lunar-border overflow-hidden p-0.5">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${nominalRatioPercent}%`,
-                backgroundColor: statusConfig.stroke,
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-lunar-text-sec mt-2">
-            <span>Protected: {metrics.protectedProcesses}</span>
-            <span>High Load: {metrics.highResourceProcesses}</span>
-          </div>
+        {/* Horizontal Progress Bar & Protected / High Load Footer */}
+        <div className="h-2.5 w-full rounded-full bg-lunar-bg/90 border border-lunar-border overflow-hidden p-0.5">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${nominalRatioPercent}%`,
+              backgroundColor: statusConfig.stroke,
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] font-mono text-lunar-text-sec mt-2">
+          <span>Protected: {metrics.protectedProcesses}</span>
+          <span>High Load: {metrics.highResourceProcesses}</span>
         </div>
       </div>
     </div>
