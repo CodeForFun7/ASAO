@@ -13,7 +13,7 @@ function SettingsPlaceholder() {
           System Architecture &amp; Instrumentation Settings
         </h1>
         <p className="text-xs text-lunar-text-sec mt-0.5">
-          SYSTEMA v0.1 — Read-only telemetry analyzer configuration and subsystem readiness.
+          ASAO v0.1 — Read-only telemetry analyzer configuration and subsystem readiness.
         </p>
       </div>
 
