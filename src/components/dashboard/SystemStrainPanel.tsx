@@ -80,28 +80,17 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       }}
       className="group h-full rounded-xl lunar-glass-card-interactive p-6 flex flex-col justify-between cursor-pointer"
     >
-      {/* Top: System Strain Header & Status */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <span className="text-sm font-semibold text-lunar-white tracking-tight block">
-            System Strain &amp; Processes
-          </span>
-          <p className="text-xs text-lunar-text-sec mt-1">
-            {statusConfig.sub}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-lunar-bg/70 border border-lunar-border shrink-0">
-          <span
-            className={`w-2 h-2 rounded-full shrink-0 ${statusConfig.dot}`}
-          />
-          <span className="text-xs font-medium text-lunar-text">
-            {statusConfig.label}
-          </span>
-        </div>
+      {/* Top: System Strain Header */}
+      <div>
+        <span className="text-sm font-semibold text-lunar-white tracking-tight block">
+          System Strain &amp; Processes
+        </span>
+        <p className="text-xs text-lunar-text-sec mt-1">
+          {statusConfig.sub}
+        </p>
       </div>
 
-      {/* Middle: Centered Semi-Circle Strain Gauge Chart */}
+      {/* Middle: Centered Semi-Circle Strain Gauge Chart + Load Tag Below Chart */}
       <div className="my-4 flex flex-col items-center justify-center">
         <div className="relative w-40 h-40 flex items-center justify-center">
           <svg viewBox="0 0 104 104" className="w-full h-full">
@@ -139,6 +128,16 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
               SYSTEM STRAIN
             </span>
           </div>
+        </div>
+
+        {/* Load Status Tag Below the Chart */}
+        <div className="mt-1 flex items-center gap-2 px-3 py-1 rounded-full bg-lunar-bg/70 border border-lunar-border">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${statusConfig.dot}`}
+          />
+          <span className="text-xs font-medium text-lunar-text">
+            {statusConfig.label}
+          </span>
         </div>
       </div>
 
