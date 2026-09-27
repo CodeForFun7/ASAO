@@ -193,9 +193,17 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
               </span>
             </div>
             <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-lunar-muted">Active</span>
+              <span className="text-lunar-muted">Activity State</span>
+              <span className="text-lunar-text capitalize">
+                {process.activityState ?? (isActive ? "Foreground" : "Background")}
+              </span>
+            </div>
+            <div className="px-3 py-2 flex items-center justify-between">
+              <span className="text-lunar-muted">Sustained Load</span>
               <span className="text-lunar-text">
-                {isActive ? "Yes" : "No"}
+                {process.sustainedLoadSeconds && process.sustainedLoadSeconds > 0
+                  ? `${process.sustainedLoadSeconds}s`
+                  : "Nominal"}
               </span>
             </div>
             <div className="px-3 py-2 flex items-center justify-between">
@@ -242,17 +250,17 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
           </div>
         </section>
 
-        {/* AI ANALYSIS PLACEHOLDER */}
+        {/* BACKGROUND LOAD & IMPACT ANALYSIS */}
         <section className="space-y-3 border-t border-lunar-border pt-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
               <h3 className="text-[10px] font-mono uppercase tracking-[0.15em] text-lunar-ai">
-                AI Analysis
+                Load &amp; Impact Analysis
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-lunar-muted">
-              PLACEHOLDER
+            <span className="text-[10px] font-mono text-lunar-muted uppercase">
+              {process.impactLevel ?? "low"} impact
             </span>
           </div>
 
@@ -260,20 +268,27 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             <p className="text-xs text-lunar-text-sec leading-relaxed">
               {aiAnalysis
                 ? aiAnalysis.summary
-                : "AI analysis will be available here once the LLM service is connected."}
+                : "Evaluate whether this process is unnecessarily adding background load while not in active focus."}
             </p>
 
             {aiAnalysis && (
-              <p className="text-[11px] font-mono text-lunar-muted border-t border-lunar-border pt-2 leading-relaxed">
-                {aiAnalysis.reason}
-              </p>
+              <div className="space-y-1.5 border-t border-lunar-border pt-2 text-[11px] font-mono">
+                <p className="text-lunar-muted leading-relaxed">
+                  {aiAnalysis.reason}
+                </p>
+                {aiAnalysis.recommendation && (
+                  <p className="text-lunar-text-sec leading-relaxed">
+                    {aiAnalysis.recommendation}
+                  </p>
+                )}
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-lunar-border/60 text-xs font-mono">
               <div className="flex items-center justify-between">
-                <span className="text-lunar-muted">Risk</span>
-                <span className="text-lunar-text-sec">
-                  {aiAnalysis?.risk ?? "—"}
+                <span className="text-lunar-muted">Load Impact</span>
+                <span className="text-lunar-text-sec capitalize">
+                  {aiAnalysis?.impact ?? process.impactLevel ?? "low"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -292,7 +307,7 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
               disabled={isAnalyzing}
               className="w-full py-1.5 px-3 rounded bg-lunar-elevated hover:bg-lunar-border text-lunar-white border border-lunar-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
             >
-              {isAnalyzing ? "Preparing Process Context..." : "Analyze with AI"}
+              {isAnalyzing ? "Analyzing Background Impact..." : "Analyze Load Impact"}
             </button>
           </div>
         </section>
