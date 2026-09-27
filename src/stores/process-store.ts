@@ -210,21 +210,22 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
 
     const applySystemMetrics = (metrics: SystemMetrics) => {
       const prevSys = get().systemHistory;
-      const currentProcs = get().processes;
-      let totalDiskBps = 0;
-      let totalNetBps = 0;
-      for (const p of currentProcs) {
-        totalDiskBps += p.diskBytesPerSec || 0;
-        totalNetBps += p.networkBytesPerSec || 0;
-      }
-
+      const procs = get().processes;
+      const fallbackDisk = procs.reduce(
+        (acc, p) => acc + (p.diskBytesPerSec || 0),
+        0
+      );
+      const fallbackNet = procs.reduce(
+        (acc, p) => acc + (p.networkBytesPerSec || 0),
+        0
+      );
       const point: SystemTelemetryPoint = {
         timestamp: metrics.timestampMs || Date.now(),
         cpuPercent: metrics.cpuUsagePercent,
         memoryPercent: metrics.memoryUsagePercent,
         gpuPercent: metrics.gpuUsagePercent ?? 0,
-        diskBytesPerSec: totalDiskBps,
-        networkBytesPerSec: totalNetBps,
+        diskBytesPerSec: metrics.diskBytesPerSec ?? fallbackDisk,
+        networkBytesPerSec: metrics.networkBytesPerSec ?? fallbackNet,
       };
       const nextSys =
         prevSys.length >= MAX_HISTORY_SAMPLES
@@ -232,7 +233,11 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
           : [...prevSys, point];
 
       set({
-        systemMetrics: metrics,
+        systemMetrics: {
+          ...metrics,
+          diskBytesPerSec: metrics.diskBytesPerSec ?? fallbackDisk,
+          networkBytesPerSec: metrics.networkBytesPerSec ?? fallbackNet,
+        },
         systemHistory: nextSys,
         monitoringStatus:
           get().monitoringStatus === "paused" ? "paused" : "active",
