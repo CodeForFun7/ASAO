@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS recommendations (
     summary TEXT NOT NULL,
     reason TEXT NOT NULL,
     recommendation TEXT,
-    risk_level TEXT,
+    impact_level TEXT,
     confidence REAL,
     created_at INTEGER NOT NULL,
     FOREIGN KEY(application_id) REFERENCES applications(id)
