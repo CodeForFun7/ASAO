@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useProcessStore } from "../stores/process-store";
-import { formatBytes, formatRate } from "../services/tauri";
+import { formatRate } from "../services/tauri";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { SystemHealth } from "../components/dashboard/SystemHealth";
 import { SystemStrainPanel } from "../components/dashboard/SystemStrainPanel";
@@ -121,10 +121,14 @@ export const Dashboard: React.FC = () => {
           onClick={navigateToMemoryProcesses}
           actionHint="Open processes sorted by Memory usage"
           subtitle={
-            <span>
-              {formatBytes(systemMetrics.memoryUsedBytes)} ·{" "}
-              {Math.abs(memDelta).toFixed(1)}% Δ
-            </span>
+            <>
+              {memDelta <= 0 ? (
+                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
+              ) : (
+                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
+              )}
+              <span>{Math.abs(memDelta).toFixed(1)}% from avg</span>
+            </>
           }
         />
 
