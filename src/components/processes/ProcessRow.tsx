@@ -11,17 +11,56 @@ import {
 } from "lucide-react";
 import {
   CATEGORY_METADATA,
-  STATUS_METADATA,
   type ProcessCategory,
   type ProcessInfo,
 } from "../../types/process";
 import { formatBytes, formatRate } from "../../services/tauri";
-import { ProcessStatusBadge } from "./ProcessStatusBadge";
 
 interface ProcessRowProps {
   process: ProcessInfo;
   isSelected: boolean;
   onSelect: (pid: number) => void;
+}
+
+function getResourceLevel(process: ProcessInfo): {
+  label: "High" | "Moderate" | "Low";
+  dotColor: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+} {
+  if (
+    process.cpuPercent >= 12 ||
+    process.memoryBytes >= 1500 * 1024 * 1024 ||
+    process.status === "high-resource" ||
+    process.status === "attention"
+  ) {
+    return {
+      label: "High",
+      dotColor: "bg-lunar-critical",
+      badgeBg: "bg-lunar-critical/10",
+      badgeText: "text-lunar-critical",
+      badgeBorder: "border-lunar-critical/30",
+    };
+  }
+
+  if (process.cpuPercent >= 5 || process.memoryBytes >= 500 * 1024 * 1024) {
+    return {
+      label: "Moderate",
+      dotColor: "bg-lunar-warning",
+      badgeBg: "bg-lunar-warning/10",
+      badgeText: "text-lunar-warning",
+      badgeBorder: "border-lunar-warning/30",
+    };
+  }
+
+  return {
+    label: "Low",
+    dotColor: "bg-lunar-healthy",
+    badgeBg: "bg-lunar-healthy/10",
+    badgeText: "text-lunar-healthy",
+    badgeBorder: "border-lunar-healthy/30",
+  };
 }
 
 function getCategoryIcon(category: ProcessCategory) {
@@ -47,8 +86,7 @@ function getCategoryIcon(category: ProcessCategory) {
 
 export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
   ({ process, isSelected, onSelect }) => {
-    const statusMeta =
-      STATUS_METADATA[process.status] ?? STATUS_METADATA.normal;
+    const resourceMeta = getResourceLevel(process);
     const categoryLabel =
       CATEGORY_METADATA[process.category]?.label ?? "Unknown";
 
@@ -74,7 +112,7 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
           <div className="relative flex items-center justify-center w-7 h-7 rounded bg-lunar-bg border border-lunar-border shrink-0">
             {getCategoryIcon(process.category)}
             <span
-              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-lunar-bg ${statusMeta.dotColor}`}
+              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-lunar-bg ${resourceMeta.dotColor}`}
             />
           </div>
 
@@ -155,9 +193,16 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
           <div className="text-[10px] text-lunar-muted">Net</div>
         </div>
 
-        {/* Status */}
+        {/* Resource */}
         <div className="col-span-4 sm:col-span-4 lg:col-span-2 flex justify-end">
-          <ProcessStatusBadge status={process.status} compact />
+          <span
+            className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceMeta.badgeBg} ${resourceMeta.badgeText} ${resourceMeta.badgeBorder}`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${resourceMeta.dotColor}`}
+            />
+            <span className="truncate">{resourceMeta.label}</span>
+          </span>
         </div>
       </div>
     );
