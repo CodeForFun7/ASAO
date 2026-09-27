@@ -1,4 +1,9 @@
-import type { ProcessCategory, ProcessStatus } from "./process";
+import type {
+  LoadImpactLevel,
+  ProcessActivityState,
+  ProcessCategory,
+  ProcessStatus,
+} from "./process";
 
 export type SystemConditionState = "GOOD" | "ELEVATED" | "ATTENTION";
 
@@ -31,8 +36,12 @@ export interface CompactProcessContext {
   name: string;
   category: ProcessCategory;
   cpuPercent: number;
+  sustainedCpuPercent?: number;
   memoryBytes: number;
   status: ProcessStatus;
+  activityState?: ProcessActivityState;
+  sustainedLoadSeconds?: number;
+  impactLevel?: LoadImpactLevel;
 }
 
 export interface WidgetRecommendation {
@@ -43,6 +52,8 @@ export interface WidgetRecommendation {
   processPid: number | null;
   processName: string | null;
   metricHighlight: string | null;
+  impactLevel?: LoadImpactLevel | null;
+  sustainedSeconds?: number | null;
 }
 
 export interface WidgetSystemUpdate {
@@ -51,6 +62,11 @@ export interface WidgetSystemUpdate {
   memoryUsedBytes: number;
   memoryTotalBytes: number;
   gpuUsage: number;
+  foregroundLoad?: number;
+  backgroundLoad?: number;
+  systemStrain?: number;
+  userActive?: boolean;
+  foregroundProcessName?: string | null;
   processCount: number;
   attentionCount: number;
   condition: SystemConditionState;
@@ -73,6 +89,11 @@ export interface StructuredSystemContext {
   memoryUsedBytes: number;
   memoryTotalBytes: number;
   gpuUsage: number;
+  foregroundLoad: number;
+  backgroundLoad: number;
+  systemStrain: number;
+  userActive: boolean;
+  foregroundProcessName: string | null;
   processCount: number;
   attentionCount: number;
   systemCondition: SystemConditionState;
