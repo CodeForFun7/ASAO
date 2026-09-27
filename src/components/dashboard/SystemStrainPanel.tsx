@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowUpRight } from "lucide-react";
 import type { SystemMetrics } from "../../types/process";
 
 interface SystemStrainPanelProps {
@@ -25,47 +24,26 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
     )
   );
 
-  const statusConfig =
+  const activeTier: "low" | "moderate" | "high" =
     metrics.systemStatus === "critical"
-      ? {
-          label: "Strained",
-          sub: "Elevated system load",
-          dot: "bg-lunar-critical",
-          stroke: "#C47A7A",
-        }
+      ? "high"
       : metrics.systemStatus === "warning"
-      ? {
-          label: "Moderate Load",
-          sub: "Resource thresholds active",
-          dot: "bg-lunar-warning",
-          stroke: "#C9A66B",
-        }
-      : {
-          label: "Healthy",
-          sub: "Nominal operating parameters",
-          dot: "bg-lunar-healthy",
-          stroke: "#9BAE9F",
-        };
+      ? "moderate"
+      : "low";
 
-  // Sleep-Time style open-bottom semi-circle / 240° gauge arc
+  const strokeColor =
+    activeTier === "high"
+      ? "#EF4444"
+      : activeTier === "moderate"
+      ? "#F59E0B"
+      : "#22C55E";
+
+  // Open-bottom semi-circle / 245° gauge arc
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  const arcAngle = 245; // 245° sweep with open bottom (like Sleep Time in ref)
+  const arcAngle = 245;
   const arcLength = (arcAngle / 360) * circumference;
   const filledLength = (strainPercent / 100) * arcLength;
-
-  // Healthy ratio for the Processes bar
-  const nominalProcesses = Math.max(
-    0,
-    metrics.totalProcesses - metrics.highResourceProcesses - metrics.attentionProcesses
-  );
-  const nominalRatioPercent =
-    metrics.totalProcesses > 0
-      ? Math.min(
-          100,
-          Math.max(12, Math.round((nominalProcesses / metrics.totalProcesses) * 100))
-        )
-      : 100;
 
   return (
     <div
@@ -80,19 +58,16 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       }}
       className="group h-full rounded-xl lunar-glass-card-interactive p-6 flex flex-col justify-between cursor-pointer"
     >
-      {/* Top: Centered System Strain Header */}
+      {/* Top: Centered System Strain and Processes Title */}
       <div className="text-center flex flex-col items-center">
         <span className="text-sm font-semibold text-lunar-white tracking-tight block">
-          System Strain &amp; Processes
+          System Strain and Processes
         </span>
-        <p className="text-xs text-lunar-text-sec mt-1">
-          {statusConfig.sub}
-        </p>
       </div>
 
-      {/* Middle: Centered Semi-Circle Strain Gauge Chart + Load Tag Below Chart */}
+      {/* Middle: Centered Semi-Circle Strain Gauge Chart + Low / Moderate / High Legend Row */}
       <div className="my-4 flex flex-col items-center justify-center">
-        <div className="relative w-40 h-40 flex items-center justify-center">
+        <div className="relative w-44 h-44 flex items-center justify-center">
           <svg viewBox="0 0 104 104" className="w-full h-full">
             {/* Background Track Arc */}
             <circle
@@ -112,7 +87,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
               cy="52"
               r={radius}
               fill="none"
-              stroke={statusConfig.stroke}
+              stroke={strokeColor}
               strokeWidth="8.5"
               strokeLinecap="round"
               strokeDasharray={`${filledLength} ${circumference}`}
@@ -130,53 +105,62 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
           </div>
         </div>
 
-        {/* Load Status Tag Below the Chart */}
-        <div className="mt-1 flex items-center gap-2 px-3 py-1 rounded-full bg-lunar-bg/70 border border-lunar-border">
-          <span
-            className={`w-2 h-2 rounded-full shrink-0 ${statusConfig.dot}`}
-          />
-          <span className="text-xs font-medium text-lunar-text">
-            {statusConfig.label}
-          </span>
+        {/* Low / Moderate / High Horizontal Row */}
+        <div className="mt-3 w-full flex items-center justify-around px-2">
+          <div
+            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
+              activeTier === "low"
+                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
+                : "text-lunar-text-sec opacity-60"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] shrink-0" />
+            <span className="text-xs font-medium">Low</span>
+          </div>
+
+          <div
+            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
+              activeTier === "moderate"
+                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
+                : "text-lunar-text-sec opacity-60"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shrink-0" />
+            <span className="text-xs font-medium">Moderate</span>
+          </div>
+
+          <div
+            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
+              activeTier === "high"
+                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
+                : "text-lunar-text-sec opacity-60"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] shrink-0" />
+            <span className="text-xs font-medium">High</span>
+          </div>
         </div>
       </div>
 
-      {/* Bottom: Merged Processes Overview */}
-      <div className="pt-4">
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-lunar-text-sec group-hover:text-lunar-white transition-colors">
-                Active Processes
-              </span>
-              <ArrowUpRight className="w-3.5 h-3.5 text-lunar-muted group-hover:text-lunar-white transition-colors" />
-            </div>
-            <div className="text-2xl font-semibold text-lunar-white font-mono tracking-tight mt-0.5">
-              {metrics.totalProcesses}
-            </div>
-          </div>
-
-          <div className="text-right font-mono">
-            <span
-              className={`text-xs font-medium block ${
-                metrics.attentionProcesses > 0
-                  ? "text-lunar-warning"
-                  : "text-lunar-healthy"
-              }`}
-            >
-              {metrics.attentionProcesses} require attention
-            </span>
-            <span className="text-[11px] text-lunar-muted">
-              {nominalRatioPercent}% nominal
-            </span>
-          </div>
+      {/* Bottom: Active Processes & High Load Key-Value Rows */}
+      <div className="space-y-2.5 pt-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-lunar-text-sec font-medium">
+            Active Processes:
+          </span>
+          <span className="font-mono font-semibold text-lunar-white">
+            {metrics.totalProcesses}
+          </span>
         </div>
 
-        <div className="flex items-center justify-between text-[11px] font-mono text-lunar-text-sec mt-2">
-          <span>Protected: {metrics.protectedProcesses}</span>
-          <span>High Load: {metrics.highResourceProcesses}</span>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-lunar-text-sec font-medium">High Load:</span>
+          <span className="font-mono font-semibold text-lunar-white">
+            {metrics.highResourceProcesses}
+          </span>
         </div>
       </div>
     </div>
   );
 };
+
