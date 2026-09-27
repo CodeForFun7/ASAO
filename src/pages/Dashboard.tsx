@@ -77,6 +77,22 @@ export const Dashboard: React.FC = () => {
   const networkRate = systemMetrics.networkBytesPerSec ?? 0;
   const diskRate = systemMetrics.diskBytesPerSec ?? 0;
 
+  const avgNetwork =
+    systemHistory.length > 0
+      ? systemHistory.reduce((acc, p) => acc + (p.networkBytesPerSec ?? 0), 0) /
+        systemHistory.length
+      : networkRate;
+  const networkDelta =
+    avgNetwork > 0 ? ((networkRate - avgNetwork) / avgNetwork) * 100 : 0;
+
+  const avgDisk =
+    systemHistory.length > 0
+      ? systemHistory.reduce((acc, p) => acc + (p.diskBytesPerSec ?? 0), 0) /
+        systemHistory.length
+      : diskRate;
+  const diskDelta =
+    avgDisk > 0 ? ((diskRate - avgDisk) / avgDisk) * 100 : 0;
+
   const handleSelectGpu = () => {
     setCategoryFilter("drivers");
     setRoute("processes");
@@ -156,7 +172,16 @@ export const Dashboard: React.FC = () => {
           value={formatRate(networkRate)}
           onClick={navigateToCpuProcesses}
           actionHint="Inspect active network processes"
-          subtitle={<span>Live socket &amp; I/O throughput</span>}
+          subtitle={
+            <>
+              {networkDelta <= 0 ? (
+                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
+              ) : (
+                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
+              )}
+              <span>{Math.abs(networkDelta).toFixed(1)}% from avg</span>
+            </>
+          }
         />
 
         {/* Disk Card */}
@@ -165,7 +190,16 @@ export const Dashboard: React.FC = () => {
           value={formatRate(diskRate)}
           onClick={navigateToCpuProcesses}
           actionHint="Inspect active disk I/O processes"
-          subtitle={<span>Read &amp; write transfer rate</span>}
+          subtitle={
+            <>
+              {diskDelta <= 0 ? (
+                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
+              ) : (
+                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
+              )}
+              <span>{Math.abs(diskDelta).toFixed(1)}% from avg</span>
+            </>
+          }
         />
       </div>
 
