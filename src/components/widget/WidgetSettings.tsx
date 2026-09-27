@@ -4,9 +4,6 @@ import {
   Eye,
   EyeOff,
   Sliders,
-  ShieldCheck,
-  Database,
-  Sparkles,
 } from "lucide-react";
 import { useWidgetStore } from "../../stores/widget-store";
 import { hideWidget } from "../../services/widget";
@@ -102,10 +99,8 @@ export const WidgetSettings: React.FC = () => {
         </p>
       </div>
 
-      {/* Main Settings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 7 Cols: Desktop Widget & Startup Controls */}
-        <div className="lg:col-span-7 space-y-6">
+      {/* Main Settings Content */}
+      <div className="max-w-3xl space-y-6">
           {/* Startup & Background Service Section */}
           <section className="rounded-xl lunar-glass-card p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -274,37 +269,6 @@ export const WidgetSettings: React.FC = () => {
               />
             </div>
           </section>
-        </div>
-
-        {/* Right 5 Cols: Architecture & Safety Boundaries */}
-        <div className="lg:col-span-5 space-y-6">
-          <section className="rounded-xl lunar-glass-card p-5 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-lunar-white">
-              <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
-              <span>AI &amp; Persistence Boundaries</span>
-            </div>
-
-            <div className="p-3 rounded-lg lunar-glass-sub space-y-1.5 text-xs">
-              <div className="flex items-center gap-1.5 text-lunar-ai font-medium">
-                <Database className="w-3.5 h-3.5" />
-                <span>SystemContextService &amp; ChatService</span>
-              </div>
-              <p className="text-lunar-text-sec text-[11px] leading-relaxed">
-                Widget chat packages structured CPU, RAM, top processes, and active recommendations without exposing raw process tables.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-lg lunar-glass-sub space-y-1.5 text-xs">
-              <div className="flex items-center gap-1.5 text-lunar-healthy font-medium">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Read-Only Observation Policy</span>
-              </div>
-              <p className="text-lunar-text-sec text-[11px] leading-relaxed">
-                Closing the widget hides it without terminating Asao. Destructive process or registry actions remain disabled.
-              </p>
-            </div>
-          </section>
-        </div>
       </div>
     </div>
   );
