@@ -141,9 +141,9 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
         </div>
       </div>
 
-      {/* Bottom: Merged Processes Overview & Distribution Bar */}
-      <div className="pt-4 border-t border-lunar-border/60">
-        <div className="flex items-end justify-between gap-2 mb-3">
+      {/* Bottom: Merged Processes Overview */}
+      <div className="pt-4">
+        <div className="flex items-end justify-between gap-2">
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-medium text-lunar-text-sec group-hover:text-lunar-white transition-colors">
@@ -170,17 +170,6 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
               {nominalRatioPercent}% nominal
             </span>
           </div>
-        </div>
-
-        {/* Horizontal Progress Bar & Protected / High Load Footer */}
-        <div className="h-2.5 w-full rounded-full bg-lunar-bg/90 border border-lunar-border overflow-hidden p-0.5">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${nominalRatioPercent}%`,
-              backgroundColor: statusConfig.stroke,
-            }}
-          />
         </div>
 
         <div className="flex items-center justify-between text-[11px] font-mono text-lunar-text-sec mt-2">
