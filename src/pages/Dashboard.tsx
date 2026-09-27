@@ -1,18 +1,14 @@
 import React from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  AlertTriangle,
-  RefreshCw,
-} from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useProcessStore } from "../stores/process-store";
-import { MetricCard } from "../components/dashboard/MetricCard";
 import { SystemHealth } from "../components/dashboard/SystemHealth";
 import { SystemStrainPanel } from "../components/dashboard/SystemStrainPanel";
+import { DashboardBottomRow } from "../components/dashboard/DashboardBottomRow";
 
 export const Dashboard: React.FC = () => {
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
   const systemHistory = useProcessStore((s) => s.systemHistory);
+  const processes = useProcessStore((s) => s.processes);
   const monitoringStatus = useProcessStore((s) => s.monitoringStatus);
   const errorMessage = useProcessStore((s) => s.errorMessage);
   const retryMonitoring = useProcessStore((s) => s.retryMonitoring);
@@ -28,6 +24,7 @@ export const Dashboard: React.FC = () => {
   );
   const setCategoryFilter = useProcessStore((s) => s.setCategoryFilter);
   const setRoute = useProcessStore((s) => s.setRoute);
+  const selectProcess = useProcessStore((s) => s.selectProcess);
 
   // Loading State
   if (monitoringStatus === "loading" && !systemMetrics) {
@@ -70,17 +67,13 @@ export const Dashboard: React.FC = () => {
 
   if (!systemMetrics) return null;
 
-  const cpuDelta = systemMetrics.cpuDeltaPercent;
-  const memDelta = systemMetrics.memoryDeltaPercent;
-  const gpuDelta = systemMetrics.gpuDeltaPercent ?? 0;
-
   const handleSelectGpu = () => {
     setCategoryFilter("drivers");
     setRoute("processes");
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {/* Page Header */}
       <div>
         <h1 className="text-lg font-semibold text-lunar-white tracking-tight">
@@ -91,78 +84,20 @@ export const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      {/* Main Grid: Left (CPU/RAM/GPU Cards + Physical-Activity-style Charts) | Right (System Strain Semi-Circle Gauge + Processes) */}
+      {/* Upper Grid: Left Container (CPU/RAM Row + GPU/Network/Disk Row) | Right Container (System Strain Chart + Processes) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-        {/* Left Column: 3 Metric Cards on top + Telemetry Charts Card below */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          {/* CPU, RAM, GPU Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* CPU Card */}
-            <MetricCard
-              label="CPU"
-              value={`${systemMetrics.cpuUsagePercent.toFixed(0)}%`}
-              onClick={navigateToCpuProcesses}
-              actionHint="Open processes sorted by CPU usage"
-              subtitle={
-                <>
-                  {cpuDelta <= 0 ? (
-                    <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
-                  ) : (
-                    <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
-                  )}
-                  <span>{Math.abs(cpuDelta).toFixed(1)}% from avg</span>
-                </>
-              }
-            />
-
-            {/* RAM Card */}
-            <MetricCard
-              label="RAM"
-              value={`${systemMetrics.memoryUsagePercent.toFixed(0)}%`}
-              onClick={navigateToMemoryProcesses}
-              actionHint="Open processes sorted by Memory usage"
-              subtitle={
-                <>
-                  {memDelta <= 0 ? (
-                    <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
-                  ) : (
-                    <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
-                  )}
-                  <span>{Math.abs(memDelta).toFixed(1)}% from avg</span>
-                </>
-              }
-            />
-
-            {/* GPU Card */}
-            <MetricCard
-              label="GPU"
-              value={`${(systemMetrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
-              onClick={handleSelectGpu}
-              actionHint="Inspect graphics and driver processes"
-              subtitle={
-                <>
-                  {gpuDelta <= 0 ? (
-                    <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
-                  ) : (
-                    <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
-                  )}
-                  <span>{Math.abs(gpuDelta).toFixed(1)}% from avg</span>
-                </>
-              }
-            />
-          </div>
-
-          {/* Below Cards: Charts of CPU, GPU, and RAM (Physical Activity structure) */}
+        <div className="lg:col-span-8 flex flex-col">
           <SystemHealth
             metrics={systemMetrics}
             history={systemHistory}
+            processes={processes}
             onSelectCpu={navigateToCpuProcesses}
             onSelectMemory={navigateToMemoryProcesses}
             onSelectGpu={handleSelectGpu}
+            onSelectProcesses={() => setRoute("processes")}
           />
         </div>
 
-        {/* Right Column: System Strain (Semi-Circle Gauge like Sleep Time) & Processes Card */}
         <div className="lg:col-span-4 flex flex-col">
           <SystemStrainPanel
             metrics={systemMetrics}
@@ -170,7 +105,19 @@ export const Dashboard: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Bottom Row: Left (Recommendation Here) | Right (AI Assistant Here) */}
+      <DashboardBottomRow
+        metrics={systemMetrics}
+        processes={processes}
+        onInspectProcess={(pid) => {
+          selectProcess(pid);
+          setRoute("processes");
+        }}
+        onOpenProcesses={() => setRoute("processes")}
+      />
     </div>
   );
 };
+
 
