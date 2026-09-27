@@ -4,8 +4,6 @@ import {
   ArrowUp,
   AlertTriangle,
   RefreshCw,
-  Search,
-  X,
 } from "lucide-react";
 import { useProcessStore } from "../stores/process-store";
 import { MetricCard } from "../components/dashboard/MetricCard";
@@ -21,9 +19,6 @@ export const Dashboard: React.FC = () => {
   const monitoringStatus = useProcessStore((s) => s.monitoringStatus);
   const errorMessage = useProcessStore((s) => s.errorMessage);
   const retryMonitoring = useProcessStore((s) => s.retryMonitoring);
-
-  const searchQuery = useProcessStore((s) => s.searchQuery);
-  const setSearchQuery = useProcessStore((s) => s.setSearchQuery);
 
   const navigateToAttentionProcesses = useProcessStore(
     (s) => s.navigateToAttentionProcesses
@@ -42,16 +37,6 @@ export const Dashboard: React.FC = () => {
     () => processes.filter((p) => p.status === "attention"),
     [processes]
   );
-
-  const handleDashboardSearchChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (val.trim().length > 0) {
-      setRoute("processes");
-    }
-  };
 
   // Loading State
   if (monitoringStatus === "loading" && !systemMetrics) {
@@ -105,40 +90,14 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* Page Header: Dashboard Title on Left + Search Bar on Right */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold text-lunar-white tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-xs text-lunar-text-sec mt-0.5">
-            System Overview — Your system is being monitored in real time.
-          </p>
-        </div>
-
-        {/* Search Bar on the Right of Dashboard Title */}
-        <div className="w-full sm:w-80 lg:w-96 shrink-0">
-          <div className="relative flex items-center">
-            <Search className="w-3.5 h-3.5 text-lunar-muted absolute left-3.5 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleDashboardSearchChange}
-              placeholder="Search processes, publishers, paths, or categories..."
-              className="w-full h-9 pl-9 pr-8 bg-lunar-surface border border-lunar-border rounded-full text-xs text-lunar-text placeholder:text-lunar-muted focus:outline-none focus:border-lunar-text-sec transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 text-lunar-muted hover:text-lunar-text p-0.5 cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Page Header */}
+      <div>
+        <h1 className="text-lg font-semibold text-lunar-white tracking-tight">
+          Dashboard
+        </h1>
+        <p className="text-xs text-lunar-text-sec mt-0.5">
+          System Overview — Your system is being monitored in real time.
+        </p>
       </div>
 
       {/* Main Grid: Left (CPU/RAM/GPU Cards + Physical-Activity-style Charts) | Right (System Strain Semi-Circle Gauge + Processes) */}
