@@ -139,9 +139,10 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
   navigateToAttentionProcesses: () =>
     set({
       currentRoute: "processes",
+      searchQuery: "",
       categoryFilter: "all",
       multiCategoryFilter: [],
-      statusFilter: ["attention"],
+      statusFilter: [],
       resourceFilter: "any",
       criticalityFilter: "all",
       sort: "resource-desc",
@@ -150,6 +151,7 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
   navigateToMemoryProcesses: () =>
     set({
       currentRoute: "processes",
+      searchQuery: "",
       categoryFilter: "all",
       multiCategoryFilter: [],
       statusFilter: [],
@@ -161,6 +163,7 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
   navigateToCpuProcesses: () =>
     set({
       currentRoute: "processes",
+      searchQuery: "",
       categoryFilter: "all",
       multiCategoryFilter: [],
       statusFilter: [],
