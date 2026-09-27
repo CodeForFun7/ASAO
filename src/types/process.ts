@@ -16,6 +16,10 @@ export type ProcessStatus =
   | "attention"
   | "protected";
 
+export type ProcessActivityState = "foreground" | "background" | "inactive";
+
+export type LoadImpactLevel = "low" | "moderate" | "high";
+
 export type ResourceLevel = "normal" | "moderate" | "high" | "very-high";
 
 export interface ProcessInfo {
@@ -26,12 +30,17 @@ export interface ProcessInfo {
   publisher: string | null;
   productName: string | null;
   cpuPercent: number;
+  sustainedCpuPercent?: number;
   memoryBytes: number;
   diskBytesPerSec: number;
   networkBytesPerSec: number;
   threadCount: number;
   category: ProcessCategory;
   status: ProcessStatus;
+  activityState?: ProcessActivityState;
+  sustainedLoadSeconds?: number;
+  backgroundImpactScore?: number;
+  impactLevel?: LoadImpactLevel;
   cpuLevel: ResourceLevel;
   memoryLevel: ResourceLevel;
   isStartup: boolean;
@@ -50,6 +59,11 @@ export interface SystemMetrics {
   memoryDeltaPercent: number;
   gpuUsagePercent: number;
   gpuDeltaPercent: number;
+  foregroundLoadPercent?: number;
+  backgroundLoadPercent?: number;
+  systemStrainPercent?: number;
+  userActive?: boolean;
+  foregroundProcessName?: string | null;
   totalProcesses: number;
   attentionProcesses: number;
   protectedProcesses: number;
@@ -78,17 +92,40 @@ export interface ProcessResourceSample {
   networkBytesPerSec: number;
 }
 
+export interface StructuredProcessContext {
+  pid: number;
+  name: string;
+  category: ProcessCategory;
+  status: ProcessStatus;
+  activityState: ProcessActivityState;
+  cpuPercent: number;
+  sustainedCpuPercent: number;
+  memoryBytes: number;
+  diskBytesPerSec: number;
+  networkBytesPerSec: number;
+  sustainedLoadSeconds: number;
+  backgroundImpactScore: number;
+  impactLevel: LoadImpactLevel;
+  isSystemCritical: boolean;
+  isStartup: boolean;
+  publisher: string | null;
+  productName: string | null;
+}
+
 export interface ProcessAnalysis {
   summary: string;
   reason: string;
   recommendation?: string;
-  risk?: "low" | "medium" | "high";
+  impact?: LoadImpactLevel;
   confidence?: number;
   estimatedImpact?: string;
+  activityState?: ProcessActivityState;
+  sustainedSeconds?: number;
   isPlaceholder?: boolean;
 }
 
 export interface ProcessAnalysisService {
+  buildProcessContext(process: ProcessInfo): StructuredProcessContext;
   analyzeProcess(process: ProcessInfo): Promise<ProcessAnalysis>;
   analyzeSystem(
     metrics: SystemMetrics,
