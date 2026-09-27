@@ -32,6 +32,9 @@ export const AIInsight: React.FC<AIInsightProps> = ({
     }
   };
 
+  const bgLoad = metrics.backgroundLoadPercent ?? 0;
+  const fgLoad = metrics.foregroundLoadPercent ?? 0;
+
   return (
     <section className="rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
       <div>
@@ -39,25 +42,31 @@ export const AIInsight: React.FC<AIInsightProps> = ({
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
             <h2 className="text-[11px] font-mono uppercase tracking-[0.14em] text-lunar-ai">
-              AI Insights
+              Background Load &amp; Recommendations
             </h2>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-lunar-ai/10 text-lunar-ai border border-lunar-ai/25">
-            LLM STANDBY
+            {analysis ? `${(analysis.impact ?? "low").toUpperCase()} IMPACT` : "LOCAL ENGINE ACTIVE"}
           </span>
         </div>
 
         <p className="text-xs text-lunar-text-sec leading-relaxed">
           {analysis
             ? analysis.summary
-            : "AI analysis will appear here once the LLM layer is connected."}
+            : `Evaluating sustained background load (${bgLoad.toFixed(
+                0
+              )}% background vs ${fgLoad.toFixed(
+                0
+              )}% foreground) while you use ${
+                metrics.foregroundProcessName ?? "your PC"
+              }.`}
         </p>
 
         {analysis ? (
           <div className="mt-3 p-3 rounded-lg lunar-glass-sub space-y-1.5 font-mono text-[11px]">
             <div className="text-lunar-text flex items-center gap-1.5">
               <Terminal className="w-3 h-3 text-lunar-ai shrink-0" />
-              <span>Telemetry Context Prepared</span>
+              <span>Recommendation Engine Context</span>
             </div>
             <p className="text-lunar-text-sec leading-relaxed">
               {analysis.reason}
@@ -70,9 +79,11 @@ export const AIInsight: React.FC<AIInsightProps> = ({
           </div>
         ) : (
           <div className="mt-4 p-3 rounded-lg lunar-glass-sub text-[11px] font-mono text-lunar-muted space-y-1">
-            <div>• Deterministic process classifier: ACTIVE</div>
-            <div>• Resource history sampler: ACTIVE (1.0Hz)</div>
-            <div>• LLM inference adapter: DISCONNECTED</div>
+            <div>
+              • Foreground Load: {fgLoad.toFixed(0)}% ({metrics.foregroundProcessName ?? "Desktop"})
+            </div>
+            <div>• Sustained Background Load: {bgLoad.toFixed(0)}%</div>
+            <div>• Recommendation Engine: ACTIVE (Deterministic + LLM Ready)</div>
           </div>
         )}
       </div>
@@ -84,10 +95,10 @@ export const AIInsight: React.FC<AIInsightProps> = ({
           disabled={isAnalyzing}
           className="px-3.5 py-1.5 rounded bg-lunar-elevated hover:bg-lunar-border text-lunar-white border border-lunar-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
         >
-          {isAnalyzing ? "Preparing Context..." : "Analyze System"}
+          {isAnalyzing ? "Evaluating Load..." : "Evaluate Background Load"}
         </button>
         <span className="text-[10px] font-mono text-lunar-muted">
-          ProcessAnalysisService
+          RecommendationEngine
         </span>
       </div>
     </section>
