@@ -59,6 +59,8 @@ export interface SystemMetrics {
   memoryDeltaPercent: number;
   gpuUsagePercent: number;
   gpuDeltaPercent: number;
+  diskBytesPerSec?: number;
+  networkBytesPerSec?: number;
   foregroundLoadPercent?: number;
   backgroundLoadPercent?: number;
   systemStrainPercent?: number;
@@ -77,8 +79,8 @@ export interface SystemTelemetryPoint {
   cpuPercent: number;
   memoryPercent: number;
   gpuPercent: number;
-  diskBytesPerSec?: number;
-  networkBytesPerSec?: number;
+  diskBytesPerSec: number;
+  networkBytesPerSec: number;
 }
 
 export interface ProcessSnapshotPayload {
