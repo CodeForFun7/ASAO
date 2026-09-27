@@ -95,6 +95,8 @@ pub struct SystemMetrics {
     pub memory_delta_percent: f32,
     pub gpu_usage_percent: f32,
     pub gpu_delta_percent: f32,
+    pub disk_bytes_per_sec: u64,
+    pub network_bytes_per_sec: u64,
     pub foreground_load_percent: f32,
     pub background_load_percent: f32,
     pub system_strain_percent: f32,
