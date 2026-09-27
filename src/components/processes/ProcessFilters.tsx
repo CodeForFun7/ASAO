@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
   RotateCcw,
   Check,
   X,
@@ -53,24 +52,12 @@ const FILTERABLE_STATUSES: ProcessStatus[] = [
   "normal",
 ];
 
-const RESOURCE_OPTIONS: Array<{ value: ResourceUsageFilter; label: string }> = [
-  { value: "any", label: "Any Resource Usage" },
-  { value: "cpu-25", label: "> 25% CPU" },
-  { value: "cpu-50", label: "> 50% CPU" },
-  { value: "ram-500", label: "> 500 MB RAM" },
-  { value: "ram-1024", label: "> 1 GB RAM" },
-];
-
-const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
-  { value: "resource-desc", label: "Highest Resource Usage (Default)" },
-  { value: "cpu-desc", label: "CPU — Highest" },
-  { value: "cpu-asc", label: "CPU — Lowest" },
-  { value: "memory-desc", label: "Memory — Highest" },
-  { value: "memory-asc", label: "Memory — Lowest" },
-  { value: "name-asc", label: "Name — A-Z" },
-  { value: "name-desc", label: "Name — Z-A" },
-  { value: "category", label: "Category" },
-  { value: "status", label: "Status" },
+const RESOURCE_USAGE_SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
+  { value: "resource-desc", label: "Highest Resource Usage" },
+  { value: "cpu-desc", label: "CPU: Highest to Lowest" },
+  { value: "cpu-asc", label: "CPU: Lowest to Highest" },
+  { value: "memory-desc", label: "Memory: Highest to Lowest" },
+  { value: "memory-asc", label: "Memory: Lowest to Highest" },
 ];
 
 export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
@@ -89,18 +76,13 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
   onResetAll,
 }) => {
   const [filterOpen, setFilterOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
-  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         setFilterOpen(false);
-      }
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setSortOpen(false);
       }
     };
     document.addEventListener("mousedown", handleOutside);
@@ -111,10 +93,8 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
     multiCategoryFilter.length +
     statusFilter.length +
     (resourceFilter !== "any" ? 1 : 0) +
+    (sort !== "resource-desc" ? 1 : 0) +
     (criticalityFilter !== "all" ? 1 : 0);
-
-  const currentSortLabel =
-    SORT_OPTIONS.find((s) => s.value === sort)?.label ?? "Sort";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -139,7 +119,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
         )}
       </div>
 
-      {/* Right: Filter & Sort Dropdowns */}
+      {/* Right: Filter Dropdown Only */}
       <div className="flex items-center gap-2">
         {activeFilterCount > 0 && (
           <button
@@ -157,10 +137,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
         <div className="relative" ref={filterRef}>
           <button
             type="button"
-            onClick={() => {
-              setFilterOpen((prev) => !prev);
-              setSortOpen(false);
-            }}
+            onClick={() => setFilterOpen((prev) => !prev)}
             className={`h-9 px-3 rounded-md border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
               filterOpen || activeFilterCount > 0
                 ? "bg-lunar-elevated border-lunar-text-sec/50 text-lunar-white"
@@ -210,22 +187,25 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
                 </div>
               </div>
 
-              {/* Resource Usage Radio */}
+              {/* Resource Usage (Highest to Lowest CPU / Memory Options) */}
               <div className="border-t border-lunar-border pt-3">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mb-2">
                   Resource Usage
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {RESOURCE_OPTIONS.map((opt) => {
-                    const selected = resourceFilter === opt.value;
+                <div className="space-y-1">
+                  {RESOURCE_USAGE_SORT_OPTIONS.map((opt) => {
+                    const selected = sort === opt.value;
                     return (
                       <label
                         key={opt.value}
-                        onClick={() => onResourceFilterChange(opt.value)}
-                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-lunar-surface-2 cursor-pointer"
+                        onClick={() => {
+                          onResourceFilterChange("any");
+                          onSortChange(opt.value);
+                        }}
+                        className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-lunar-surface-2 cursor-pointer"
                       >
                         <span
-                          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
                             selected
                               ? "border-lunar-white"
                               : "border-lunar-border bg-lunar-bg"
@@ -307,48 +287,8 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
             </div>
           )}
         </div>
-
-        {/* Sort Menu */}
-        <div className="relative" ref={sortRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setSortOpen((prev) => !prev);
-              setFilterOpen(false);
-            }}
-            className="h-9 px-3 rounded-md bg-lunar-surface hover:bg-lunar-surface-2 border border-lunar-border text-xs font-medium text-lunar-text-sec hover:text-lunar-text flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <span className="max-w-[170px] truncate">{currentSortLabel}</span>
-          </button>
-
-          {sortOpen && (
-            <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-[#101318] border border-[#262C34] shadow-2xl z-50 py-1.5 text-xs">
-              {SORT_OPTIONS.map((opt) => {
-                const active = sort === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onSortChange(opt.value);
-                      setSortOpen(false);
-                    }}
-                    className={`w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-lunar-surface-2 cursor-pointer ${
-                      active
-                        ? "text-lunar-white font-medium bg-lunar-elevated/60"
-                        : "text-lunar-text-sec"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {active && <Check className="w-3.5 h-3.5 text-lunar-white" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
 };
+
