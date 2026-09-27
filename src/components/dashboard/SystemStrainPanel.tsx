@@ -17,9 +17,10 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
     Math.max(
       1,
       Math.round(
-        metrics.cpuUsagePercent * 0.45 +
-          metrics.memoryUsagePercent * 0.4 +
-          gpuPercent * 0.15
+        metrics.systemStrainPercent ??
+          metrics.cpuUsagePercent * 0.45 +
+            metrics.memoryUsagePercent * 0.4 +
+            gpuPercent * 0.15
       )
     )
   );
