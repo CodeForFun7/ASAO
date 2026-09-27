@@ -27,7 +27,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         <div className="hidden lg:block lg:col-span-1 text-right">Disk</div>
         <div className="hidden lg:block lg:col-span-1 text-right">Network</div>
         <div className="col-span-4 sm:col-span-4 lg:col-span-2 text-right">
-          Status
+          Resource
         </div>
       </div>
 
