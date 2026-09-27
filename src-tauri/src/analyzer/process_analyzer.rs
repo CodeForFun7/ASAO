@@ -344,6 +344,15 @@ impl ProcessAnalyzerEngine {
             "healthy".to_string()
         };
 
+        let total_disk_bps: u64 = analyzed_processes
+            .iter()
+            .map(|p| p.disk_bytes_per_sec)
+            .fold(0u64, |acc, v| acc.saturating_add(v));
+        let total_net_bps: u64 = analyzed_processes
+            .iter()
+            .map(|p| p.network_bytes_per_sec)
+            .fold(0u64, |acc, v| acc.saturating_add(v));
+
         let timestamp_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
@@ -358,6 +367,8 @@ impl ProcessAnalyzerEngine {
             memory_delta_percent: mem_sample.delta_percent,
             gpu_usage_percent: gpu_sample.usage_percent,
             gpu_delta_percent: gpu_sample.delta_percent,
+            disk_bytes_per_sec: total_disk_bps,
+            network_bytes_per_sec: total_net_bps,
             foreground_load_percent,
             background_load_percent,
             system_strain_percent,
