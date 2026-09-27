@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -9,13 +9,10 @@ import { useProcessStore } from "../stores/process-store";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { SystemHealth } from "../components/dashboard/SystemHealth";
 import { SystemStrainPanel } from "../components/dashboard/SystemStrainPanel";
-import { AIInsight } from "../components/dashboard/AIInsight";
-import { ProcessAttention } from "../components/dashboard/ProcessAttention";
 
 export const Dashboard: React.FC = () => {
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
   const systemHistory = useProcessStore((s) => s.systemHistory);
-  const processes = useProcessStore((s) => s.processes);
   const monitoringStatus = useProcessStore((s) => s.monitoringStatus);
   const errorMessage = useProcessStore((s) => s.errorMessage);
   const retryMonitoring = useProcessStore((s) => s.retryMonitoring);
@@ -31,12 +28,6 @@ export const Dashboard: React.FC = () => {
   );
   const setCategoryFilter = useProcessStore((s) => s.setCategoryFilter);
   const setRoute = useProcessStore((s) => s.setRoute);
-  const selectProcess = useProcessStore((s) => s.selectProcess);
-
-  const attentionProcesses = useMemo(
-    () => processes.filter((p) => p.status === "attention"),
-    [processes]
-  );
 
   // Loading State
   if (monitoringStatus === "loading" && !systemMetrics) {
@@ -178,22 +169,6 @@ export const Dashboard: React.FC = () => {
             onSelectProcesses={navigateToAttentionProcesses}
           />
         </div>
-      </div>
-
-      {/* Bottom Split: AI Insights + Process Attention */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <AIInsight
-          metrics={systemMetrics}
-          attentionProcesses={attentionProcesses}
-        />
-        <ProcessAttention
-          attentionProcesses={attentionProcesses}
-          onViewAttentionProcesses={navigateToAttentionProcesses}
-          onInspectProcess={(pid) => {
-            selectProcess(pid);
-            setRoute("processes");
-          }}
-        />
       </div>
     </div>
   );
