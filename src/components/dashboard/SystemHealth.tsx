@@ -1,89 +1,84 @@
 import React, { useMemo } from "react";
-import { ArrowUpRight } from "lucide-react";
 import type {
-  ProcessInfo,
   SystemMetrics,
   SystemTelemetryPoint,
 } from "../../types/process";
-import { formatBytes, formatRate } from "../../services/tauri";
+import { formatRate } from "../../services/tauri";
 
 interface SystemHealthProps {
   metrics: SystemMetrics;
   history: SystemTelemetryPoint[];
-  processes: ProcessInfo[];
   onSelectCpu: () => void;
   onSelectMemory: () => void;
   onSelectGpu: () => void;
-  onSelectProcesses: () => void;
+  onSelectNetwork?: () => void;
+  onSelectDisk?: () => void;
 }
 
-interface MetricAndChartCardProps {
+interface ActivityColumnChartProps {
   title: string;
-  primaryValue: string;
-  secondaryValue: string;
-  values: number[]; // normalized 0..100 for chart curve
   badgeText: string;
+  currentPercent: number;
+  values: number[];
   strokeColor: string;
+  badgeTextColor?: string;
   gradientId: string;
-  statLeftLabel: string;
-  statLeftValue: string;
-  statRightLabel: string;
-  statRightValue: string;
+  peakValue: string;
+  averageValue: string;
   onClick: () => void;
 }
 
 function buildSmoothCurvePath(coords: { x: number; y: number }[]): string {
   if (coords.length === 0) return "";
-  if (coords.length === 1) {
+  if (coords.length === 1)
     return `M ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)}`;
-  }
 
   let d = `M ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)}`;
   for (let i = 0; i < coords.length - 1; i++) {
     const p0 = coords[i];
     const p1 = coords[i + 1];
     const midX = (p0.x + p1.x) / 2;
-    d += ` C ${midX.toFixed(1)},${p0.y.toFixed(1)} ${midX.toFixed(1)},${p1.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+    d += ` C ${midX.toFixed(1)},${p0.y.toFixed(1)} ${midX.toFixed(
+      1
+    )},${p1.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
   }
   return d;
 }
 
-const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
+const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
   title,
-  primaryValue,
-  secondaryValue,
-  values,
   badgeText,
+  currentPercent,
+  values,
   strokeColor,
+  badgeTextColor = "#0B0D10",
   gradientId,
-  statLeftLabel,
-  statLeftValue,
-  statRightLabel,
-  statRightValue,
+  peakValue,
+  averageValue,
   onClick,
 }) => {
   const { curvePath, areaPath, highlightPoint } = useMemo(() => {
     const targetCount = 18;
-    const fillVal = values[values.length - 1] ?? 10;
+    const fillVal = values[0] ?? currentPercent;
     const sampled =
       values.length < targetCount
         ? [...Array(targetCount - values.length).fill(fillVal), ...values]
         : values.slice(values.length - targetCount);
 
     const width = 240;
-    const height = 84;
-    const topPad = 22;
-    const bottomPad = 6;
+    const height = 96;
+    const topPad = 24;
+    const bottomPad = 8;
     const usableHeight = height - topPad - bottomPad;
 
     const coords = sampled.map((v, i) => {
       const x = (i / (targetCount - 1)) * width;
-      const clamped = Math.min(100, Math.max(2, v));
+      const clamped = Math.min(100, Math.max(0, v));
       const y = topPad + usableHeight - (clamped / 100) * usableHeight;
       return { x, y, val: clamped };
     });
 
-    let peakIdx = Math.floor(targetCount * 0.65);
+    let peakIdx = Math.floor(targetCount * 0.6);
     let maxVal = -1;
     for (let i = 4; i < targetCount - 3; i++) {
       if (coords[i].val >= maxVal) {
@@ -93,14 +88,18 @@ const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
     }
 
     const line = buildSmoothCurvePath(coords);
-    const area = `${line} L ${width},${height - bottomPad} L 0,${height - bottomPad} Z`;
+    const area = `${line} L ${width},${height - bottomPad} L 0,${
+      height - bottomPad
+    } Z`;
 
     return {
       curvePath: line,
       areaPath: area,
       highlightPoint: coords[peakIdx] ?? coords[coords.length - 1],
     };
-  }, [values]);
+  }, [values, currentPercent]);
+
+  const badgeWidth = Math.max(38, badgeText.length * 6.2 + 12);
 
   return (
     <div
@@ -113,48 +112,26 @@ const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
           onClick();
         }
       }}
-      className="group rounded-xl lunar-glass-sub p-4 flex flex-col justify-between hover:border-lunar-white/20 transition-all cursor-pointer"
+      className="group flex flex-col justify-between rounded-lg p-2 -m-2 hover:bg-lunar-elevated/30 transition-colors cursor-pointer"
     >
-      {/* Top: Metric Header & Primary Value */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: strokeColor }}
-            />
-            <span className="text-xs font-medium text-lunar-text-sec group-hover:text-lunar-white transition-colors">
-              {title}
-            </span>
-          </div>
-          <div className="text-2xl font-semibold text-lunar-white font-mono tracking-tight mt-1">
-            {primaryValue}
-          </div>
-        </div>
-
-        <div className="text-right flex flex-col items-end">
-          <ArrowUpRight className="w-3.5 h-3.5 text-lunar-muted group-hover:text-lunar-white transition-colors" />
-          <span className="text-[11px] font-mono text-lunar-muted mt-1">
-            {secondaryValue}
-          </span>
-        </div>
-      </div>
-
-      {/* Middle: Smooth Telemetry Chart */}
-      <div className="relative h-[84px] w-full my-1">
+      {/* Top: Smooth Curve Chart with Floating Usage Callout Badge */}
+      <div className="relative h-[96px] w-full mb-2">
         <svg
-          viewBox="0 0 240 84"
+          viewBox="0 0 240 96"
           preserveAspectRatio="none"
           className="w-full h-full overflow-visible"
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.25" />
+              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.24" />
               <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
+          {/* Soft Area Fill */}
           <path d={areaPath} fill={`url(#${gradientId})`} />
+
+          {/* Smooth Curve Line */}
           <path
             d={curvePath}
             fill="none"
@@ -164,42 +141,43 @@ const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
             strokeLinejoin="round"
           />
 
+          {/* Highlighted Point Vertical Dashed Line + Usage Callout Badge */}
           {highlightPoint && (
             <g>
               <line
                 x1={highlightPoint.x}
                 y1={highlightPoint.y + 4}
                 x2={highlightPoint.x}
-                y2={78}
+                y2={88}
                 stroke={strokeColor}
-                strokeWidth="1.2"
+                strokeWidth="1.25"
                 strokeDasharray="2,4"
-                strokeOpacity="0.7"
+                strokeOpacity="0.75"
               />
               <circle
                 cx={highlightPoint.x}
                 cy={highlightPoint.y}
-                r="3.5"
+                r="4"
                 fill={strokeColor}
                 stroke="#0B0D10"
                 strokeWidth="1.5"
               />
               <rect
-                x={highlightPoint.x - 21}
-                y={Math.max(0, highlightPoint.y - 20)}
-                width="42"
-                height="15"
-                rx="7.5"
+                x={highlightPoint.x - badgeWidth / 2}
+                y={Math.max(1, highlightPoint.y - 22)}
+                width={badgeWidth}
+                height="16"
+                rx="8"
                 fill={strokeColor}
               />
               <text
                 x={highlightPoint.x}
-                y={Math.max(0, highlightPoint.y - 20) + 10.5}
+                y={Math.max(1, highlightPoint.y - 22) + 11}
                 textAnchor="middle"
-                fill="#0B0D10"
+                fill={badgeTextColor}
                 fontSize="9"
                 fontWeight="700"
-                fontFamily="Plus Jakarta Sans, sans-serif"
+                fontFamily="IBM Plex Mono, monospace"
               >
                 {badgeText}
               </text>
@@ -208,20 +186,23 @@ const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
         </svg>
       </div>
 
-      {/* Bottom: Summary Stats */}
-      <div className="pt-2 border-t border-lunar-border/50 flex items-center justify-between text-[11px] font-mono text-lunar-muted">
-        <span>
-          {statLeftLabel}:{" "}
-          <strong className="text-lunar-text-sec font-normal">
-            {statLeftValue}
-          </strong>
+      {/* Label Centered Below Graph (without duplicate big usage number) */}
+      <div className="text-center mb-2">
+        <span className="text-xs font-semibold text-lunar-white tracking-wide group-hover:text-lunar-healthy transition-colors">
+          {title}
         </span>
-        <span>
-          {statRightLabel}:{" "}
-          <strong className="text-lunar-text-sec font-normal">
-            {statRightValue}
-          </strong>
-        </span>
+      </div>
+
+      {/* Bottom: Peak & Average Rows */}
+      <div className="space-y-1 pt-2 border-t border-lunar-border/50 text-[11px] font-mono">
+        <div className="flex items-center justify-between text-lunar-muted">
+          <span>Peak</span>
+          <span className="text-lunar-text-sec">{peakValue}</span>
+        </div>
+        <div className="flex items-center justify-between text-lunar-muted">
+          <span>Average</span>
+          <span className="text-lunar-text-sec">{averageValue}</span>
+        </div>
       </div>
     </div>
   );
@@ -230,11 +211,11 @@ const MetricAndChartCard: React.FC<MetricAndChartCardProps> = ({
 export const SystemHealth: React.FC<SystemHealthProps> = ({
   metrics,
   history,
-  processes,
   onSelectCpu,
   onSelectMemory,
   onSelectGpu,
-  onSelectProcesses,
+  onSelectNetwork,
+  onSelectDisk,
 }) => {
   const cpuSeries = useMemo(() => history.map((h) => h.cpuPercent), [history]);
   const memSeries = useMemo(
@@ -242,48 +223,14 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
     [history]
   );
   const gpuSeries = useMemo(() => history.map((h) => h.gpuPercent), [history]);
-
-  // Compute live & historical Disk and Network rates
-  const {
-    currentDiskBps,
-    peakDiskBps,
-    diskNormalizedSeries,
-    currentNetBps,
-    peakNetBps,
-    netNormalizedSeries,
-  } = useMemo(() => {
-    let liveDisk = 0;
-    let liveNet = 0;
-    for (const p of processes) {
-      liveDisk += p.diskBytesPerSec || 0;
-      liveNet += p.networkBytesPerSec || 0;
-    }
-
-    const rawDiskHistory = history.map((h) => h.diskBytesPerSec ?? liveDisk);
-    const rawNetHistory = history.map((h) => h.networkBytesPerSec ?? liveNet);
-
-    const diskArr = rawDiskHistory.length ? rawDiskHistory : [liveDisk];
-    const netArr = rawNetHistory.length ? rawNetHistory : [liveNet];
-
-    const maxDisk = Math.max(...diskArr, liveDisk, 1024 * 1024); // min 1 MB/s ceiling for normalization
-    const maxNet = Math.max(...netArr, liveNet, 256 * 1024); // min 256 KB/s ceiling for normalization
-
-    const diskNorm = diskArr.map((v) =>
-      Math.min(96, Math.max(6, (v / maxDisk) * 85))
-    );
-    const netNorm = netArr.map((v) =>
-      Math.min(96, Math.max(6, (v / maxNet) * 85))
-    );
-
-    return {
-      currentDiskBps: liveDisk,
-      peakDiskBps: Math.max(...diskArr, liveDisk),
-      diskNormalizedSeries: diskNorm,
-      currentNetBps: liveNet,
-      peakNetBps: Math.max(...netArr, liveNet),
-      netNormalizedSeries: netNorm,
-    };
-  }, [history, processes]);
+  const netBytesSeries = useMemo(
+    () => history.map((h) => h.networkBytesPerSec ?? 0),
+    [history]
+  );
+  const diskBytesSeries = useMemo(
+    () => history.map((h) => h.diskBytesPerSec ?? 0),
+    [history]
+  );
 
   const cpuStats = useMemo(() => {
     const arr = cpuSeries.length ? cpuSeries : [metrics.cpuUsagePercent];
@@ -295,7 +242,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
   const memStats = useMemo(() => {
     const arr = memSeries.length ? memSeries : [metrics.memoryUsagePercent];
     const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-    return { avg };
+    const peak = Math.max(...arr, metrics.memoryUsagePercent);
+    return { avg, peak };
   }, [memSeries, metrics.memoryUsagePercent]);
 
   const gpuStats = useMemo(() => {
@@ -306,91 +254,113 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
     return { avg, peak };
   }, [gpuSeries, metrics.gpuUsagePercent]);
 
-  return (
-    <section className="h-full rounded-2xl lunar-glass-card p-4 flex flex-col gap-4 justify-between">
-      {/* Row 1: CPU Metric & Chart (Left) | RAM Metric & Chart (Right) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-        <MetricAndChartCard
-          title="CPU Metric & Chart"
-          primaryValue={`${metrics.cpuUsagePercent.toFixed(0)}%`}
-          secondaryValue={`${
-            metrics.cpuDeltaPercent >= 0 ? "+" : ""
-          }${metrics.cpuDeltaPercent.toFixed(1)}% vs avg`}
-          values={cpuSeries}
-          badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
-          strokeColor="#9BAE9F"
-          gradientId="gradCpuBox"
-          statLeftLabel="Peak"
-          statLeftValue={`${cpuStats.peak.toFixed(0)}%`}
-          statRightLabel="Avg"
-          statRightValue={`${cpuStats.avg.toFixed(1)}%`}
-          onClick={onSelectCpu}
-        />
+  const netStats = useMemo(() => {
+    const cur = metrics.networkBytesPerSec ?? 0;
+    const arr = netBytesSeries.length ? netBytesSeries : [cur];
+    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const peak = Math.max(...arr, cur);
+    const scaleMax = Math.max(peak, 256 * 1024); // normalize to 0..100% for curve
+    const normalized = arr.map((v) =>
+      Math.min(100, Math.max(4, (v / scaleMax) * 85))
+    );
+    const curPct = Math.min(100, Math.max(4, (cur / scaleMax) * 85));
+    return { avg, peak, normalized, curPct, cur };
+  }, [netBytesSeries, metrics.networkBytesPerSec]);
 
-        <MetricAndChartCard
-          title="RAM Metric & Chart"
-          primaryValue={`${metrics.memoryUsagePercent.toFixed(0)}%`}
-          secondaryValue={`${formatBytes(
-            metrics.memoryUsedBytes
-          )} / ${formatBytes(metrics.memoryTotalBytes)}`}
-          values={memSeries}
-          badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
-          strokeColor="#A6A1B8"
-          gradientId="gradRamBox"
-          statLeftLabel="Used"
-          statLeftValue={formatBytes(metrics.memoryUsedBytes)}
-          statRightLabel="Avg"
-          statRightValue={`${memStats.avg.toFixed(1)}%`}
-          onClick={onSelectMemory}
-        />
+  const diskStats = useMemo(() => {
+    const cur = metrics.diskBytesPerSec ?? 0;
+    const arr = diskBytesSeries.length ? diskBytesSeries : [cur];
+    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const peak = Math.max(...arr, cur);
+    const scaleMax = Math.max(peak, 1024 * 1024); // normalize to 0..100% for curve
+    const normalized = arr.map((v) =>
+      Math.min(100, Math.max(4, (v / scaleMax) * 85))
+    );
+    const curPct = Math.min(100, Math.max(4, (cur / scaleMax) * 85));
+    return { avg, peak, normalized, curPct, cur };
+  }, [diskBytesSeries, metrics.diskBytesPerSec]);
+
+  return (
+    <section className="flex-1 rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
+      {/* Top Row Inside Card: CPU & RAM (2 columns as in sketch) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-lunar-border/40">
+        <div className="md:pr-3">
+          <ActivityColumnChart
+            title="CPU"
+            badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
+            currentPercent={metrics.cpuUsagePercent}
+            values={cpuSeries}
+            strokeColor="#9BAE9F"
+            badgeTextColor="#0B0D10"
+            gradientId="gradCpuActivity"
+            peakValue={`${cpuStats.peak.toFixed(0)}%`}
+            averageValue={`${cpuStats.avg.toFixed(1)}%`}
+            onClick={onSelectCpu}
+          />
+        </div>
+
+        <div className="md:pl-6">
+          <ActivityColumnChart
+            title="RAM"
+            badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
+            currentPercent={metrics.memoryUsagePercent}
+            values={memSeries}
+            strokeColor="#A6A1B8"
+            badgeTextColor="#0B0D10"
+            gradientId="gradRamActivity"
+            peakValue={`${memStats.peak.toFixed(0)}%`}
+            averageValue={`${memStats.avg.toFixed(1)}%`}
+            onClick={onSelectMemory}
+          />
+        </div>
       </div>
 
-      {/* Row 2: GPU Metric & Chart | Network Metric & Chart | Disk Metric & Chart */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-        <MetricAndChartCard
-          title="GPU Metric & Chart"
-          primaryValue={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
-          secondaryValue="3D & Compositor"
-          values={gpuSeries}
-          badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
-          strokeColor="#C9A66B"
-          gradientId="gradGpuBox"
-          statLeftLabel="Peak"
-          statLeftValue={`${gpuStats.peak.toFixed(0)}%`}
-          statRightLabel="Avg"
-          statRightValue={`${gpuStats.avg.toFixed(1)}%`}
-          onClick={onSelectGpu}
-        />
+      {/* Bottom Row Inside Card: GPU, Network & Disk (3 columns as in sketch) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 mt-5 border-t border-lunar-border/40 md:divide-x md:divide-lunar-border/40">
+        <div className="md:pr-2">
+          <ActivityColumnChart
+            title="GPU"
+            badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
+            currentPercent={metrics.gpuUsagePercent ?? 0}
+            values={gpuSeries}
+            strokeColor="#C9A66B"
+            badgeTextColor="#0B0D10"
+            gradientId="gradGpuActivity"
+            peakValue={`${gpuStats.peak.toFixed(0)}%`}
+            averageValue={`${gpuStats.avg.toFixed(1)}%`}
+            onClick={onSelectGpu}
+          />
+        </div>
 
-        <MetricAndChartCard
-          title="Network Metric & Chart"
-          primaryValue={formatRate(currentNetBps)}
-          secondaryValue="Active Socket I/O"
-          values={netNormalizedSeries}
-          badgeText={formatRate(currentNetBps)}
-          strokeColor="#7DAEA3"
-          gradientId="gradNetBox"
-          statLeftLabel="Peak"
-          statLeftValue={formatRate(peakNetBps)}
-          statRightLabel="State"
-          statRightValue={currentNetBps > 32 * 1024 ? "Active" : "Idle"}
-          onClick={onSelectProcesses}
-        />
+        <div className="md:px-4">
+          <ActivityColumnChart
+            title="Network"
+            badgeText={formatRate(netStats.cur)}
+            currentPercent={netStats.curPct}
+            values={netStats.normalized}
+            strokeColor="#8AB4C9"
+            badgeTextColor="#0B0D10"
+            gradientId="gradNetActivity"
+            peakValue={formatRate(netStats.peak)}
+            averageValue={formatRate(Math.round(netStats.avg))}
+            onClick={onSelectNetwork ?? onSelectCpu}
+          />
+        </div>
 
-        <MetricAndChartCard
-          title="Disk Metric & Chart"
-          primaryValue={formatRate(currentDiskBps)}
-          secondaryValue="Read / Write Rate"
-          values={diskNormalizedSeries}
-          badgeText={formatRate(currentDiskBps)}
-          strokeColor="#D49A89"
-          gradientId="gradDiskBox"
-          statLeftLabel="Peak"
-          statLeftValue={formatRate(peakDiskBps)}
-          statRightLabel="State"
-          statRightValue={currentDiskBps > 64 * 1024 ? "Active" : "Idle"}
-          onClick={onSelectProcesses}
-        />
+        <div className="md:pl-4">
+          <ActivityColumnChart
+            title="Disk"
+            badgeText={formatRate(diskStats.cur)}
+            currentPercent={diskStats.curPct}
+            values={diskStats.normalized}
+            strokeColor="#D4A373"
+            badgeTextColor="#0B0D10"
+            gradientId="gradDiskActivity"
+            peakValue={formatRate(diskStats.peak)}
+            averageValue={formatRate(Math.round(diskStats.avg))}
+            onClick={onSelectDisk ?? onSelectCpu}
+          />
+        </div>
       </div>
     </section>
   );
