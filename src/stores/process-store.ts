@@ -210,11 +210,21 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
 
     const applySystemMetrics = (metrics: SystemMetrics) => {
       const prevSys = get().systemHistory;
+      const currentProcs = get().processes;
+      let totalDiskBps = 0;
+      let totalNetBps = 0;
+      for (const p of currentProcs) {
+        totalDiskBps += p.diskBytesPerSec || 0;
+        totalNetBps += p.networkBytesPerSec || 0;
+      }
+
       const point: SystemTelemetryPoint = {
         timestamp: metrics.timestampMs || Date.now(),
         cpuPercent: metrics.cpuUsagePercent,
         memoryPercent: metrics.memoryUsagePercent,
         gpuPercent: metrics.gpuUsagePercent ?? 0,
+        diskBytesPerSec: totalDiskBps,
+        networkBytesPerSec: totalNetBps,
       };
       const nextSys =
         prevSys.length >= MAX_HISTORY_SAMPLES
