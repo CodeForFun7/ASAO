@@ -77,6 +77,8 @@ export interface SystemTelemetryPoint {
   cpuPercent: number;
   memoryPercent: number;
   gpuPercent: number;
+  diskBytesPerSec?: number;
+  networkBytesPerSec?: number;
 }
 
 export interface ProcessSnapshotPayload {
