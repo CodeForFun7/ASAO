@@ -80,8 +80,8 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       }}
       className="group h-full rounded-xl lunar-glass-card-interactive p-6 flex flex-col justify-between cursor-pointer"
     >
-      {/* Top: System Strain Header */}
-      <div>
+      {/* Top: Centered System Strain Header */}
+      <div className="text-center flex flex-col items-center">
         <span className="text-sm font-semibold text-lunar-white tracking-tight block">
           System Strain &amp; Processes
         </span>
