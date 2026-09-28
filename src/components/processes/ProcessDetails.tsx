@@ -148,9 +148,39 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
               PID {process.pid}
             </span>
           </div>
-          <p className="text-[11px] text-lunar-muted font-mono truncate mt-1">
-            {process.publisher ?? process.description ?? categoryMeta.label}
-          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-lunar-text-sec">
+              {categoryMeta.label}
+            </span>
+            <span className="text-lunar-border">•</span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceTag.badge}`}
+              title="Resource Level: How much is it consuming?"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${resourceTag.dot}`}
+              />
+              <span>{resourceTag.label} Resource</span>
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${activityTag.badge}`}
+              title="Activity: Is the user currently using it?"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${activityTag.dot}`}
+              />
+              <span>{activityTag.shortLabel}</span>
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${impactTag.badge}`}
+              title="System Impact: How much is it contributing to overall system load?"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${impactTag.dot}`}
+              />
+              <span>{impactTag.label} Impact</span>
+            </span>
+          </div>
         </div>
 
         <button
@@ -165,93 +195,6 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {/* 4 CORE PROCESS TAGS: CATEGORY / TAGS, RESOURCE LEVEL, ACTIVITY, SYSTEM IMPACT */}
-        <section className="grid grid-cols-2 gap-2.5">
-          {/* 1. CATEGORY / TAGS */}
-          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
-                Category / Tags
-              </div>
-              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
-                What is this process?
-              </div>
-            </div>
-            <div className="pt-1">
-              <span className="inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono bg-lunar-elevated text-lunar-white border-lunar-border">
-                <span className="w-1.5 h-1.5 rounded-full bg-lunar-ai shrink-0" />
-                <span className="truncate">{categoryMeta.label}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* 2. RESOURCE LEVEL */}
-          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
-                Resource Level
-              </div>
-              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
-                How much is it consuming?
-              </div>
-            </div>
-            <div className="pt-1">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceTag.badge}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${resourceTag.dot}`}
-                />
-                <span className="truncate">{resourceTag.label}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* 3. ACTIVITY */}
-          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
-                Activity
-              </div>
-              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
-                Is the user currently using it?
-              </div>
-            </div>
-            <div className="pt-1">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${activityTag.badge}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${activityTag.dot}`}
-                />
-                <span className="truncate">{activityTag.label}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* 4. SYSTEM IMPACT */}
-          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
-                System Impact
-              </div>
-              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
-                How much is it contributing to overall system load?
-              </div>
-            </div>
-            <div className="pt-1">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${impactTag.badge}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${impactTag.dot}`}
-                />
-                <span className="truncate">{impactTag.label}</span>
-              </span>
-            </div>
-          </div>
-        </section>
-
         {/* RESOURCE USAGE */}
         <section className="space-y-3">
           <h3 className="text-[10px] font-mono uppercase tracking-[0.15em] text-lunar-muted">
