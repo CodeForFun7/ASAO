@@ -226,9 +226,6 @@ export const Processes: React.FC = () => {
   }
 
   const totalRunning = systemMetrics?.totalProcesses ?? processes.length;
-  const attentionCount =
-    systemMetrics?.attentionProcesses ??
-    processes.filter((p) => p.status === "attention").length;
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -242,16 +239,6 @@ export const Processes: React.FC = () => {
             </h1>
             <div className="flex items-center gap-3 text-xs text-lunar-text-sec mt-0.5 font-mono">
               <span>{totalRunning} processes running</span>
-              <span className="text-lunar-border">•</span>
-              <button
-                type="button"
-                onClick={() => toggleStatusFilter("attention")}
-                className={`cursor-pointer hover:underline ${
-                  attentionCount > 0 ? "text-lunar-warning" : "text-lunar-text-sec"
-                }`}
-              >
-                {attentionCount} require attention
-              </button>
               {filteredAndSortedProcesses.length !== processes.length && (
                 <>
                   <span className="text-lunar-border">•</span>
