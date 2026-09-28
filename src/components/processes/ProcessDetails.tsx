@@ -212,6 +212,28 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             </div>
           </div>
 
+          {/* GPU Bar */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-lunar-text-sec">GPU</span>
+              <span className="text-lunar-white">
+                {(process.gpuPercent ?? 0).toFixed(1)}%
+              </span>
+            </div>
+            <div className="h-2 w-full bg-lunar-bg rounded-sm overflow-hidden border border-lunar-border p-[1px]">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  (process.gpuPercent ?? 0) >= 25
+                    ? "bg-lunar-warning"
+                    : "bg-lunar-white"
+                }`}
+                style={{
+                  width: `${Math.max(2, Math.min(100, process.gpuPercent ?? 0))}%`,
+                }}
+              />
+            </div>
+          </div>
+
           {/* Disk & Network Readouts */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div className="p-2.5 rounded bg-lunar-bg border border-lunar-border flex items-center justify-between font-mono text-xs">
