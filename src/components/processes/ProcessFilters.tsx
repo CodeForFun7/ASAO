@@ -47,9 +47,7 @@ const FILTERABLE_STATUSES: ProcessStatus[] = [
   "active",
   "background",
   "high-resource",
-  "attention",
   "protected",
-  "normal",
 ];
 
 const RESOURCE_USAGE_SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
@@ -69,8 +67,6 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
   onToggleStatus,
   resourceFilter,
   onResourceFilterChange,
-  criticalityFilter,
-  onCriticalityFilterChange,
   sort,
   onSortChange,
   onResetAll,
@@ -93,8 +89,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
     multiCategoryFilter.length +
     statusFilter.length +
     (resourceFilter !== "any" ? 1 : 0) +
-    (sort !== "resource-desc" ? 1 : 0) +
-    (criticalityFilter !== "all" ? 1 : 0);
+    (sort !== "resource-desc" ? 1 : 0);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -253,35 +248,6 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
                       </label>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* System Criticality */}
-              <div className="border-t border-lunar-border pt-3">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mb-2">
-                  System Criticality
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {(
-                    [
-                      { value: "all", label: "All" },
-                      { value: "user-space", label: "User / Standard" },
-                      { value: "system-critical", label: "Protected Only" },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => onCriticalityFilterChange(item.value)}
-                      className={`flex-1 py-1 px-2 rounded border text-[11px] font-mono cursor-pointer ${
-                        criticalityFilter === item.value
-                          ? "bg-lunar-elevated border-lunar-text-sec text-lunar-white"
-                          : "bg-lunar-bg border-lunar-border text-lunar-text-sec"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
