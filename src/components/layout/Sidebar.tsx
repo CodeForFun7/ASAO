@@ -11,9 +11,9 @@ export const Sidebar: React.FC = () => {
   const totalProcs = systemMetrics?.totalProcesses ?? 0;
 
   const navItemClass = (route: AppRoute) =>
-    `w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+    `w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
       currentRoute === route
-        ? "bg-[#1F1A18] text-[#F2633A] border border-[#2E2420]"
+        ? "bg-lunar-elevated text-lunar-white border border-lunar-border"
         : "text-lunar-text-sec hover:text-lunar-text hover:bg-lunar-surface-2 border border-transparent"
     }`;
 
@@ -27,17 +27,11 @@ export const Sidebar: React.FC = () => {
           className={navItemClass("dashboard")}
         >
           <span className="flex items-center gap-2.5">
-            <LayoutGrid
-              className={`w-3.5 h-3.5 ${
-                currentRoute === "dashboard"
-                  ? "text-[#F2633A]"
-                  : "text-lunar-text-sec"
-              }`}
-            />
+            <LayoutGrid className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Dashboard</span>
           </span>
           {currentRoute === "dashboard" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F2633A]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-lunar-white" />
           )}
         </button>
 
@@ -47,13 +41,7 @@ export const Sidebar: React.FC = () => {
           className={navItemClass("processes")}
         >
           <span className="flex items-center gap-2.5">
-            <Cpu
-              className={`w-3.5 h-3.5 ${
-                currentRoute === "processes"
-                  ? "text-[#F2633A]"
-                  : "text-lunar-text-sec"
-              }`}
-            />
+            <Cpu className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Processes</span>
           </span>
           <span className="flex items-center gap-1.5">
@@ -74,17 +62,11 @@ export const Sidebar: React.FC = () => {
           className={navItemClass("settings")}
         >
           <span className="flex items-center gap-2.5">
-            <Settings
-              className={`w-3.5 h-3.5 ${
-                currentRoute === "settings"
-                  ? "text-[#F2633A]"
-                  : "text-lunar-text-sec"
-              }`}
-            />
+            <Settings className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Settings</span>
           </span>
           {currentRoute === "settings" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F2633A]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-lunar-white" />
           )}
         </button>
       </div>
