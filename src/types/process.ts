@@ -31,6 +31,7 @@ export interface ProcessInfo {
   productName: string | null;
   cpuPercent: number;
   sustainedCpuPercent?: number;
+  gpuPercent?: number;
   memoryBytes: number;
   diskBytesPerSec: number;
   networkBytesPerSec: number;
@@ -91,6 +92,7 @@ export interface ProcessSnapshotPayload {
 export interface ProcessResourceSample {
   timestamp: number;
   cpuPercent: number;
+  gpuPercent?: number;
   memoryBytes: number;
   diskBytesPerSec: number;
   networkBytesPerSec: number;
