@@ -30,9 +30,6 @@ export const Sidebar: React.FC = () => {
             <LayoutGrid className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Dashboard</span>
           </span>
-          {currentRoute === "dashboard" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-lunar-white" />
-          )}
         </button>
 
         <button
@@ -65,9 +62,6 @@ export const Sidebar: React.FC = () => {
             <Settings className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Settings</span>
           </span>
-          {currentRoute === "settings" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-lunar-white" />
-          )}
         </button>
       </div>
     </aside>
