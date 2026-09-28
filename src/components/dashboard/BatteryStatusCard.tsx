@@ -56,21 +56,34 @@ export const BatteryStatusCard: React.FC<BatteryStatusCardProps> = ({
     };
   }, []);
 
+  // Estimate system power consumption in Wh based on CPU, GPU, RAM, and I/O load
+  const gpuPercent = metrics.gpuUsagePercent ?? 0;
+  const diskMb = (metrics.diskBytesPerSec ?? 0) / (1024 * 1024);
+  const netMb = (metrics.networkBytesPerSec ?? 0) / (1024 * 1024);
+
+  const MAX_POWER_WH = 80;
+  const estimatedWh = Math.min(
+    MAX_POWER_WH,
+    Math.max(
+      8,
+      Math.round(
+        10 +
+          metrics.cpuUsagePercent * 0.42 +
+          gpuPercent * 0.28 +
+          metrics.memoryUsagePercent * 0.12 +
+          Math.min(8, (diskMb + netMb) * 0.5)
+      )
+    )
+  );
+
+  // Segmented bar depicts how much power is being consumed (not battery level %)
+  const powerConsumptionRatio = Math.min(1, Math.max(0.08, estimatedWh / MAX_POWER_WH));
   const filledSegments = Math.max(
     1,
     Math.min(
       TOTAL_SEGMENTS,
-      Math.round((batteryPercent / 100) * TOTAL_SEGMENTS)
+      Math.round(powerConsumptionRatio * TOTAL_SEGMENTS)
     )
-  );
-
-  // Estimate system power usage in Wh based on CPU, RAM, and GPU load
-  const gpuPercent = metrics.gpuUsagePercent ?? 0;
-  const estimatedWh = Math.round(
-    14 +
-      metrics.cpuUsagePercent * 0.32 +
-      metrics.memoryUsagePercent * 0.08 +
-      gpuPercent * 0.25
   );
 
   return (
