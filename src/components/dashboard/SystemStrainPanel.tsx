@@ -33,10 +33,10 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
 
   const strokeColor =
     activeTier === "high"
-      ? "#EF4444"
+      ? "#F2633A"
       : activeTier === "moderate"
-      ? "#F59E0B"
-      : "#22C55E";
+      ? "#EAB308"
+      : "#2EB872";
 
   // Open-bottom semi-circle / 245° gauge arc
   const radius = 42;
@@ -75,7 +75,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
               cy="52"
               r={radius}
               fill="none"
-              stroke="#262C34"
+              stroke="#242424"
               strokeWidth="8.5"
               strokeLinecap="round"
               strokeDasharray={`${arcLength} ${circumference}`}
@@ -114,7 +114,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
                 : "text-lunar-text-sec opacity-60"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2EB872] shrink-0" />
             <span className="text-xs font-medium">Low</span>
           </div>
 
@@ -125,7 +125,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
                 : "text-lunar-text-sec opacity-60"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shrink-0" />
             <span className="text-xs font-medium">Moderate</span>
           </div>
 
@@ -136,7 +136,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
                 : "text-lunar-text-sec opacity-60"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F2633A] shrink-0" />
             <span className="text-xs font-medium">High</span>
           </div>
         </div>
