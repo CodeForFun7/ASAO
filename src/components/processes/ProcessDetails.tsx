@@ -117,11 +117,10 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
               PID {process.pid}
             </span>
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-lunar-text-sec">
-              {categoryMeta.label}
-            </span>
-            <span className="text-lunar-border">•</span>
+          <div className="mt-1 text-xs text-lunar-text-sec">
+            {categoryMeta.label}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span
               className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceTag.badge}`}
               title="Resource Level: How much is it consuming?"
