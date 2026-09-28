@@ -25,21 +25,21 @@ function getResourceTag(process: ProcessInfo) {
   ) {
     return {
       label: "High",
-      dot: "bg-lunar-critical",
-      badge: "bg-lunar-critical/10 text-lunar-critical border-lunar-critical/30",
+      dot: "bg-lunar-white",
+      badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
     };
   }
   if (process.cpuPercent >= 5 || process.memoryBytes >= 500 * 1024 * 1024) {
     return {
       label: "Moderate",
-      dot: "bg-lunar-warning",
-      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
+      dot: "bg-lunar-white",
+      badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
     };
   }
   return {
     label: "Low",
-    dot: "bg-lunar-healthy",
-    badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
+    dot: "bg-lunar-white",
+    badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
   };
 }
 
@@ -50,23 +50,23 @@ function getActivityTag(process: ProcessInfo, isActive: boolean) {
     return {
       label: "In Use (Foreground)",
       shortLabel: "Foreground",
-      dot: "bg-lunar-healthy",
-      badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
+      dot: "bg-lunar-white",
+      badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
     };
   }
   if (state === "background") {
     return {
       label: "Background",
       shortLabel: "Background",
-      dot: "bg-lunar-warning",
-      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
+      dot: "bg-lunar-white",
+      badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
     };
   }
   return {
     label: "Idle",
     shortLabel: "Idle",
-    dot: "bg-lunar-muted",
-    badge: "bg-lunar-bg text-lunar-text-sec border-lunar-border",
+    dot: "bg-lunar-white",
+    badge: "bg-lunar-white/10 text-lunar-white border-lunar-white/25",
   };
 }
 
@@ -170,11 +170,7 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             </div>
             <div className="h-2 w-full bg-lunar-bg rounded-sm overflow-hidden border border-lunar-border p-[1px]">
               <div
-                className={`h-full transition-all duration-300 ${
-                  process.cpuPercent >= 25
-                    ? "bg-lunar-warning"
-                    : "bg-lunar-white"
-                }`}
+                className="h-full bg-lunar-white transition-all duration-300"
                 style={{
                   width: `${Math.max(2, Math.min(100, process.cpuPercent))}%`,
                 }}
@@ -194,11 +190,7 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             </div>
             <div className="h-2 w-full bg-lunar-bg rounded-sm overflow-hidden border border-lunar-border p-[1px]">
               <div
-                className={`h-full transition-all duration-300 ${
-                  process.memoryBytes >= 800 * 1024 * 1024
-                    ? "bg-lunar-warning"
-                    : "bg-lunar-text"
-                }`}
+                className="h-full bg-lunar-white transition-all duration-300"
                 style={{
                   width: `${Math.max(
                     2,
