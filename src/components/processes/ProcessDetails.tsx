@@ -70,36 +70,6 @@ function getActivityTag(process: ProcessInfo, isActive: boolean) {
   };
 }
 
-function getImpactTag(process: ProcessInfo, resourceLabel: string) {
-  const level =
-    process.impactLevel ??
-    (resourceLabel === "High"
-      ? "high"
-      : resourceLabel === "Moderate"
-      ? "moderate"
-      : "low");
-
-  if (level === "high") {
-    return {
-      label: "High",
-      dot: "bg-lunar-critical",
-      badge: "bg-lunar-critical/10 text-lunar-critical border-lunar-critical/30",
-    };
-  }
-  if (level === "moderate") {
-    return {
-      label: "Moderate",
-      dot: "bg-lunar-warning",
-      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
-    };
-  }
-  return {
-    label: "Low",
-    dot: "bg-lunar-healthy",
-    badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
-  };
-}
-
 export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
   process,
   samples,
@@ -133,7 +103,6 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
 
   const resourceTag = getResourceTag(process);
   const activityTag = getActivityTag(process, isActive);
-  const impactTag = getImpactTag(process, resourceTag.label);
 
   return (
     <aside className="w-96 bg-[#101318] border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
@@ -170,15 +139,6 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${activityTag.dot}`}
               />
               <span>{activityTag.shortLabel}</span>
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${impactTag.badge}`}
-              title="System Impact: How much is it contributing to overall system load?"
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${impactTag.dot}`}
-              />
-              <span>{impactTag.label} Impact</span>
             </span>
           </div>
         </div>
