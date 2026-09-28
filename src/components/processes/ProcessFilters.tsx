@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Search,
   SlidersHorizontal,
+  ArrowUpDown,
   RotateCcw,
   Check,
   X,
@@ -50,13 +51,27 @@ const FILTERABLE_STATUSES: ProcessStatus[] = [
   "protected",
 ];
 
-const RESOURCE_USAGE_SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
-  { value: "resource-desc", label: "Highest Resource Usage" },
-  { value: "cpu-desc", label: "CPU: Highest to Lowest" },
-  { value: "cpu-asc", label: "CPU: Lowest to Highest" },
-  { value: "memory-desc", label: "Memory: Highest to Lowest" },
-  { value: "memory-asc", label: "Memory: Lowest to Highest" },
+type MetricKey = "cpu" | "memory" | "disk" | "network";
+
+const METRIC_OPTIONS: Array<{ id: MetricKey; label: string }> = [
+  { id: "cpu", label: "CPU" },
+  { id: "memory", label: "RAM" },
+  { id: "disk", label: "Disk" },
+  { id: "network", label: "Network" },
 ];
+
+function getSelectedMetric(sort: SortOption): MetricKey | null {
+  if (sort === "cpu-desc" || sort === "cpu-asc") return "cpu";
+  if (sort === "memory-desc" || sort === "memory-asc") return "memory";
+  if (sort === "disk-desc" || sort === "disk-asc") return "disk";
+  if (sort === "network-desc" || sort === "network-asc") return "network";
+  return null;
+}
+
+function getSortDirection(sort: SortOption): "desc" | "asc" {
+  if (sort.endsWith("-asc")) return "asc";
+  return "desc";
+}
 
 export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
   searchQuery,
@@ -72,24 +87,49 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
   onResetAll,
 }) => {
   const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         setFilterOpen(false);
       }
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
+  const selectedMetric = getSelectedMetric(sort);
+  const sortDirection = getSortDirection(sort);
+
   const activeFilterCount =
     multiCategoryFilter.length +
     statusFilter.length +
     (resourceFilter !== "any" ? 1 : 0) +
-    (sort !== "resource-desc" ? 1 : 0);
+    (selectedMetric !== null ? 1 : 0);
+
+  const handleSelectMetric = (metric: MetricKey) => {
+    onResourceFilterChange("any");
+    if (selectedMetric === metric) {
+      // Toggle off back to default resource-desc
+      onSortChange("resource-desc");
+      setSortOpen(false);
+    } else {
+      onSortChange(`${metric}-${sortDirection}` as SortOption);
+    }
+  };
+
+  const handleSelectDirection = (dir: "desc" | "asc") => {
+    if (!selectedMetric) return;
+    onSortChange(`${selectedMetric}-${dir}` as SortOption);
+    setSortOpen(false);
+  };
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -114,7 +154,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
         )}
       </div>
 
-      {/* Right: Filter Dropdown Only */}
+      {/* Right: Filter + Sort (Sort at right of Filter, active when metric chosen) */}
       <div className="flex items-center gap-2">
         {activeFilterCount > 0 && (
           <button
@@ -132,7 +172,10 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
         <div className="relative" ref={filterRef}>
           <button
             type="button"
-            onClick={() => setFilterOpen((prev) => !prev)}
+            onClick={() => {
+              setFilterOpen((prev) => !prev);
+              setSortOpen(false);
+            }}
             className={`h-9 px-3 rounded-md border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer ${
               filterOpen || activeFilterCount > 0
                 ? "bg-lunar-elevated border-lunar-text-sec/50 text-lunar-white"
@@ -182,22 +225,19 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
                 </div>
               </div>
 
-              {/* Resource Usage (Highest to Lowest CPU / Memory Options) */}
+              {/* Resource Usage Metric Selection (CPU, RAM, Disk, Network) */}
               <div className="border-t border-lunar-border pt-3">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mb-2">
                   Resource Usage
                 </div>
-                <div className="space-y-1">
-                  {RESOURCE_USAGE_SORT_OPTIONS.map((opt) => {
-                    const selected = sort === opt.value;
+                <div className="grid grid-cols-2 gap-1.5">
+                  {METRIC_OPTIONS.map((opt) => {
+                    const selected = selectedMetric === opt.id;
                     return (
                       <label
-                        key={opt.value}
-                        onClick={() => {
-                          onResourceFilterChange("any");
-                          onSortChange(opt.value);
-                        }}
-                        className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-lunar-surface-2 cursor-pointer"
+                        key={opt.id}
+                        onClick={() => handleSelectMetric(opt.id)}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-lunar-surface-2 cursor-pointer"
                       >
                         <span
                           className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
@@ -250,6 +290,75 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
                   })}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sort Menu (Right of Filter; becomes active when CPU, RAM, Disk, or Network is chosen) */}
+        <div className="relative" ref={sortRef}>
+          <button
+            type="button"
+            disabled={!selectedMetric}
+            onClick={() => {
+              if (!selectedMetric) return;
+              setSortOpen((prev) => !prev);
+              setFilterOpen(false);
+            }}
+            title={
+              selectedMetric
+                ? "Sort selected metric"
+                : "Select a metric (CPU, RAM, Disk, or Network) in Filter to enable Sort"
+            }
+            className={`h-9 px-3 rounded-md border text-xs font-medium flex items-center gap-2 transition-colors ${
+              !selectedMetric
+                ? "bg-lunar-surface/50 border-lunar-border/60 text-lunar-muted opacity-50 cursor-not-allowed"
+                : sortOpen
+                ? "bg-lunar-elevated border-lunar-text-sec/50 text-lunar-white cursor-pointer"
+                : "bg-lunar-surface border-lunar-border text-lunar-white hover:bg-lunar-surface-2 cursor-pointer"
+            }`}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <span>
+              {selectedMetric
+                ? `Sort: ${
+                    sortDirection === "desc"
+                      ? "Highest to Lowest"
+                      : "Lowest to Highest"
+                  }`
+                : "Sort"}
+            </span>
+          </button>
+
+          {sortOpen && selectedMetric && (
+            <div className="absolute right-0 mt-1.5 w-52 rounded-xl bg-[#161616] border border-lunar-border shadow-2xl z-50 p-1.5 space-y-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handleSelectDirection("desc")}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+                  sortDirection === "desc"
+                    ? "bg-lunar-elevated text-lunar-white font-medium"
+                    : "text-lunar-text-sec hover:text-lunar-text hover:bg-lunar-surface-2"
+                }`}
+              >
+                <span>Highest to Lowest</span>
+                {sortDirection === "desc" && (
+                  <Check className="w-3.5 h-3.5 text-lunar-white" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectDirection("asc")}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+                  sortDirection === "asc"
+                    ? "bg-lunar-elevated text-lunar-white font-medium"
+                    : "text-lunar-text-sec hover:text-lunar-text hover:bg-lunar-surface-2"
+                }`}
+              >
+                <span>Lowest to Highest</span>
+                {sortDirection === "asc" && (
+                  <Check className="w-3.5 h-3.5 text-lunar-white" />
+                )}
+              </button>
             </div>
           )}
         </div>
