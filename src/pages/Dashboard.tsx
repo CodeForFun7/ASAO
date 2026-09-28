@@ -10,6 +10,7 @@ import { formatRate } from "../services/tauri";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { SystemHealth } from "../components/dashboard/SystemHealth";
 import { SystemStrainPanel } from "../components/dashboard/SystemStrainPanel";
+import { BatteryStatusCard } from "../components/dashboard/BatteryStatusCard";
 
 export const Dashboard: React.FC = () => {
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
@@ -218,12 +219,13 @@ export const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* Right Column: System Strain & Processes Panel */}
-        <div className="lg:col-span-4 flex flex-col">
+        {/* Right Column: System Strain & Processes Panel + Battery Status Card */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
           <SystemStrainPanel
             metrics={systemMetrics}
             onSelectProcesses={navigateToAttentionProcesses}
           />
+          <BatteryStatusCard metrics={systemMetrics} />
         </div>
       </div>
     </div>
