@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Lock, Sparkles, FolderOpen } from "lucide-react";
+import { X, Sparkles, FolderOpen } from "lucide-react";
 import {
   CATEGORY_METADATA,
   type ProcessAnalysis,
@@ -8,13 +8,96 @@ import {
 } from "../../types/process";
 import { formatBytes, formatRate, formatUptime } from "../../services/tauri";
 import { processAnalysisService } from "../../services/process-analysis";
-import { ProcessStatusBadge } from "./ProcessStatusBadge";
 import { ProcessResourceChart } from "./ProcessResourceChart";
 
 interface ProcessDetailsProps {
   process: ProcessInfo;
   samples: ProcessResourceSample[];
   onClose: () => void;
+}
+
+function getResourceTag(process: ProcessInfo) {
+  if (
+    process.cpuPercent >= 12 ||
+    process.memoryBytes >= 1500 * 1024 * 1024 ||
+    process.status === "high-resource" ||
+    process.status === "attention"
+  ) {
+    return {
+      label: "High",
+      dot: "bg-lunar-critical",
+      badge: "bg-lunar-critical/10 text-lunar-critical border-lunar-critical/30",
+    };
+  }
+  if (process.cpuPercent >= 5 || process.memoryBytes >= 500 * 1024 * 1024) {
+    return {
+      label: "Moderate",
+      dot: "bg-lunar-warning",
+      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
+    };
+  }
+  return {
+    label: "Low",
+    dot: "bg-lunar-healthy",
+    badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
+  };
+}
+
+function getActivityTag(process: ProcessInfo, isActive: boolean) {
+  const state =
+    process.activityState ?? (isActive ? "foreground" : "background");
+  if (state === "foreground") {
+    return {
+      label: "In Use (Foreground)",
+      shortLabel: "Foreground",
+      dot: "bg-lunar-healthy",
+      badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
+    };
+  }
+  if (state === "background") {
+    return {
+      label: "Background",
+      shortLabel: "Background",
+      dot: "bg-lunar-warning",
+      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
+    };
+  }
+  return {
+    label: "Idle",
+    shortLabel: "Idle",
+    dot: "bg-lunar-muted",
+    badge: "bg-lunar-bg text-lunar-text-sec border-lunar-border",
+  };
+}
+
+function getImpactTag(process: ProcessInfo, resourceLabel: string) {
+  const level =
+    process.impactLevel ??
+    (resourceLabel === "High"
+      ? "high"
+      : resourceLabel === "Moderate"
+      ? "moderate"
+      : "low");
+
+  if (level === "high") {
+    return {
+      label: "High",
+      dot: "bg-lunar-critical",
+      badge: "bg-lunar-critical/10 text-lunar-critical border-lunar-critical/30",
+    };
+  }
+  if (level === "moderate") {
+    return {
+      label: "Moderate",
+      dot: "bg-lunar-warning",
+      badge: "bg-lunar-warning/10 text-lunar-warning border-lunar-warning/30",
+    };
+  }
+  return {
+    label: "Low",
+    dot: "bg-lunar-healthy",
+    badge: "bg-lunar-healthy/10 text-lunar-healthy border-lunar-healthy/30",
+  };
 }
 
 export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
@@ -48,6 +131,10 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
     process.cpuPercent >= 1.0 ||
     process.diskBytesPerSec > 0;
 
+  const resourceTag = getResourceTag(process);
+  const activityTag = getActivityTag(process, isActive);
+  const impactTag = getImpactTag(process, resourceTag.label);
+
   return (
     <aside className="w-96 bg-[#101318] border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
       {/* Top Panel Header */}
@@ -61,13 +148,9 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
               PID {process.pid}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-xs text-lunar-text-sec">
-              {categoryMeta.label}
-            </span>
-            <span className="text-lunar-border">•</span>
-            <ProcessStatusBadge status={process.status} compact />
-          </div>
+          <p className="text-[11px] text-lunar-muted font-mono truncate mt-1">
+            {process.publisher ?? process.description ?? categoryMeta.label}
+          </p>
         </div>
 
         <button
@@ -82,19 +165,92 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {/* Protected / System Critical Notice */}
-        {process.isSystemCritical && (
-          <div className="p-3 rounded-md bg-lunar-ai/10 border border-lunar-ai/25 flex items-start gap-2.5">
-            <Lock className="w-3.5 h-3.5 text-lunar-ai shrink-0 mt-0.5" />
-            <div className="text-[11px] text-lunar-text-sec leading-relaxed">
-              <strong className="text-lunar-ai font-medium block">
-                Protected Windows System Process
-              </strong>
-              Essential operating system service. Modifying or terminating this
-              process is locked to maintain system stability.
+        {/* 4 CORE PROCESS TAGS: CATEGORY / TAGS, RESOURCE LEVEL, ACTIVITY, SYSTEM IMPACT */}
+        <section className="grid grid-cols-2 gap-2.5">
+          {/* 1. CATEGORY / TAGS */}
+          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
+                Category / Tags
+              </div>
+              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
+                What is this process?
+              </div>
+            </div>
+            <div className="pt-1">
+              <span className="inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono bg-lunar-elevated text-lunar-white border-lunar-border">
+                <span className="w-1.5 h-1.5 rounded-full bg-lunar-ai shrink-0" />
+                <span className="truncate">{categoryMeta.label}</span>
+              </span>
             </div>
           </div>
-        )}
+
+          {/* 2. RESOURCE LEVEL */}
+          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
+                Resource Level
+              </div>
+              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
+                How much is it consuming?
+              </div>
+            </div>
+            <div className="pt-1">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceTag.badge}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${resourceTag.dot}`}
+                />
+                <span className="truncate">{resourceTag.label}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 3. ACTIVITY */}
+          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
+                Activity
+              </div>
+              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
+                Is the user currently using it?
+              </div>
+            </div>
+            <div className="pt-1">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${activityTag.badge}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${activityTag.dot}`}
+                />
+                <span className="truncate">{activityTag.label}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 4. SYSTEM IMPACT */}
+          <div className="p-2.5 rounded-lg bg-lunar-bg border border-lunar-border flex flex-col justify-between gap-1.5">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-lunar-muted">
+                System Impact
+              </div>
+              <div className="text-[10px] text-lunar-text-sec leading-tight mt-0.5">
+                How much is it contributing to overall system load?
+              </div>
+            </div>
+            <div className="pt-1">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${impactTag.badge}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${impactTag.dot}`}
+                />
+                <span className="truncate">{impactTag.label}</span>
+              </span>
+            </div>
+          </div>
+        </section>
 
         {/* RESOURCE USAGE */}
         <section className="space-y-3">
