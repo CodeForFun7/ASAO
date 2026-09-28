@@ -132,6 +132,20 @@ export const Processes: React.FC = () => {
           return b.memoryBytes - a.memoryBytes || b.cpuPercent - a.cpuPercent;
         case "memory-asc":
           return a.memoryBytes - b.memoryBytes;
+        case "disk-desc":
+          return (
+            b.diskBytesPerSec - a.diskBytesPerSec ||
+            b.cpuPercent - a.cpuPercent
+          );
+        case "disk-asc":
+          return a.diskBytesPerSec - b.diskBytesPerSec;
+        case "network-desc":
+          return (
+            b.networkBytesPerSec - a.networkBytesPerSec ||
+            b.cpuPercent - a.cpuPercent
+          );
+        case "network-asc":
+          return a.networkBytesPerSec - b.networkBytesPerSec;
         case "name-asc":
           return a.name.localeCompare(b.name);
         case "name-desc":
@@ -235,7 +249,7 @@ export const Processes: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 shrink-0">
           <div>
             <h1 className="text-lg font-semibold text-lunar-white tracking-tight">
-              Background Processes
+              All Processes
             </h1>
             <div className="flex items-center gap-3 text-xs text-lunar-text-sec mt-0.5 font-mono">
               <span>{totalRunning} processes running</span>
