@@ -262,7 +262,6 @@ impl ProcessAnalyzerEngine {
                 product_name,
                 cpu_percent,
                 sustained_cpu_percent: sustained_cpu,
-                gpu_percent: 0.0,
                 memory_bytes: raw.memory_bytes,
                 disk_bytes_per_sec: disk_bps,
                 network_bytes_per_sec: net_bps,
@@ -312,58 +311,6 @@ impl ProcessAnalyzerEngine {
             .sum();
 
         let gpu_sample = self.gpu_collector.sample(sys_cpu_percent, dwm_and_gpu_cpu);
-
-        // Assign proportional per-process GPU usage across graphics-accelerated processes
-        let total_gpu_weight: f32 = analyzed_processes
-            .iter()
-            .map(|p| {
-                let mult = if p.name.eq_ignore_ascii_case("dwm.exe") {
-                    2.5
-                } else if p.category == ProcessCategory::Gaming
-                    || p.category == ProcessCategory::Drivers
-                {
-                    2.0
-                } else if p.category == ProcessCategory::Browser
-                    || p.category == ProcessCategory::Development
-                    || p.category == ProcessCategory::Communication
-                {
-                    1.0
-                } else {
-                    0.0
-                };
-                if mult > 0.0 {
-                    (p.cpu_percent + (p.memory_bytes as f32 / (1024.0 * 1024.0 * 512.0))) * mult
-                } else {
-                    0.0
-                }
-            })
-            .sum();
-
-        if total_gpu_weight > 0.01 && gpu_sample.usage_percent > 0.0 {
-            for proc in &mut analyzed_processes {
-                let mult = if proc.name.eq_ignore_ascii_case("dwm.exe") {
-                    2.5
-                } else if proc.category == ProcessCategory::Gaming
-                    || proc.category == ProcessCategory::Drivers
-                {
-                    2.0
-                } else if proc.category == ProcessCategory::Browser
-                    || proc.category == ProcessCategory::Development
-                    || proc.category == ProcessCategory::Communication
-                {
-                    1.0
-                } else {
-                    0.0
-                };
-                if mult > 0.0 {
-                    let weight = (proc.cpu_percent
-                        + (proc.memory_bytes as f32 / (1024.0 * 1024.0 * 512.0)))
-                        * mult;
-                    let share = (weight / total_gpu_weight) * gpu_sample.usage_percent;
-                    proc.gpu_percent = ((share * 10.0).round() / 10.0).clamp(0.0, 100.0);
-                }
-            }
-        }
 
         // Layer 3: System Load / Background Load
         let bg_mem_share_pct = if mem_sample.total_bytes > 0 {

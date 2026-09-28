@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { ProcessResourceSample } from "../../types/process";
 import { formatBytes, formatRate } from "../../services/tauri";
 
-type ChartMetricTab = "cpu" | "memory" | "gpu" | "disk" | "network";
+type ChartMetricTab = "cpu" | "memory" | "disk" | "network";
 
 interface ProcessResourceChartProps {
   samples: ProcessResourceSample[];
@@ -21,8 +21,6 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
           return s.cpuPercent;
         case "memory":
           return s.memoryBytes / (1024 * 1024); // MB
-        case "gpu":
-          return s.gpuPercent ?? 0;
         case "disk":
           return s.diskBytesPerSec / 1024; // KB/s
         case "network":
@@ -48,7 +46,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
         : rawValues.slice(rawValues.length - paddedCount);
 
     const upperBound =
-      activeTab === "cpu" || activeTab === "gpu"
+      activeTab === "cpu"
         ? Math.max(15, Math.ceil(peakVal * 1.25), 25)
         : activeTab === "memory"
         ? Math.max(100, peakVal * 1.2)
@@ -65,7 +63,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
     });
 
     const formatVal = (v: number) => {
-      if (activeTab === "cpu" || activeTab === "gpu") return `${v.toFixed(1)}%`;
+      if (activeTab === "cpu") return `${v.toFixed(1)}%`;
       if (activeTab === "memory") return formatBytes(v * 1024 * 1024);
       return formatRate(v * 1024);
     };
@@ -95,7 +93,6 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
             [
               { id: "cpu", label: "CPU" },
               { id: "memory", label: "Memory" },
-              { id: "gpu", label: "GPU" },
               { id: "disk", label: "Disk" },
               { id: "network", label: "Network" },
             ] as const

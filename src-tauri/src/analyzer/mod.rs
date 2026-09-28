@@ -65,7 +65,6 @@ pub struct ProcessInfo {
     pub product_name: Option<String>,
     pub cpu_percent: f32,
     pub sustained_cpu_percent: f32,
-    pub gpu_percent: f32,
     pub memory_bytes: u64,
     pub disk_bytes_per_sec: u64,
     pub network_bytes_per_sec: u64,
