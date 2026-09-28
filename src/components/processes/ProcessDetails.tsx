@@ -105,7 +105,7 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
   const activityTag = getActivityTag(process, isActive);
 
   return (
-    <aside className="w-96 bg-[#101318] border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
+    <aside className="w-96 bg-lunar-surface border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden">
       {/* Top Panel Header */}
       <div className="p-4 border-b border-lunar-border flex items-start justify-between gap-3 bg-lunar-surface-2/50">
         <div className="min-w-0 flex-1">
@@ -207,28 +207,6 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
                       (process.memoryBytes / (2 * 1024 * 1024 * 1024)) * 100
                     )
                   )}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          {/* GPU Bar */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-lunar-text-sec">GPU</span>
-              <span className="text-lunar-white">
-                {(process.gpuPercent ?? 0).toFixed(1)}%
-              </span>
-            </div>
-            <div className="h-2 w-full bg-lunar-bg rounded-sm overflow-hidden border border-lunar-border p-[1px]">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  (process.gpuPercent ?? 0) >= 25
-                    ? "bg-lunar-warning"
-                    : "bg-lunar-white"
-                }`}
-                style={{
-                  width: `${Math.max(2, Math.min(100, process.gpuPercent ?? 0))}%`,
                 }}
               />
             </div>
