@@ -185,6 +185,7 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
         const sample: ProcessResourceSample = {
           timestamp: now,
           cpuPercent: proc.cpuPercent,
+          gpuPercent: proc.gpuPercent ?? 0,
           memoryBytes: proc.memoryBytes,
           diskBytesPerSec: proc.diskBytesPerSec,
           networkBytesPerSec: proc.networkBytesPerSec,
