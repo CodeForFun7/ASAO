@@ -43,7 +43,7 @@ export const Sidebar: React.FC = () => {
           </span>
           <span className="flex items-center gap-1.5">
             {totalProcs > 0 && (
-              <span className="font-mono text-[10px] text-lunar-muted bg-lunar-bg px-1.5 py-0.5 rounded border border-lunar-border">
+              <span className="font-mono text-[11px] text-lunar-muted">
                 {totalProcs}
               </span>
             )}
