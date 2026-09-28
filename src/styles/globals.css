@@ -1,38 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-lunar-bg: #0A0C0F;
-  --color-lunar-surface: #101318;
-  --color-lunar-surface-2: #15191F;
-  --color-lunar-elevated: #1A1F26;
-  --color-lunar-border: rgba(255, 255, 255, 0.09);
-  --color-lunar-text: #E8EAED;
-  --color-lunar-text-sec: #969DA8;
-  --color-lunar-muted: #626A75;
-  --color-lunar-white: #F5F6F7;
-  --color-lunar-healthy: #9BAE9F;
-  --color-lunar-warning: #B8A477;
-  --color-lunar-critical: #A87878;
-  --color-lunar-ai: #A6A1B8;
+  --color-lunar-bg: #0E0E0E;
+  --color-lunar-surface: #131313;
+  --color-lunar-surface-2: #191919;
+  --color-lunar-elevated: #222222;
+  --color-lunar-border: #242424;
+  --color-lunar-text: #F2F2F2;
+  --color-lunar-text-sec: #8E8E8E;
+  --color-lunar-muted: #5E5E5E;
+  --color-lunar-white: #FFFFFF;
+  --color-lunar-healthy: #2EB872;
+  --color-lunar-warning: #EAB308;
+  --color-lunar-critical: #F2633A;
+  --color-lunar-ai: #F2633A;
 
   --font-sans: "Plus Jakarta Sans", "DM Sans", "Segoe UI Variable Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "Plus Jakarta Sans", "DM Sans", "Segoe UI Variable Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 :root {
-  --bg-primary: #0A0C0F;
-  --surface-primary: #101318;
-  --surface-secondary: #15191F;
-  --surface-elevated: #1A1F26;
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --text-primary: #E8EAED;
-  --text-secondary: #969DA8;
-  --text-muted: #626A75;
-  --accent-white: #F5F6F7;
-  --semantic-healthy: #9BAE9F;
-  --semantic-warning: #B8A477;
-  --semantic-critical: #A87878;
-  --semantic-ai: #A6A1B8;
+  --bg-primary: #0E0E0E;
+  --surface-primary: #131313;
+  --surface-secondary: #191919;
+  --surface-elevated: #222222;
+  --border-subtle: #242424;
+  --text-primary: #F2F2F2;
+  --text-secondary: #8E8E8E;
+  --text-muted: #5E5E5E;
+  --accent-white: #FFFFFF;
+  --semantic-healthy: #2EB872;
+  --semantic-warning: #EAB308;
+  --semantic-critical: #F2633A;
+  --semantic-ai: #F2633A;
 
   color-scheme: dark;
 }
@@ -53,7 +53,7 @@ body,
   width: 100%;
   margin: 0;
   padding: 0;
-  background-color: #0A0C0F;
+  background-color: #0E0E0E;
   background-image: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -71,58 +71,48 @@ html.widget-window #root {
   background-image: none !important;
 }
 
-/* Lunar Glassmorphism Card Surfaces */
+/* Matte Dark Black Card Surfaces (Horizon.Gen Theme) */
 .lunar-glass-card {
   background: linear-gradient(
-    145deg,
-    rgba(28, 34, 44, 0.54) 0%,
-    rgba(15, 18, 24, 0.42) 100%
+    180deg,
+    #1A1A1A 0%,
+    #161616 100%
   );
-  backdrop-filter: blur(20px) saturate(145%);
-  -webkit-backdrop-filter: blur(20px) saturate(145%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid #242424;
   box-shadow:
-    0 12px 32px -8px rgba(0, 0, 0, 0.58),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.11);
+    0 12px 32px -8px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 .lunar-glass-card-interactive {
   background: linear-gradient(
-    145deg,
-    rgba(28, 34, 44, 0.54) 0%,
-    rgba(15, 18, 24, 0.42) 100%
+    180deg,
+    #1A1A1A 0%,
+    #161616 100%
   );
-  backdrop-filter: blur(20px) saturate(145%);
-  -webkit-backdrop-filter: blur(20px) saturate(145%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid #242424;
   box-shadow:
-    0 12px 32px -8px rgba(0, 0, 0, 0.58),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.11);
+    0 12px 32px -8px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lunar-glass-card-interactive:hover {
   background: linear-gradient(
-    145deg,
-    rgba(36, 44, 56, 0.66) 0%,
-    rgba(20, 25, 33, 0.52) 100%
+    180deg,
+    #212121 0%,
+    #1A1A1A 100%
   );
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: #303030;
   box-shadow:
-    0 16px 36px -6px rgba(0, 0, 0, 0.68),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+    0 16px 36px -6px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .lunar-glass-sub {
-  background: linear-gradient(
-    160deg,
-    rgba(18, 22, 29, 0.58) 0%,
-    rgba(10, 12, 16, 0.46) 100%
-  );
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  background: #141414;
+  border: 1px solid #242424;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Subtle Lunar Instrumentation Scrollbars */
