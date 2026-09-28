@@ -124,16 +124,11 @@ export const WidgetSettings: React.FC = () => {
 
           {/* Desktop Widget Configuration Section */}
           <section className="rounded-xl lunar-glass-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <AppWindow className="w-3.5 h-3.5 text-lunar-white" />
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
-                  Desktop Widget
-                </h2>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-lunar-bg border border-lunar-border text-lunar-text-sec">
-                {settings.widgetEnabled ? "ENABLED" : "DISABLED"}
-              </span>
+            <div className="flex items-center gap-2 mb-3">
+              <AppWindow className="w-3.5 h-3.5 text-lunar-white" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
+                Desktop Widget
+              </h2>
             </div>
 
             <div>
