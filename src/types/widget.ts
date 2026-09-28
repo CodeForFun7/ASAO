@@ -72,6 +72,7 @@ export interface WidgetSystemUpdate {
   condition: SystemConditionState;
   conditionReason: string;
   recommendation: WidgetRecommendation;
+  recommendations?: WidgetRecommendation[];
   topCpuProcesses: CompactProcessContext[];
   topMemoryProcesses: CompactProcessContext[];
   timestamp: number;

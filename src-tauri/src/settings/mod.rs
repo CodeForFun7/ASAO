@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
+use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,11 +44,60 @@ pub fn get_settings_file_path(app: &AppHandle) -> Option<PathBuf> {
         .map(|dir| dir.join("asao_settings.json"))
 }
 
+#[cfg(target_os = "windows")]
+#[link(name = "user32")]
+extern "system" {
+    fn SetWindowPos(
+        hwnd: isize,
+        hwnd_insert_after: isize,
+        x: i32,
+        y: i32,
+        cx: i32,
+        cy: i32,
+        u_flags: u32,
+    ) -> i32;
+}
+
+/// Ensures the widget window stays pinned in the foreground Z-order as a non-activating
+/// desktop overlay (`HWND_TOPMOST`) even when other applications are opened or focused.
+pub fn enforce_widget_topmost(window: &WebviewWindow, always_on_top: bool) {
+    let _ = window.set_always_on_top(always_on_top);
+
+    #[cfg(target_os = "windows")]
+    {
+        const HWND_TOPMOST: isize = -1;
+        const HWND_NOTOPMOST: isize = -2;
+        const SWP_NOSIZE: u32 = 0x0001;
+        const SWP_NOMOVE: u32 = 0x0002;
+        const SWP_NOACTIVATE: u32 = 0x0010;
+
+        if let Ok(hwnd) = window.hwnd() {
+            let insert_after = if always_on_top {
+                HWND_TOPMOST
+            } else {
+                HWND_NOTOPMOST
+            };
+            unsafe {
+                let _ = SetWindowPos(
+                    hwnd.0 as isize,
+                    insert_after,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+                );
+            }
+        }
+    }
+}
+
 pub fn load_settings(app: &AppHandle) -> AsaoSettings {
     if let Some(path) = get_settings_file_path(app) {
         if let Ok(raw) = fs::read_to_string(path) {
             if let Ok(mut parsed) = serde_json::from_str::<AsaoSettings>(&raw) {
                 parsed.widget_opacity = parsed.widget_opacity.clamp(60, 100);
+                parsed.always_on_top = true;
                 return parsed;
             }
         }
@@ -70,7 +119,9 @@ pub fn save_settings(app: &AppHandle, settings: &AsaoSettings) -> Result<(), Str
 /// Positions the widget window according to the user's selected anchor or persisted
 /// custom coordinates, safely clamped within the active monitor bounds.
 pub fn apply_widget_window_geometry(window: &WebviewWindow, settings: &AsaoSettings) {
-    let _ = window.set_always_on_top(settings.always_on_top);
+    let _ = window.set_maximizable(false);
+    let _ = window.set_max_size(Some(LogicalSize::new(380.0, 480.0)));
+    enforce_widget_topmost(window, settings.always_on_top);
 
     let monitor = window
         .current_monitor()
@@ -93,7 +144,7 @@ pub fn apply_widget_window_geometry(window: &WebviewWindow, settings: &AsaoSetti
 
     let win_size = window
         .outer_size()
-        .unwrap_or(PhysicalSize::new(328, 412));
+        .unwrap_or(PhysicalSize::new(380, 480));
     let w = win_size.width as i32;
     let h = win_size.height as i32;
     let margin = 24;

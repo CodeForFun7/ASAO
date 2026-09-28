@@ -100,7 +100,7 @@ export const WidgetSettings: React.FC = () => {
       </div>
 
       {/* Main Settings Content */}
-      <div className="max-w-3xl space-y-6">
+      <div className="w-full max-w-3xl mx-auto space-y-6">
           {/* Startup & Background Service Section */}
           <section className="rounded-xl lunar-glass-card p-5">
             <div className="flex items-center gap-2 mb-3">

@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AppShell } from "./components/layout/AppShell";
 import { Dashboard } from "./pages/Dashboard";
 import { Processes } from "./pages/Processes";
+import { StoragePage } from "./pages/StoragePage";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { useProcessStore } from "./stores/process-store";
@@ -58,7 +59,12 @@ function App() {
 
     void listen<string>("asao:navigate", (event) => {
       const target = event.payload as AppRoute;
-      if (target === "dashboard" || target === "processes" || target === "settings") {
+      if (
+        target === "dashboard" ||
+        target === "processes" ||
+        target === "storage" ||
+        target === "settings"
+      ) {
         setRoute(target);
       }
     }).then((fn) => {
@@ -70,7 +76,12 @@ function App() {
       "asao:navigate-inspect",
       (event) => {
         const { route, pid } = event.payload;
-        if (route === "dashboard" || route === "processes" || route === "settings") {
+        if (
+          route === "dashboard" ||
+          route === "processes" ||
+          route === "storage" ||
+          route === "settings"
+        ) {
           setRoute(route);
         }
         if (pid !== null && pid !== undefined) {
@@ -98,6 +109,7 @@ function App() {
     <AppShell>
       {currentRoute === "dashboard" && <Dashboard />}
       {currentRoute === "processes" && <Processes />}
+      {currentRoute === "storage" && <StoragePage />}
       {currentRoute === "settings" && <WidgetSettings />}
     </AppShell>
   );

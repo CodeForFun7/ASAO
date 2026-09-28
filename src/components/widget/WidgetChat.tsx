@@ -41,7 +41,7 @@ export const WidgetChat: React.FC<WidgetChatProps> = ({
   return (
     <div className="flex-1 flex flex-col min-h-0 p-3 space-y-2.5 overflow-hidden">
       {/* Live System Context Strip */}
-      <div className="px-2.5 py-1.5 rounded-md bg-lunar-bg/70 border border-lunar-border/80 flex items-center justify-between text-[11px] shrink-0">
+      <div className="px-2.5 py-1.5 rounded-md bg-lunar-surface/55 backdrop-blur-sm border border-lunar-border/80 flex items-center justify-between text-[11px] shrink-0">
         <span className="text-lunar-muted uppercase tracking-wider text-[10px]">
           System
         </span>
@@ -75,10 +75,10 @@ export const WidgetChat: React.FC<WidgetChatProps> = ({
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`rounded-lg p-2.5 text-xs leading-relaxed border ${
+            className={`rounded-lg p-2.5 text-xs leading-relaxed backdrop-blur-sm border ${
               msg.sender === "user"
-                ? "bg-lunar-elevated/80 border-lunar-border text-lunar-white ml-4"
-                : "bg-lunar-bg/70 border-lunar-border/70 text-lunar-text-sec mr-2"
+                ? "bg-lunar-elevated/65 border-lunar-border/80 text-lunar-white ml-4"
+                : "bg-lunar-surface/55 border-lunar-border/80 text-lunar-text-sec mr-2"
             }`}
           >
             <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 text-lunar-muted">
@@ -89,7 +89,7 @@ export const WidgetChat: React.FC<WidgetChatProps> = ({
         ))}
 
         {isSending && (
-          <div className="rounded-lg p-2.5 text-xs bg-lunar-bg/70 border border-lunar-border/70 text-lunar-muted">
+          <div className="rounded-lg p-2.5 text-xs bg-lunar-surface/55 backdrop-blur-sm border border-lunar-border/80 text-lunar-muted">
             I&apos;m checking your current system state and running processes...
           </div>
         )}
@@ -103,7 +103,7 @@ export const WidgetChat: React.FC<WidgetChatProps> = ({
             type="button"
             onClick={() => onSendMessage(q)}
             disabled={isSending}
-            className="px-2 py-1 rounded bg-lunar-surface hover:bg-lunar-elevated border border-lunar-border text-[10px] text-lunar-text-sec hover:text-lunar-white whitespace-nowrap transition-colors cursor-pointer"
+            className="px-2 py-1 rounded bg-lunar-surface/55 hover:bg-lunar-elevated/70 backdrop-blur-sm border border-lunar-border/80 text-[10px] text-lunar-text-sec hover:text-lunar-white whitespace-nowrap transition-colors cursor-pointer"
           >
             {q}
           </button>
@@ -117,7 +117,7 @@ export const WidgetChat: React.FC<WidgetChatProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Asao..."
-          className="w-full h-8 pl-3 pr-8 rounded-md bg-lunar-bg border border-lunar-border text-xs text-lunar-text placeholder:text-lunar-muted focus:outline-none focus:border-lunar-text-sec"
+          className="w-full h-8 pl-3 pr-8 rounded-md bg-lunar-surface/55 backdrop-blur-sm border border-lunar-border/80 text-xs text-lunar-text placeholder:text-lunar-muted focus:outline-none focus:border-lunar-text-sec"
         />
         <button
           type="submit"

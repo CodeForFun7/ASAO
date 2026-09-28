@@ -161,7 +161,7 @@ export type ResourceUsageFilter =
 
 export type CriticalityFilter = "all" | "system-critical" | "user-space";
 
-export type AppRoute = "dashboard" | "processes" | "settings";
+export type AppRoute = "dashboard" | "processes" | "storage" | "settings";
 
 export const CATEGORY_METADATA: Record<
   ProcessCategory | "all",

@@ -120,7 +120,7 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
               </span>
               {process.isRestricted && (
                 <span
-                  className="text-[9px] font-mono px-1 rounded bg-lunar-bg text-lunar-muted border border-lunar-border"
+                  className="text-[9px] font-mono text-lunar-muted text-center"
                   title="Restricted Windows process under normal user privileges"
                 >
                   RESTRICTED
@@ -134,8 +134,8 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
         </div>
 
         {/* Category */}
-        <div className="hidden sm:flex sm:col-span-2 items-center min-w-0">
-          <span className="text-xs text-lunar-text-sec truncate">
+        <div className="hidden sm:flex sm:col-span-2 items-center justify-center min-w-0 text-center">
+          <span className="text-xs text-lunar-text-sec truncate text-center">
             {categoryLabel}
           </span>
         </div>
@@ -191,13 +191,10 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
         </div>
 
         {/* Resource */}
-        <div className="col-span-4 sm:col-span-4 lg:col-span-2 flex justify-end">
+        <div className="col-span-4 sm:col-span-4 lg:col-span-2 flex items-center justify-center text-center">
           <span
-            className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-mono ${resourceMeta.badgeBg} ${resourceMeta.badgeText} ${resourceMeta.badgeBorder}`}
+            className={`inline-flex items-center justify-center text-[11px] font-mono text-center ${resourceMeta.badgeText}`}
           >
-            <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${resourceMeta.dotColor}`}
-            />
             <span className="truncate">{resourceMeta.label}</span>
           </span>
         </div>

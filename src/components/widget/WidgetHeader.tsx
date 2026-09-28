@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   MoreHorizontal,
   X,
-  Pin,
   ExternalLink,
   Settings,
 } from "lucide-react";
@@ -24,10 +23,7 @@ interface WidgetHeaderProps {
 
 export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
   mode,
-  condition,
-  settings,
   onBackToMonitor,
-  onUpdateSettings,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -41,13 +37,6 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const dotColor =
-    condition === "ATTENTION"
-      ? "bg-lunar-critical"
-      : condition === "ELEVATED"
-      ? "bg-lunar-warning"
-      : "bg-lunar-healthy";
 
   return (
     <header
@@ -69,9 +58,8 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
         ) : (
           <div
             data-tauri-drag-region
-            className="flex items-center gap-2 pointer-events-none"
+            className="flex items-center pointer-events-none"
           >
-            <span className={`w-2 h-2 rounded-full ${dotColor}`} />
             <span className="text-xs font-semibold tracking-[0.18em] text-lunar-white">
               ASAO
             </span>
@@ -92,24 +80,7 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-1 w-44 rounded-lg bg-[#101318] border border-[#262C34] shadow-2xl z-50 py-1 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  onUpdateSettings({ alwaysOnTop: !settings.alwaysOnTop });
-                  setMenuOpen(false);
-                }}
-                className="w-full px-3 py-1.5 text-left flex items-center justify-between text-lunar-text hover:bg-lunar-surface-2 cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Pin className="w-3 h-3 text-lunar-text-sec" />
-                  <span>Always on Top</span>
-                </span>
-                <span className="text-[10px] text-lunar-muted">
-                  {settings.alwaysOnTop ? "ON" : "OFF"}
-                </span>
-              </button>
-
+            <div className="absolute right-0 mt-1 w-44 rounded-lg bg-lunar-surface border border-lunar-border shadow-2xl z-50 py-1 text-xs">
               <button
                 type="button"
                 onClick={() => {
