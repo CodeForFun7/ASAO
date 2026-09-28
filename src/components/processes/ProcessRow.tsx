@@ -66,13 +66,13 @@ function getResourceLevel(process: ProcessInfo): {
 function getCategoryIcon(category: ProcessCategory) {
   switch (category) {
     case "windows-core":
-      return <Shield className="w-3.5 h-3.5 text-lunar-ai" />;
+      return <Shield className="w-3.5 h-3.5 text-lunar-text-sec" />;
     case "drivers":
       return <Cpu className="w-3.5 h-3.5 text-lunar-text-sec" />;
     case "gaming":
       return <Gamepad2 className="w-3.5 h-3.5 text-lunar-text-sec" />;
     case "development":
-      return <Code2 className="w-3.5 h-3.5 text-lunar-white" />;
+      return <Code2 className="w-3.5 h-3.5 text-lunar-text-sec" />;
     case "productivity":
       return <Briefcase className="w-3.5 h-3.5 text-lunar-text-sec" />;
     case "communication":
@@ -80,7 +80,7 @@ function getCategoryIcon(category: ProcessCategory) {
     case "browser":
       return <Globe className="w-3.5 h-3.5 text-lunar-text-sec" />;
     default:
-      return <HelpCircle className="w-3.5 h-3.5 text-lunar-muted" />;
+      return <HelpCircle className="w-3.5 h-3.5 text-lunar-text-sec" />;
   }
 }
 
@@ -109,11 +109,8 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
       >
         {/* Process Name & Publisher */}
         <div className="col-span-4 sm:col-span-3 flex items-center gap-3 min-w-0">
-          <div className="relative flex items-center justify-center w-7 h-7 rounded bg-lunar-bg border border-lunar-border shrink-0">
+          <div className="flex items-center justify-center w-7 h-7 rounded bg-lunar-bg border border-lunar-border shrink-0">
             {getCategoryIcon(process.category)}
-            <span
-              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-lunar-bg ${resourceMeta.dotColor}`}
-            />
           </div>
 
           <div className="min-w-0 flex-1">
