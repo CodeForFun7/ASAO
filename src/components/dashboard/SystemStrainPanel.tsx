@@ -24,20 +24,6 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
     )
   );
 
-  const activeTier: "low" | "moderate" | "high" =
-    metrics.systemStatus === "critical"
-      ? "high"
-      : metrics.systemStatus === "warning"
-      ? "moderate"
-      : "low";
-
-  const strokeColor =
-    activeTier === "high"
-      ? "#F2633A"
-      : activeTier === "moderate"
-      ? "#EAB308"
-      : "#2EB872";
-
   // Open-bottom semi-circle / 245° gauge arc
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
@@ -65,7 +51,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
         </span>
       </div>
 
-      {/* Middle: Centered Semi-Circle Strain Gauge Chart + Low / Moderate / High Legend Row */}
+      {/* Middle: Centered Semi-Circle Strain Gauge Chart */}
       <div className="my-4 flex flex-col items-center justify-center">
         <div className="relative w-44 h-44 flex items-center justify-center">
           <svg viewBox="0 0 104 104" className="w-full h-full">
@@ -81,13 +67,13 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
               strokeDasharray={`${arcLength} ${circumference}`}
               transform="rotate(147.5 52 52)"
             />
-            {/* Active Strain Arc */}
+            {/* Active Strain Arc (Monotonic Lunar White) */}
             <circle
               cx="52"
               cy="52"
               r={radius}
               fill="none"
-              stroke={strokeColor}
+              stroke="#FFFFFF"
               strokeWidth="8.5"
               strokeLinecap="round"
               strokeDasharray={`${filledLength} ${circumference}`}
@@ -102,42 +88,6 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
             <span className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mt-1.5">
               SYSTEM STRAIN
             </span>
-          </div>
-        </div>
-
-        {/* Low / Moderate / High Horizontal Row */}
-        <div className="mt-3 w-full flex items-center justify-around px-2">
-          <div
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
-              activeTier === "low"
-                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
-                : "text-lunar-text-sec opacity-60"
-            }`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2EB872] shrink-0" />
-            <span className="text-xs font-medium">Low</span>
-          </div>
-
-          <div
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
-              activeTier === "moderate"
-                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
-                : "text-lunar-text-sec opacity-60"
-            }`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shrink-0" />
-            <span className="text-xs font-medium">Moderate</span>
-          </div>
-
-          <div
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-full transition-colors ${
-              activeTier === "high"
-                ? "bg-lunar-bg/80 border border-lunar-border text-lunar-white"
-                : "text-lunar-text-sec opacity-60"
-            }`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F2633A] shrink-0" />
-            <span className="text-xs font-medium">High</span>
           </div>
         </div>
       </div>
