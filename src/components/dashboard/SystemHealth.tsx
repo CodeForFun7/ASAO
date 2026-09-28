@@ -283,15 +283,15 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
   return (
     <section className="flex-1 rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
       {/* Top Row Inside Card: CPU & RAM (2 columns as in sketch) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-lunar-border/40">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-lunar-border/60">
         <div className="md:pr-3">
           <ActivityColumnChart
             title="CPU"
             badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
             currentPercent={metrics.cpuUsagePercent}
             values={cpuSeries}
-            strokeColor="#9BAE9F"
-            badgeTextColor="#0B0D10"
+            strokeColor="#F2633A"
+            badgeTextColor="#FFFFFF"
             gradientId="gradCpuActivity"
             peakValue={`${cpuStats.peak.toFixed(0)}%`}
             averageValue={`${cpuStats.avg.toFixed(1)}%`}
@@ -305,8 +305,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
             currentPercent={metrics.memoryUsagePercent}
             values={memSeries}
-            strokeColor="#A6A1B8"
-            badgeTextColor="#0B0D10"
+            strokeColor="#2EB872"
+            badgeTextColor="#0E0E0E"
             gradientId="gradRamActivity"
             peakValue={`${memStats.peak.toFixed(0)}%`}
             averageValue={`${memStats.avg.toFixed(1)}%`}
@@ -316,15 +316,15 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
       </div>
 
       {/* Bottom Row Inside Card: GPU, Network & Disk (3 columns as in sketch) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 mt-5 border-t border-lunar-border/40 md:divide-x md:divide-lunar-border/40">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 mt-5 border-t border-lunar-border/60 md:divide-x md:divide-lunar-border/60">
         <div className="md:pr-2">
           <ActivityColumnChart
             title="GPU"
             badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
             currentPercent={metrics.gpuUsagePercent ?? 0}
             values={gpuSeries}
-            strokeColor="#C9A66B"
-            badgeTextColor="#0B0D10"
+            strokeColor="#EAB308"
+            badgeTextColor="#0E0E0E"
             gradientId="gradGpuActivity"
             peakValue={`${gpuStats.peak.toFixed(0)}%`}
             averageValue={`${gpuStats.avg.toFixed(1)}%`}
@@ -338,8 +338,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={formatRate(netStats.cur)}
             currentPercent={netStats.curPct}
             values={netStats.normalized}
-            strokeColor="#8AB4C9"
-            badgeTextColor="#0B0D10"
+            strokeColor="#F2633A"
+            badgeTextColor="#FFFFFF"
             gradientId="gradNetActivity"
             peakValue={formatRate(netStats.peak)}
             averageValue={formatRate(Math.round(netStats.avg))}
@@ -353,8 +353,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={formatRate(diskStats.cur)}
             currentPercent={diskStats.curPct}
             values={diskStats.normalized}
-            strokeColor="#D4A373"
-            badgeTextColor="#0B0D10"
+            strokeColor="#A3A3A3"
+            badgeTextColor="#0E0E0E"
             gradientId="gradDiskActivity"
             peakValue={formatRate(diskStats.peak)}
             averageValue={formatRate(Math.round(diskStats.avg))}
