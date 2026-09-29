@@ -20,7 +20,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
     return (
       <div className="flex justify-end my-3 pl-8 sm:pl-16">
-        <div className="relative max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 bg-[#1c2438] border border-white/[0.08] text-[13px] text-zinc-100 shadow-sm leading-relaxed">
+        <div className="relative max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 bg-lunar-elevated/65 backdrop-blur-sm border border-lunar-border/80 text-[13px] text-lunar-white shadow-sm leading-relaxed">
           <div
             className={`whitespace-pre-wrap ${
               isLongText && !isExpanded ? "max-h-[115px] overflow-hidden" : ""
@@ -34,7 +34,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <div
               className={`pt-1 ${
                 !isExpanded
-                  ? "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1c2438] via-[#1c2438]/90 to-transparent pt-6 pb-2 px-4 flex justify-start rounded-b-2xl"
+                  ? "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-lunar-elevated via-lunar-elevated/90 to-transparent pt-6 pb-2 px-4 flex justify-start rounded-b-2xl"
                   : "mt-1 flex justify-start"
               }`}
             >

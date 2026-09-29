@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AlertCircle, Check, Copy, CheckCircle2 } from "lucide-react";
+import React from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import type { ActionableFix, ChatMessage } from "../../types/agent";
 import { AgentActivityProgress } from "./AgentActivityProgress";
 import { MetricPillGroup } from "./MetricPillGroup";
@@ -22,7 +22,6 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
   const isStreaming = message.isStreaming;
   const hasSteps = Boolean(message.steps && message.steps.length > 0);
   const visibleWidgets = diagnostic?.visibleWidgets;
-  const [copied, setCopied] = useState(false);
 
   // Determine which visual widgets to render based on model selection
   const showPills =
@@ -48,13 +47,6 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
   const showFixes =
     (!visibleWidgets || visibleWidgets.includes("actionable_fixes")) &&
     Boolean(message.fixes && message.fixes.length > 0);
-
-  const handleCopy = () => {
-    if (!message.text) return;
-    void navigator.clipboard.writeText(message.text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="w-full text-zinc-200">
@@ -117,30 +109,6 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
               />
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Message Footer Actions (Copy response, etc.) */}
-      {message.text && !isStreaming && (
-        <div className="mt-3 flex items-center gap-2 text-zinc-500">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="p-1 rounded-md hover:bg-white/[0.06] hover:text-zinc-300 transition-colors cursor-pointer text-[11px] flex items-center gap-1"
-            title="Copy response to clipboard"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-white" />
-                <span className="text-white">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copy</span>
-              </>
-            )}
-          </button>
         </div>
       )}
     </div>

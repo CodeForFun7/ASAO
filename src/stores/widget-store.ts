@@ -15,7 +15,7 @@ import {
   toggleWidget,
   updateSettings,
 } from "../services/widget";
-import { chatService, systemContextService } from "../services/chat";
+import { useAgentStore } from "./agent-store";
 import { recommendationService } from "../services/recommendation";
 
 const MAX_WIDGET_HISTORY = 24;
@@ -155,47 +155,11 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
 
   sendChatPrompt: async (promptText) => {
     const trimmed = promptText.trim();
-    if (!trimmed || get().isSendingChat) return;
-
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text: trimmed,
-      timestamp: Date.now(),
-    };
-
-    set((state) => ({
-      messages: [...state.messages, userMsg],
-      isSendingChat: true,
-    }));
-
+    if (!trimmed) return;
+    set({ isSendingChat: true });
     try {
-      const telemetry = get().telemetry;
-      if (telemetry) {
-        const ctx = systemContextService.buildContext(
-          telemetry,
-          get().history
-        );
-        const reply = await chatService.sendMessage(trimmed, ctx);
-        set((state) => ({
-          messages: [...state.messages, reply],
-          isSendingChat: false,
-        }));
-      } else {
-        set((state) => ({
-          messages: [
-            ...state.messages,
-            {
-              id: `asao-${Date.now()}`,
-              sender: "asao",
-              text: "AI analysis will be available once the AI service is connected.",
-              timestamp: Date.now(),
-            },
-          ],
-          isSendingChat: false,
-        }));
-      }
-    } catch {
+      await useAgentStore.getState().sendMessage(trimmed);
+    } finally {
       set({ isSendingChat: false });
     }
   },

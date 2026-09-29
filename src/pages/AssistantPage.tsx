@@ -1,21 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Sparkles,
   ArrowUp,
   ArrowDown,
-  Settings2,
-  Trash2,
   Cpu,
   Rocket,
   HardDrive,
   Zap,
-  Plus,
 } from "lucide-react";
 import { useAgentStore } from "../stores/agent-store";
 import { useStartupStore } from "../stores/startup-store";
 import { useStorageStore } from "../stores/storage-store";
 import { ChatMessageItem } from "../components/assistant/ChatMessageItem";
-import { ConfigModal } from "../components/assistant/ConfigModal";
 
 const SUGGESTED_CHIPS = [
   "Why is my PC slow?",
@@ -54,17 +49,14 @@ const STARTER_CARDS = [
 
 export const AssistantPage: React.FC = () => {
   const [input, setInput] = useState("");
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const messages = useAgentStore((s) => s.messages);
   const isProcessing = useAgentStore((s) => s.isProcessing);
-  const config = useAgentStore((s) => s.config);
   const sendMessage = useAgentStore((s) => s.sendMessage);
   const applyFix = useAgentStore((s) => s.applyFix);
-  const clearChat = useAgentStore((s) => s.clearChat);
 
   const loadStartupData = useStartupStore((s) => s.loadStartupData);
   const startupItems = useStartupStore((s) => s.items);
@@ -119,64 +111,10 @@ export const AssistantPage: React.FC = () => {
     }
   };
 
-  const hasConfiguredProject = Boolean(config.projectId?.trim());
   const isStarterState = messages.length <= 1;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0c0c0e] overflow-hidden select-none">
-      {/* Sleek, Low-Height Header */}
-      <header className="px-6 py-2.5 border-b border-white/[0.06] bg-[#0c0c0e]/90 backdrop-blur-md flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xs font-semibold text-white tracking-tight">
-                AI Diagnostics Assistant
-              </h1>
-
-              {/* Small model badge */}
-              <button
-                type="button"
-                onClick={() => setIsConfigOpen(true)}
-                className="px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-400 bg-white/[0.04] border border-white/[0.08] hover:border-white/20 hover:text-white transition-colors cursor-pointer"
-                title="Configure Vertex AI ADK & Model"
-              >
-                {hasConfiguredProject
-                  ? `${config.model} · ${config.location || "global"}`
-                  : "gemini-3.5-flash-lite · global"}
-              </button>
-            </div>
-            <p className="text-[10.5px] text-zinc-400 leading-tight">
-              Ask questions about your system performance
-            </p>
-          </div>
-        </div>
-
-        {/* Right Subtle Action Controls */}
-        <div className="flex items-center gap-1 text-zinc-400">
-          <button
-            type="button"
-            onClick={() => setIsConfigOpen(true)}
-            className="p-1.5 rounded-md hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
-            title="Configure Vertex AI ADK"
-          >
-            <Settings2 className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={clearChat}
-            className="p-1.5 rounded-md hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
-            title="Clear Chat History"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </header>
-
       {/* Main Conversation Stream */}
       <div
         ref={scrollRef}
@@ -278,16 +216,6 @@ export const AssistantPage: React.FC = () => {
             onSubmit={handleSubmit}
             className="relative rounded-3xl bg-[#1e1e1e] border border-white/[0.12] p-1.5 shadow-2xl flex items-center gap-2 focus-within:border-white/30 transition-all"
           >
-            {/* Left Action Button (+) */}
-            <button
-              type="button"
-              onClick={() => handleSend("Why is my PC slow?")}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors shrink-0 cursor-pointer ml-1"
-              title="Quick Performance Check"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-
             {/* Input field */}
             <input
               ref={inputRef}
@@ -301,19 +229,8 @@ export const AssistantPage: React.FC = () => {
                   ? "Analyzing system data..."
                   : "Ask anything about slow PC, boot delay, RAM, storage..."
               }
-              className="w-full bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none px-2 py-1"
+              className="w-full bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none pl-4 pr-2 py-1"
             />
-
-            {/* Right Tools: Think / Model Pill */}
-            <button
-              type="button"
-              onClick={() => setIsConfigOpen(true)}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
-              title="Click to configure model settings"
-            >
-              <Sparkles className="w-3 h-3 text-white" />
-              <span>Think</span>
-            </button>
 
             {/* Send Button (White circle with dark up arrow) */}
             <button
@@ -327,12 +244,6 @@ export const AssistantPage: React.FC = () => {
           </form>
         </div>
       </div>
-
-      {/* Config Modal */}
-      <ConfigModal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-      />
     </div>
   );
 };
