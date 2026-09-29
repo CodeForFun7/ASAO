@@ -137,14 +137,29 @@ pub struct CompactProcessContext {
 #[serde(rename_all = "camelCase")]
 pub struct WidgetRecommendation {
     pub id: String,
+    pub category: String, // "process" | "startup" | "storage"
+    pub sub_category: Option<String>,
     pub title: String,
     pub message: String,
     pub priority: String, // "normal" | "interesting" | "important"
+    pub action_label: Option<String>,
     pub process_pid: Option<u32>,
     pub process_name: Option<String>,
+    pub startup_item_id: Option<String>,
+    pub storage_path: Option<String>,
     pub metric_highlight: Option<String>,
     pub impact_level: Option<LoadImpactLevel>,
     pub sustained_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CategorizedRecommendations {
+    pub process_recommendations: Vec<WidgetRecommendation>,
+    pub startup_recommendations: Vec<WidgetRecommendation>,
+    pub storage_recommendations: Vec<WidgetRecommendation>,
+    pub combined_recommendations: Vec<WidgetRecommendation>,
+    pub timestamp_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,4 +185,5 @@ pub struct WidgetSystemUpdate {
     pub top_memory_processes: Vec<CompactProcessContext>,
     pub timestamp: u64,
 }
+
 

@@ -88,6 +88,18 @@ pub async fn start_storage_scan(
             if let Ok(mut guard) = storage_engine.lock() {
                 guard.active_drive = Some(key.clone());
                 guard.indices.insert(key, index);
+
+                let running_procs = state
+                    .engine
+                    .lock()
+                    .ok()
+                    .and_then(|mut g| g.get_latest_or_collect().ok())
+                    .map(|s| s.processes)
+                    .unwrap_or_default();
+                let st_recs = crate::analyzer::recommendation_engine::RecommendationEngine::evaluate_storage_recommendations(&guard, &running_procs);
+                if let Ok(mut rec_guard) = state.cached_storage_recs.lock() {
+                    *rec_guard = st_recs;
+                }
             }
 
             let _ = app_handle.emit(
@@ -230,21 +242,45 @@ fn matches_search_query(item: &StorageItem, q: &str) -> bool {
 
 #[tauri::command]
 pub fn open_storage_location(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
-    if !p.exists() {
+    let cleaned = path
+        .trim()
+        .replace('/', "\\")
+        .trim_start_matches(r"\\?\")
+        .to_string();
+
+    let p = Path::new(&cleaned);
+
+    let target_path = if p.exists() {
+        p.to_path_buf()
+    } else if let Some(parent) = p.parent() {
+        if parent.exists() {
+            parent.to_path_buf()
+        } else {
+            return Err("Target path no longer exists on disk.".to_string());
+        }
+    } else {
         return Err("Target path no longer exists on disk.".to_string());
-    }
+    };
+
+    let resolved_str = std::fs::canonicalize(&target_path)
+        .map(|cp| {
+            cp.to_string_lossy()
+                .trim_start_matches(r"\\?\")
+                .to_string()
+        })
+        .unwrap_or_else(|_| target_path.to_string_lossy().to_string());
 
     #[cfg(target_os = "windows")]
     {
-        if p.is_file() {
-            Command::new("explorer")
-                .arg(format!("/select,{}", path))
+        use std::os::windows::process::CommandExt;
+        if target_path.is_file() {
+            Command::new("explorer.exe")
+                .raw_arg(format!("/select,\"{}\"", resolved_str))
                 .spawn()
                 .map_err(|e| format!("Failed to open Explorer: {}", e))?;
         } else {
-            Command::new("explorer")
-                .arg(&path)
+            Command::new("explorer.exe")
+                .raw_arg(format!("\"{}\"", resolved_str))
                 .spawn()
                 .map_err(|e| format!("Failed to open Explorer: {}", e))?;
         }

@@ -2,6 +2,7 @@
 
 use tauri::State;
 
+use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::ProcessInfo;
 use crate::commands::AppMonitoringState;
 use crate::startup::scanner::{
@@ -26,7 +27,13 @@ pub fn get_startup_items(
         Vec::new()
     };
 
-    Ok(StartupScanner::scan(&running_procs))
+    let items = StartupScanner::scan(&running_procs);
+    let recs = RecommendationEngine::evaluate_startup_recommendations(&items);
+    if let Ok(mut guard) = state.cached_startup_recs.lock() {
+        *guard = recs;
+    }
+
+    Ok(items)
 }
 
 /// Retrieve boot performance analytics and timeline phases.

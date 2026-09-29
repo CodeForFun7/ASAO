@@ -18,9 +18,10 @@ use commands::storage::{
     read_storage_directory, search_storage_items, start_storage_scan,
 };
 use commands::system::{
-    get_full_snapshot, get_settings, get_system_metrics, get_widget_update, get_widget_visibility,
-    hide_widget, open_main_window, set_widget_mode, show_widget, toggle_widget, update_settings,
-    window_close, window_minimize, window_toggle_maximize,
+    get_categorized_recommendations, get_full_snapshot, get_settings, get_system_metrics,
+    get_widget_update, get_widget_visibility, hide_widget, open_main_window, set_widget_mode,
+    show_widget, toggle_widget, update_settings, window_close, window_minimize,
+    window_toggle_maximize,
 };
 use commands::AppMonitoringState;
 use settings::{
@@ -113,6 +114,7 @@ pub fn run() {
             get_processes,
             get_system_metrics,
             get_full_snapshot,
+            get_categorized_recommendations,
             get_widget_update,
             get_widget_visibility,
             get_settings,

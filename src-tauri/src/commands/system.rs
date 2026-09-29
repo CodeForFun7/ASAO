@@ -1,12 +1,15 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, Size, State, WebviewWindow};
 
-use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
-use crate::analyzer::{ProcessSnapshotPayload, SystemMetrics, WidgetSystemUpdate};
+use crate::analyzer::recommendation_engine::RecommendationEngine;
+use crate::analyzer::{
+    CategorizedRecommendations, ProcessSnapshotPayload, SystemMetrics, WidgetSystemUpdate,
+};
 use crate::commands::AppMonitoringState;
 use crate::settings::{
     apply_widget_window_geometry, enforce_widget_topmost, save_settings, AsaoSettings,
 };
+use crate::startup::scanner::StartupScanner;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,12 +43,87 @@ pub fn get_full_snapshot(
 pub fn get_widget_update(
     state: State<'_, AppMonitoringState>,
 ) -> Result<WidgetSystemUpdate, String> {
-    let mut engine = state
-        .engine
+    let snapshot = {
+        let mut engine = state
+            .engine
+            .lock()
+            .map_err(|_| "Failed to acquire system analyzer lock".to_string())?;
+        engine.get_latest_or_collect()?
+    };
+
+    let s_recs = state
+        .cached_startup_recs
         .lock()
-        .map_err(|_| "Failed to acquire system analyzer lock".to_string())?;
-    let snapshot = engine.get_latest_or_collect()?;
-    Ok(ProcessAnalyzerEngine::build_widget_update(&snapshot))
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let st_recs = state
+        .cached_storage_recs
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+
+    Ok(RecommendationEngine::evaluate_snapshot_with_extras(
+        &snapshot, &s_recs, &st_recs,
+    ))
+}
+
+#[tauri::command]
+pub fn get_categorized_recommendations(
+    state: State<'_, AppMonitoringState>,
+) -> Result<CategorizedRecommendations, String> {
+    let snapshot = {
+        let mut engine = state
+            .engine
+            .lock()
+            .map_err(|_| "Failed to acquire system analyzer lock".to_string())?;
+        engine.get_latest_or_collect()?
+    };
+
+    let process_recommendations = RecommendationEngine::evaluate_process_recommendations(&snapshot);
+
+    let mut startup_recommendations = state
+        .cached_startup_recs
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    if startup_recommendations.is_empty() {
+        let items = StartupScanner::scan(&snapshot.processes);
+        startup_recommendations = RecommendationEngine::evaluate_startup_recommendations(&items);
+        if let Ok(mut guard) = state.cached_startup_recs.lock() {
+            *guard = startup_recommendations.clone();
+        }
+    }
+
+    let mut storage_recommendations = state
+        .cached_storage_recs
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    if storage_recommendations.is_empty() {
+        if let Ok(st_guard) = state.storage_engine.lock() {
+            storage_recommendations = RecommendationEngine::evaluate_storage_recommendations(
+                &st_guard,
+                &snapshot.processes,
+            );
+        }
+        if let Ok(mut guard) = state.cached_storage_recs.lock() {
+            *guard = storage_recommendations.clone();
+        }
+    }
+
+    let widget_update = RecommendationEngine::evaluate_snapshot_with_extras(
+        &snapshot,
+        &startup_recommendations,
+        &storage_recommendations,
+    );
+
+    Ok(CategorizedRecommendations {
+        process_recommendations,
+        startup_recommendations,
+        storage_recommendations,
+        combined_recommendations: widget_update.recommendations,
+        timestamp_ms: snapshot.metrics.timestamp_ms,
+    })
 }
 
 #[tauri::command]
