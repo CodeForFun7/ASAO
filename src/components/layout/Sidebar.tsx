@@ -1,12 +1,14 @@
 import React from "react";
-import { LayoutGrid, Cpu, Settings } from "lucide-react";
+import { LayoutGrid, Cpu, Rocket, Settings } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
+import { useStartupStore } from "../../stores/startup-store";
 import type { AppRoute } from "../../types/process";
 
 export const Sidebar: React.FC = () => {
   const currentRoute = useProcessStore((s) => s.currentRoute);
   const setRoute = useProcessStore((s) => s.setRoute);
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
+  const startupItemsCount = useStartupStore((s) => s.items.length);
 
   const totalProcs = systemMetrics?.totalProcesses ?? 0;
 
@@ -48,6 +50,24 @@ export const Sidebar: React.FC = () => {
               </span>
             )}
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setRoute("startup")}
+          className={navItemClass("startup")}
+        >
+          <span className="flex items-center gap-2.5">
+            <Rocket className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <span>Startup</span>
+          </span>
+          {startupItemsCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] text-lunar-muted bg-lunar-bg px-1.5 py-0.5 rounded border border-lunar-border">
+                {startupItemsCount}
+              </span>
+            </span>
+          )}
         </button>
       </nav>
 

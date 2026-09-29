@@ -3,11 +3,16 @@ pub mod collector;
 pub mod commands;
 pub mod db;
 pub mod settings;
+pub mod startup;
 pub mod tray;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
+use commands::startup::{
+    disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
+    wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
+};
 use commands::system::{
     get_full_snapshot, get_settings, get_system_metrics, get_widget_update, get_widget_visibility,
     hide_widget, open_main_window, set_widget_mode, show_widget, toggle_widget, update_settings,
@@ -101,7 +106,14 @@ pub fn run() {
             stop_monitoring,
             window_minimize,
             window_toggle_maximize,
-            window_close
+            window_close,
+            get_startup_items,
+            disable_startup_item,
+            enable_startup_item,
+            get_boot_performance_summary,
+            wpr_get_status,
+            wpr_start_boot_trace,
+            wpr_cancel_boot_trace
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

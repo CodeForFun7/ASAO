@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AppShell } from "./components/layout/AppShell";
 import { Dashboard } from "./pages/Dashboard";
 import { Processes } from "./pages/Processes";
+import { Startup } from "./pages/Startup";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { useProcessStore } from "./stores/process-store";
@@ -58,7 +59,12 @@ function App() {
 
     void listen<string>("asao:navigate", (event) => {
       const target = event.payload as AppRoute;
-      if (target === "dashboard" || target === "processes" || target === "settings") {
+      if (
+        target === "dashboard" ||
+        target === "processes" ||
+        target === "startup" ||
+        target === "settings"
+      ) {
         setRoute(target);
       }
     }).then((fn) => {
@@ -70,8 +76,13 @@ function App() {
       "asao:navigate-inspect",
       (event) => {
         const { route, pid } = event.payload;
-        if (route === "dashboard" || route === "processes" || route === "settings") {
-          setRoute(route);
+        if (
+          route === "dashboard" ||
+          route === "processes" ||
+          route === "startup" ||
+          route === "settings"
+        ) {
+          setRoute(route as AppRoute);
         }
         if (pid !== null && pid !== undefined) {
           selectProcess(pid);
@@ -98,6 +109,7 @@ function App() {
     <AppShell>
       {currentRoute === "dashboard" && <Dashboard />}
       {currentRoute === "processes" && <Processes />}
+      {currentRoute === "startup" && <Startup />}
       {currentRoute === "settings" && <WidgetSettings />}
     </AppShell>
   );
