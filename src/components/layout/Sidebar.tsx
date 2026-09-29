@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, Cpu, HardDrive, Settings, Rocket } from "lucide-react";
+import { LayoutGrid, Cpu, HardDrive, Settings, Rocket, Sparkles } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
 import { useStartupStore } from "../../stores/startup-store";
 import type { AppRoute } from "../../types/process";
@@ -83,8 +83,24 @@ export const Sidebar: React.FC = () => {
         </button>
       </nav>
 
-      {/* Bottom Navigation: Settings pinned at bottom */}
-      <div className="pt-2 border-t border-lunar-border/60">
+      {/* Bottom Navigation: AI Diagnostics directly above Settings */}
+      <div className="pt-2 border-t border-lunar-border/60 space-y-1">
+        <button
+          type="button"
+          onClick={() => setRoute("assistant")}
+          className={navItemClass("assistant")}
+        >
+          <span className="flex items-center gap-2.5">
+            <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
+            <span>AI Diagnostics</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-lunar-ai bg-lunar-ai/10 px-1.5 py-0.5 rounded border border-lunar-ai/20">
+              ADK
+            </span>
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={() => setRoute("settings")}
