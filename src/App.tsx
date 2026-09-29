@@ -5,6 +5,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { Dashboard } from "./pages/Dashboard";
 import { Processes } from "./pages/Processes";
 import { Startup } from "./pages/Startup";
+import { StoragePage } from "./pages/StoragePage";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { useProcessStore } from "./stores/process-store";
@@ -63,6 +64,7 @@ function App() {
         target === "dashboard" ||
         target === "processes" ||
         target === "startup" ||
+        target === "storage" ||
         target === "settings"
       ) {
         setRoute(target);
@@ -77,10 +79,11 @@ function App() {
       (event) => {
         const { route, pid } = event.payload;
         if (
-          route === "dashboard" ||
-          route === "processes" ||
-          route === "startup" ||
-          route === "settings"
+            route === "dashboard" ||
+            route === "processes" ||
+            route === "startup" ||
+            route === "storage" ||
+            route === "settings"
         ) {
           setRoute(route as AppRoute);
         }
@@ -110,6 +113,7 @@ function App() {
       {currentRoute === "dashboard" && <Dashboard />}
       {currentRoute === "processes" && <Processes />}
       {currentRoute === "startup" && <Startup />}
+      {currentRoute === "storage" && <StoragePage />}
       {currentRoute === "settings" && <WidgetSettings />}
     </AppShell>
   );

@@ -42,7 +42,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
           onSelectProcesses();
         }
       }}
-      className="group h-full rounded-xl lunar-glass-card-interactive p-6 flex flex-col justify-between cursor-pointer"
+      className="group flex-1 rounded-xl lunar-glass-card-interactive p-5 flex flex-col justify-between cursor-pointer"
     >
       {/* Top: Centered System Strain and Processes Title */}
       <div className="text-center flex flex-col items-center">
@@ -52,8 +52,8 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       </div>
 
       {/* Middle: Centered Semi-Circle Strain Gauge Chart */}
-      <div className="my-4 flex flex-col items-center justify-center">
-        <div className="relative w-44 h-44 flex items-center justify-center">
+      <div className="my-2 flex flex-col items-center justify-center">
+        <div className="relative w-36 h-36 flex items-center justify-center">
           <svg viewBox="0 0 104 104" className="w-full h-full">
             {/* Background Track Arc */}
             <circle
@@ -93,8 +93,8 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
       </div>
 
       {/* Bottom: Active Processes & High Load Key-Value Rows */}
-      <div className="space-y-2.5 pt-2">
-        <div className="flex items-center justify-between text-sm">
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center justify-between text-xs">
           <span className="text-lunar-text-sec font-medium">
             Active Processes:
           </span>
@@ -103,7 +103,7 @@ export const SystemStrainPanel: React.FC<SystemStrainPanelProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-xs">
           <span className="text-lunar-text-sec font-medium">High Load:</span>
           <span className="font-mono font-semibold text-lunar-white">
             {metrics.highResourceProcesses}

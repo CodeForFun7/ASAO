@@ -13,13 +13,19 @@ use commands::startup::{
     disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
     wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
 };
+use commands::storage::{
+    cancel_storage_scan, get_storage_drives, get_storage_snapshot, open_storage_location,
+    read_storage_directory, search_storage_items, start_storage_scan,
+};
 use commands::system::{
     get_full_snapshot, get_settings, get_system_metrics, get_widget_update, get_widget_visibility,
     hide_widget, open_main_window, set_widget_mode, show_widget, toggle_widget, update_settings,
     window_close, window_minimize, window_toggle_maximize,
 };
 use commands::AppMonitoringState;
-use settings::{apply_widget_window_geometry, load_settings, save_settings};
+use settings::{
+    apply_widget_window_geometry, enforce_widget_topmost, load_settings, save_settings,
+};
 use tray::setup_system_tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -50,6 +56,7 @@ pub fn run() {
                 apply_widget_window_geometry(&widget_win, &loaded_settings);
                 if loaded_settings.widget_enabled && loaded_settings.launch_widget_on_startup {
                     let _ = widget_win.show();
+                    enforce_widget_topmost(&widget_win, loaded_settings.always_on_top);
                     let _ = handle.emit("widget:visibility", true);
                 } else {
                     let _ = widget_win.hide();
@@ -70,6 +77,19 @@ pub fn run() {
                         api.prevent_close();
                         let _ = window.hide();
                         let _ = window.app_handle().emit("widget:visibility", false);
+                    }
+                    WindowEvent::Focused(_) => {
+                        let app_handle = window.app_handle();
+                        if let Some(state) = app_handle.try_state::<AppMonitoringState>() {
+                            let always_top = state
+                                .settings
+                                .lock()
+                                .map(|g| g.always_on_top)
+                                .unwrap_or(true);
+                            if let Some(widget_win) = app_handle.get_webview_window("widget") {
+                                enforce_widget_topmost(&widget_win, always_top);
+                            }
+                        }
                     }
                     WindowEvent::Moved(pos) => {
                         // Persist manual dragging position safely inside screen bounds
@@ -113,7 +133,14 @@ pub fn run() {
             get_boot_performance_summary,
             wpr_get_status,
             wpr_start_boot_trace,
-            wpr_cancel_boot_trace
+            wpr_cancel_boot_trace,
+            get_storage_drives,
+            get_storage_snapshot,
+            start_storage_scan,
+            cancel_storage_scan,
+            read_storage_directory,
+            search_storage_items,
+            open_storage_location
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

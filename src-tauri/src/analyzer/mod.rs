@@ -2,6 +2,7 @@ pub mod classifier;
 pub mod process_analyzer;
 pub mod recommendation_engine;
 pub mod resource_analyzer;
+pub mod storage_analyzer;
 
 use serde::{Deserialize, Serialize};
 
@@ -164,6 +165,7 @@ pub struct WidgetSystemUpdate {
     pub condition: String, // "GOOD" | "ELEVATED" | "ATTENTION"
     pub condition_reason: String,
     pub recommendation: WidgetRecommendation,
+    pub recommendations: Vec<WidgetRecommendation>,
     pub top_cpu_processes: Vec<CompactProcessContext>,
     pub top_memory_processes: Vec<CompactProcessContext>,
     pub timestamp: u64,

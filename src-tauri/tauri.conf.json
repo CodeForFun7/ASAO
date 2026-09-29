@@ -24,16 +24,19 @@
         "label": "widget",
         "title": "ASAO Companion",
         "url": "index.html?window=widget",
-        "width": 328,
-        "height": 412,
-        "minWidth": 296,
-        "minHeight": 350,
+        "width": 380,
+        "height": 480,
+        "minWidth": 280,
+        "maxWidth": 380,
+        "minHeight": 320,
+        "maxHeight": 480,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "visible": false,
-        "resizable": true
+        "resizable": true,
+        "maximizable": false
       }
     ],
     "security": {

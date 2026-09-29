@@ -143,6 +143,10 @@ export type SortOption =
   | "cpu-asc"
   | "memory-desc"
   | "memory-asc"
+  | "disk-desc"
+  | "disk-asc"
+  | "network-desc"
+  | "network-asc"
   | "name-asc"
   | "name-desc"
   | "category"
@@ -157,7 +161,7 @@ export type ResourceUsageFilter =
 
 export type CriticalityFilter = "all" | "system-critical" | "user-space";
 
-export type AppRoute = "dashboard" | "processes" | "startup" | "settings";
+export type AppRoute = "dashboard" | "processes" | "startup"| "storage" | "settings";
 
 export const CATEGORY_METADATA: Record<
   ProcessCategory | "all",

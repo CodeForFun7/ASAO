@@ -12,8 +12,8 @@
   --color-lunar-white: #FFFFFF;
   --color-lunar-healthy: #2EB872;
   --color-lunar-warning: #EAB308;
-  --color-lunar-critical: #F2633A;
-  --color-lunar-ai: #F2633A;
+  --color-lunar-critical: #E5484D;
+  --color-lunar-ai: #A6A1B8;
 
   --font-sans: "Plus Jakarta Sans", "DM Sans", "Segoe UI Variable Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "Plus Jakarta Sans", "DM Sans", "Segoe UI Variable Display", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -31,8 +31,8 @@
   --accent-white: #FFFFFF;
   --semantic-healthy: #2EB872;
   --semantic-warning: #EAB308;
-  --semantic-critical: #F2633A;
-  --semantic-ai: #F2633A;
+  --semantic-critical: #E5484D;
+  --semantic-ai: #A6A1B8;
 
   color-scheme: dark;
 }

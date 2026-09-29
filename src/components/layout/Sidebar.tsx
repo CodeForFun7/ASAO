@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, Cpu, Rocket, Settings } from "lucide-react";
+import { LayoutGrid, Cpu, HardDrive, Settings, Rocket } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
 import { useStartupStore } from "../../stores/startup-store";
 import type { AppRoute } from "../../types/process";
@@ -21,7 +21,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="w-56 bg-lunar-surface border-r border-lunar-border flex flex-col justify-between p-3 shrink-0 select-none">
-      {/* Top Navigation: Dashboard & Processes */}
+      {/* Top Navigation: Dashboard, Processes & Storage */}
       <nav className="space-y-1">
         <button
           type="button"
@@ -45,7 +45,7 @@ export const Sidebar: React.FC = () => {
           </span>
           <span className="flex items-center gap-1.5">
             {totalProcs > 0 && (
-              <span className="font-mono text-[10px] text-lunar-muted bg-lunar-bg px-1.5 py-0.5 rounded border border-lunar-border">
+              <span className="font-mono text-[11px] text-lunar-muted">
                 {totalProcs}
               </span>
             )}
@@ -61,6 +61,7 @@ export const Sidebar: React.FC = () => {
             <Rocket className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Startup</span>
           </span>
+
           {startupItemsCount > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="font-mono text-[10px] text-lunar-muted bg-lunar-bg px-1.5 py-0.5 rounded border border-lunar-border">
@@ -68,6 +69,17 @@ export const Sidebar: React.FC = () => {
               </span>
             </span>
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setRoute("storage")}
+          className={navItemClass("storage")}
+        >
+          <span className="flex items-center gap-2.5">
+            <HardDrive className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <span>Storage</span>
+          </span>
         </button>
       </nav>
 

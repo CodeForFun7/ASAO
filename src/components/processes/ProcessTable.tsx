@@ -21,12 +21,12 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
       {/* Table Column Header */}
       <div className="grid grid-cols-12 items-center gap-3 px-4 py-2.5 bg-lunar-surface-2 border-b border-lunar-border text-[10px] font-mono uppercase tracking-[0.14em] text-lunar-muted shrink-0">
         <div className="col-span-4 sm:col-span-3">Process</div>
-        <div className="hidden sm:block sm:col-span-2">Category</div>
+        <div className="hidden sm:block sm:col-span-2 text-center">Category</div>
         <div className="col-span-2 sm:col-span-1 text-right">CPU</div>
         <div className="col-span-2 sm:col-span-2 text-right">Memory</div>
         <div className="hidden lg:block lg:col-span-1 text-right">Disk</div>
         <div className="hidden lg:block lg:col-span-1 text-right">Network</div>
-        <div className="col-span-4 sm:col-span-4 lg:col-span-2 text-right">
+        <div className="col-span-4 sm:col-span-4 lg:col-span-2 text-center">
           Resource
         </div>
       </div>

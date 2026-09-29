@@ -4,7 +4,9 @@ use tauri::{AppHandle, Emitter, LogicalSize, Manager, Size, State, WebviewWindow
 use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
 use crate::analyzer::{ProcessSnapshotPayload, SystemMetrics, WidgetSystemUpdate};
 use crate::commands::AppMonitoringState;
-use crate::settings::{apply_widget_window_geometry, save_settings, AsaoSettings};
+use crate::settings::{
+    apply_widget_window_geometry, enforce_widget_topmost, save_settings, AsaoSettings,
+};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -87,11 +89,11 @@ pub fn update_settings(
 
     // Apply widget window settings
     if let Some(widget_win) = app.get_webview_window("widget") {
-        let _ = widget_win.set_always_on_top(new_settings.always_on_top);
         if !new_settings.widget_enabled {
             let _ = widget_win.hide();
         } else {
             apply_widget_window_geometry(&widget_win, &new_settings);
+            enforce_widget_topmost(&widget_win, new_settings.always_on_top);
         }
     }
 
@@ -126,7 +128,7 @@ pub fn show_widget(
     if let Some(widget_win) = app.get_webview_window("widget") {
         apply_widget_window_geometry(&widget_win, &settings);
         let _ = widget_win.show();
-        let _ = widget_win.set_focus();
+        enforce_widget_topmost(&widget_win, settings.always_on_top);
         let _ = app.emit("widget:visibility", true);
         return Ok(true);
     }
@@ -166,12 +168,21 @@ pub fn set_widget_mode(
     mode: String,
 ) -> Result<(), String> {
     if let Some(widget_win) = app.get_webview_window("widget") {
-        let (width, height) = if mode == "chat" {
-            (352.0, 520.0)
+        let max_dim = Size::Logical(LogicalSize::new(380.0, 480.0));
+        let min_dim = Size::Logical(LogicalSize::new(280.0, 320.0));
+
+        if mode == "chat" {
+            // In chatbot chat: dimensions remain fixed (neither expandable nor shrinkable)
+            let _ = widget_win.set_min_size(Some(max_dim));
+            let _ = widget_win.set_max_size(Some(max_dim));
+            let _ = widget_win.set_size(max_dim);
+            let _ = widget_win.set_resizable(false);
         } else {
-            (328.0, 412.0)
-        };
-        let _ = widget_win.set_size(Size::Logical(LogicalSize::new(width, height)));
+            // In monitor mode: max dimensions remain fixed & same, but can be dragged to shrink
+            let _ = widget_win.set_min_size(Some(min_dim));
+            let _ = widget_win.set_max_size(Some(max_dim));
+            let _ = widget_win.set_resizable(true);
+        }
 
         if let Ok(guard) = state.settings.lock() {
             apply_widget_window_geometry(&widget_win, &guard);
