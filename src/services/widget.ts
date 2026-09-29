@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   AsaoSettings,
+  CategorizedRecommendations,
   WidgetMode,
   WidgetSystemUpdate,
 } from "../types/widget";
@@ -16,6 +17,10 @@ export const WIDGET_EVENTS = {
 
 export async function getWidgetUpdate(): Promise<WidgetSystemUpdate> {
   return invoke<WidgetSystemUpdate>("get_widget_update");
+}
+
+export async function getCategorizedRecommendations(): Promise<CategorizedRecommendations> {
+  return invoke<CategorizedRecommendations>("get_categorized_recommendations");
 }
 
 export async function getWidgetVisibility(): Promise<boolean> {

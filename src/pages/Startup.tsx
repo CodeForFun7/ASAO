@@ -5,11 +5,13 @@ import type {
   StartupGroup,
   StartupItem,
 } from "../types/startup";
+import type { WidgetRecommendation } from "../types/widget";
 import { StartupCategoryTabs } from "../components/startup/StartupCategoryTabs";
 import { StartupFilters } from "../components/startup/StartupFilters";
 import { StartupTable } from "../components/startup/StartupTable";
 import { StartupDetails } from "../components/startup/StartupDetails";
 import { WprBootTraceModal } from "../components/startup/WprBootTraceModal";
+import { RecButtonAndModal } from "../components/common/RecommendationsModal";
 
 export const Startup: React.FC = () => {
   const items = useStartupStore((s) => s.items);
@@ -133,6 +135,41 @@ export const Startup: React.FC = () => {
 
   const runningCount = items.filter((i) => i.isCurrentlyRunning).length;
 
+  const fallbackStartupRecommendations = useMemo<WidgetRecommendation[]>(() => {
+    return items
+      .filter(
+        (item) =>
+          item.isEnabled &&
+          item.classification !== "essential" &&
+          (item.impact === "high" ||
+            item.impact === "medium" ||
+            item.recommendation === "disable" ||
+            item.recommendation === "investigate")
+      )
+      .slice(0, 6)
+      .map((item) => {
+        const delaySec = Math.max(0.2, item.bootDurationMs / 1000).toFixed(1);
+        const memMb =
+          item.memoryBytes > 0
+            ? `${Math.round(item.memoryBytes / (1024 * 1024))} MB RAM`
+            : "Background Autostart";
+        return {
+          id: `startup-rec-${item.id}`,
+          category: "startup",
+          subCategory: "Heavy Non-Core Boot Program",
+          title: `Heavy Non-Core Startup: ${item.name}`,
+          message: `"${item.name}" is a heavy startup program (~${delaySec}s boot delay, ${memMb}) and isn't a core Windows program or required at Windows boot. We recommend disabling it from automatic startup so it only runs when you launch it.`,
+          priority: item.impact === "high" ? "important" : "interesting",
+          actionLabel: "Disable from Windows Boot",
+          processPid: item.pid ?? null,
+          processName: item.name,
+          startupItemId: item.id,
+          storagePath: item.executablePath ?? null,
+          metricHighlight: `+${delaySec}s Boot · ${memMb}`,
+        };
+      });
+  }, [items]);
+
   // Loading State
   if (loading && items.length === 0) {
     return (
@@ -197,7 +234,7 @@ export const Startup: React.FC = () => {
           </div>
         </div>
 
-        {/* Search, Filter Controls matching ProcessFilters */}
+        {/* Search, REC, Filter Controls matching ProcessFilters */}
         <div className="shrink-0">
           <StartupFilters
             searchQuery={searchQuery}
@@ -212,6 +249,19 @@ export const Startup: React.FC = () => {
             onRefresh={() => void loadStartupData()}
             onOpenWprModal={() => setWprModalOpen(true)}
             onResetAll={resetFilters}
+            recSlot={
+              <RecButtonAndModal
+                category="startup"
+                fallbackRecommendations={fallbackStartupRecommendations}
+                onInspectStartup={(id) => selectItem(id)}
+                onDisableStartup={(id) => {
+                  const target = items.find((i) => i.id === id);
+                  if (target && target.isEnabled) {
+                    void toggleItemState(target);
+                  }
+                }}
+              />
+            }
           />
         </div>
 

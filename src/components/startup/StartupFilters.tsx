@@ -23,6 +23,7 @@ interface StartupFiltersProps {
   onRefresh: () => void;
   onOpenWprModal: () => void;
   onResetAll: () => void;
+  recSlot?: React.ReactNode;
 }
 
 export const StartupFilters: React.FC<StartupFiltersProps> = ({
@@ -38,6 +39,7 @@ export const StartupFilters: React.FC<StartupFiltersProps> = ({
   onRefresh,
   onOpenWprModal,
   onResetAll,
+  recSlot,
 }) => {
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -80,8 +82,11 @@ export const StartupFilters: React.FC<StartupFiltersProps> = ({
         )}
       </div>
 
-      {/* Right Controls: Filter popover, WPR Boot Trace, Refresh */}
-      <div className="flex items-center gap-2">
+      {/* Right Controls: REC, Filter popover, WPR Boot Trace, Refresh */}
+      <div className="flex items-center gap-2.5">
+        {/* REC Button directly before Filter Button */}
+        {recSlot}
+
         {/* Filter Popover Button matching ProcessFilters */}
         <div className="relative" ref={filterRef}>
           <button
