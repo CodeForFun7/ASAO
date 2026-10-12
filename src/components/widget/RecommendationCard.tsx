@@ -35,11 +35,23 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
   const current = items[activeIndex] ?? items[0];
 
-  const handleViewProcess = () => {
-    if (current) {
+  const handleViewItem = () => {
+    if (!current) return;
+    if (current.category === "startup") {
+      void openMainWindow("startup");
+    } else if (current.category === "storage") {
+      void openMainWindow("storage");
+    } else {
       void openMainWindow("processes", current.processPid ?? undefined);
     }
   };
+
+  const categoryBadge =
+    current?.category === "startup"
+      ? "STARTUP"
+      : current?.category === "storage"
+      ? "STORAGE"
+      : "PROCESS";
 
   return (
     <div className="flex-1 min-h-0 p-3.5 rounded-lg bg-lunar-surface/55 backdrop-blur-sm border border-lunar-border/80 flex flex-col justify-between overflow-hidden">
@@ -55,10 +67,15 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           >
             {items.length}
           </span>
+          {current && (
+            <span className="px-1.5 py-0.5 rounded bg-lunar-elevated/70 border border-lunar-border/80 text-[9px] font-mono font-semibold text-lunar-white uppercase tracking-wider leading-none">
+              {categoryBadge}
+            </span>
+          )}
         </div>
 
         {current?.metricHighlight && (
-          <span className="text-[10px] font-medium text-lunar-text-sec">
+          <span className="text-[10px] font-medium text-lunar-text-sec truncate max-w-[115px]">
             {current.metricHighlight}
           </span>
         )}
@@ -74,17 +91,15 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             <span className="text-xs font-semibold text-lunar-white truncate">
               {current.title}
             </span>
-            {current.processName && (
-              <button
-                type="button"
-                onClick={handleViewProcess}
-                className="inline-flex items-center gap-1 text-[10px] text-lunar-text-sec hover:text-lunar-white transition-colors cursor-pointer shrink-0"
-                title="Inspect process in ASAO"
-              >
-                <span>View</span>
-                <ExternalLink className="w-2.5 h-2.5" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleViewItem}
+              className="inline-flex items-center gap-1 text-[10px] text-lunar-text-sec hover:text-lunar-white transition-colors cursor-pointer shrink-0"
+              title={`Open ${categoryBadge.toLowerCase()} in ASAO`}
+            >
+              <span>View</span>
+              <ExternalLink className="w-2.5 h-2.5" />
+            </button>
           </div>
 
           <p className="text-xs text-lunar-text-sec leading-relaxed line-clamp-2">

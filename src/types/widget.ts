@@ -44,16 +44,31 @@ export interface CompactProcessContext {
   impactLevel?: LoadImpactLevel;
 }
 
+export type RecommendationCategory = "process" | "startup" | "storage";
+
 export interface WidgetRecommendation {
   id: string;
+  category?: RecommendationCategory;
+  subCategory?: string | null;
   title: string;
   message: string;
   priority: RecommendationPriority;
+  actionLabel?: string | null;
   processPid: number | null;
   processName: string | null;
+  startupItemId?: string | null;
+  storagePath?: string | null;
   metricHighlight: string | null;
   impactLevel?: LoadImpactLevel | null;
   sustainedSeconds?: number | null;
+}
+
+export interface CategorizedRecommendations {
+  processRecommendations: WidgetRecommendation[];
+  startupRecommendations: WidgetRecommendation[];
+  storageRecommendations: WidgetRecommendation[];
+  combinedRecommendations: WidgetRecommendation[];
+  timestampMs: number;
 }
 
 export interface WidgetSystemUpdate {

@@ -31,6 +31,7 @@ interface ProcessFiltersProps {
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   onResetAll: () => void;
+  recSlot?: React.ReactNode;
 }
 
 const FILTERABLE_CATEGORIES: ProcessCategory[] = [
@@ -85,6 +86,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
   sort,
   onSortChange,
   onResetAll,
+  recSlot,
 }) => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -154,8 +156,8 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
         )}
       </div>
 
-      {/* Right: Filter + Sort (Sort at right of Filter, active when metric chosen) */}
-      <div className="flex items-center gap-2">
+      {/* Right: REC + Filter + Sort */}
+      <div className="flex items-center gap-2.5">
         {activeFilterCount > 0 && (
           <button
             type="button"
@@ -167,6 +169,9 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
             <span>Reset ({activeFilterCount})</span>
           </button>
         )}
+
+        {/* REC Button directly before Filter Button */}
+        {recSlot}
 
         {/* Filter Menu */}
         <div className="relative" ref={filterRef}>

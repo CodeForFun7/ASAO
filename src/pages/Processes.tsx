@@ -5,7 +5,9 @@ import { ProcessCategoryTabs } from "../components/processes/ProcessCategoryTabs
 import { ProcessFilters } from "../components/processes/ProcessFilters";
 import { ProcessTable } from "../components/processes/ProcessTable";
 import { ProcessDetails } from "../components/processes/ProcessDetails";
+import { RecButtonAndModal } from "../components/common/RecommendationsModal";
 import { CATEGORY_METADATA, type ProcessStatus } from "../types/process";
+import type { WidgetRecommendation } from "../types/widget";
 
 const STATUS_PRIORITY: Record<ProcessStatus, number> = {
   attention: 0,
@@ -200,6 +202,42 @@ export const Processes: React.FC = () => {
     [resourceHistory, selectedProcessPid]
   );
 
+  const fallbackProcessRecommendations = useMemo<WidgetRecommendation[]>(() => {
+    const candidates = processes.filter(
+      (p) =>
+        !p.isSystemCritical &&
+        p.category !== "windows-core" &&
+        p.category !== "drivers" &&
+        !p.name.toLowerCase().includes("asao") &&
+        (p.memoryBytes >= 30 * 1024 * 1024 || p.cpuPercent >= 1.0)
+    );
+    candidates.sort(
+      (a, b) =>
+        b.memoryBytes / (1024 * 1024) +
+        b.cpuPercent * 25 -
+        (a.memoryBytes / (1024 * 1024) + a.cpuPercent * 25)
+    );
+    return candidates.slice(0, 5).map((p) => {
+      const mb = Math.max(1, Math.round(p.memoryBytes / (1024 * 1024)));
+      const idleMins = Math.max(
+        30,
+        Math.round((p.startedSecondsAgo ?? 1800) / 60)
+      );
+      return {
+        id: `proc-idle-${p.pid}`,
+        category: "process",
+        subCategory: "Idle Resource Consumer (30m+ Inactive)",
+        title: `Idle Resource Hog: ${p.name}`,
+        message: `This process (${p.name}) is consuming a lot of resources (${mb} MB RAM, ${p.cpuPercent.toFixed(1)}% CPU), is idle, and there has been no user activity in the past ${idleMins} minutes. I recommend you to close this to preserve resources.`,
+        priority: mb >= 350 || p.cpuPercent >= 10 ? "important" : "interesting",
+        actionLabel: "Close Process to Preserve Resources",
+        processPid: p.pid,
+        processName: p.name,
+        metricHighlight: `${mb} MB RAM · Idle ${idleMins}m`,
+      };
+    });
+  }, [processes]);
+
   // Loading State
   if (monitoringStatus === "loading" && processes.length === 0) {
     return (
@@ -265,7 +303,7 @@ export const Processes: React.FC = () => {
           </div>
         </div>
 
-        {/* Search, Filter & Sort Controls */}
+        {/* Search, REC, Filter & Sort Controls */}
         <div className="shrink-0">
           <ProcessFilters
             searchQuery={searchQuery}
@@ -281,6 +319,13 @@ export const Processes: React.FC = () => {
             sort={sort}
             onSortChange={setSort}
             onResetAll={resetFilters}
+            recSlot={
+              <RecButtonAndModal
+                category="process"
+                fallbackRecommendations={fallbackProcessRecommendations}
+                onInspectProcess={(pid) => selectProcess(pid)}
+              />
+            }
           />
         </div>
 

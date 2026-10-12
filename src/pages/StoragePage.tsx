@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { RefreshCw, HardDrive, AlertTriangle } from "lucide-react";
 import { useStorageStore } from "../stores/storage-store";
+import type { WidgetRecommendation } from "../types/widget";
 import { DriveOverview } from "../components/storage/DriveOverview";
 import { StorageDistribution } from "../components/storage/StorageDistribution";
 import { LargestFolders } from "../components/storage/LargestFolders";
@@ -8,6 +9,7 @@ import { LargestFiles } from "../components/storage/LargestFiles";
 import { FilesystemExplorer } from "../components/storage/FilesystemExplorer";
 import { FileDetailsPanel } from "../components/storage/FileDetailsPanel";
 import { ScanProgress } from "../components/storage/ScanProgress";
+import { RecButtonAndModal } from "../components/common/RecommendationsModal";
 
 export const StoragePage: React.FC = () => {
   const drives = useStorageStore((s) => s.drives);
@@ -79,7 +81,25 @@ export const StoragePage: React.FC = () => {
     null;
 
   const handleOpenFolderInExplorer = (path: string) => {
-    void navigateToDirectory(path);
+    const clean = path.replace(/\//g, "\\");
+    // Check if path matches a known file or looks like a file with an extension
+    const matchedFile = snapshot?.largestFiles.find(
+      (f) => f.path.toLowerCase() === clean.toLowerCase()
+    );
+    const lastSlash = clean.lastIndexOf("\\");
+    const lastSeg = lastSlash >= 0 ? clean.slice(lastSlash + 1) : clean;
+    const isLikelyFile =
+      Boolean(matchedFile && !matchedFile.isDir) ||
+      (lastSeg.includes(".") && !lastSeg.startsWith("."));
+
+    const dirToOpen =
+      isLikelyFile && lastSlash > 2 ? clean.slice(0, lastSlash) : clean;
+
+    if (matchedFile) {
+      selectItem(matchedFile);
+    }
+
+    void navigateToDirectory(dirToOpen);
     setTimeout(() => {
       explorerSectionRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -89,6 +109,46 @@ export const StoragePage: React.FC = () => {
   };
 
   const isScanning = scanState === "scanning";
+
+  const fallbackStorageRecommendations = useMemo<WidgetRecommendation[]>(() => {
+    const list: WidgetRecommendation[] = [];
+    if (snapshot?.largestFiles) {
+      for (const f of snapshot.largestFiles.slice(0, 4)) {
+        const sizeMb = Math.round(f.size / (1024 * 1024));
+        if (sizeMb < 15) continue;
+        if (f.category === "USER") {
+          list.push({
+            id: `storage-user-${f.path}`,
+            category: "storage",
+            subCategory: "Dormant User File (1+ Year Inactive)",
+            title: `Dormant User File: ${f.name}`,
+            message: `"${f.name}" is occupying huge space (${sizeMb} MB) and there has been no activity on this file since 1 year. Because this file is user-specific (${f.path}), you should review it and archive or delete it if no longer needed.`,
+            priority: sizeMb >= 250 ? "important" : "interesting",
+            actionLabel: "Review User File in Explorer",
+            processPid: null,
+            processName: null,
+            storagePath: f.path,
+            metricHighlight: `${sizeMb} MB · Dormant`,
+          });
+        } else if (f.category === "APPLICATION") {
+          list.push({
+            id: `storage-app-${f.path}`,
+            category: "storage",
+            subCategory: "Orphaned Application File",
+            title: `Uninstalled App File: ${f.name}`,
+            message: `"${f.name}" (${f.path}) is an application file occupying ${sizeMb} MB, and if the corresponding application is not present on this PC and you don't need it in the future, consider deleting it.`,
+            priority: "interesting",
+            actionLabel: "Consider Deleting Leftover App File",
+            processPid: null,
+            processName: null,
+            storagePath: f.path,
+            metricHighlight: `${sizeMb} MB · App File`,
+          });
+        }
+      }
+    }
+    return list;
+  }, [snapshot]);
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -106,21 +166,30 @@ export const StoragePage: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            disabled={isScanning || drives.length === 0}
-            onClick={() => void triggerScan(selectedDrive ?? undefined)}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded text-xs font-medium border transition-colors shrink-0 ${
-              isScanning || drives.length === 0
-                ? "bg-lunar-surface text-lunar-muted border-lunar-border cursor-not-allowed"
-                : "bg-lunar-elevated hover:bg-lunar-border text-lunar-white border-lunar-border cursor-pointer"
-            }`}
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${isScanning ? "animate-spin" : ""}`}
+          <div className="flex items-center gap-3 shrink-0">
+            <RecButtonAndModal
+              category="storage"
+              fallbackRecommendations={fallbackStorageRecommendations}
+              onOpenStorageInExplorer={(p) => void openLocationInExplorer(p)}
+              onInspectStoragePath={(p) => handleOpenFolderInExplorer(p)}
             />
-            <span>Rescan</span>
-          </button>
+
+            <button
+              type="button"
+              disabled={isScanning || drives.length === 0}
+              onClick={() => void triggerScan(selectedDrive ?? undefined)}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded text-xs font-medium border transition-colors shrink-0 ${
+                isScanning || drives.length === 0
+                  ? "bg-lunar-surface text-lunar-muted border-lunar-border cursor-not-allowed"
+                  : "bg-lunar-elevated hover:bg-lunar-border text-lunar-white border-lunar-border cursor-pointer"
+              }`}
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isScanning ? "animate-spin" : ""}`}
+              />
+              <span>Rescan</span>
+            </button>
+          </div>
         </div>
 
         {/* 2. Drive Overview */}

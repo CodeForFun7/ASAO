@@ -3,19 +3,25 @@ pub mod collector;
 pub mod commands;
 pub mod db;
 pub mod settings;
+pub mod startup;
 pub mod tray;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
+use commands::startup::{
+    disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
+    wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
+};
 use commands::storage::{
     cancel_storage_scan, get_storage_drives, get_storage_snapshot, open_storage_location,
     read_storage_directory, search_storage_items, start_storage_scan,
 };
 use commands::system::{
-    get_full_snapshot, get_settings, get_system_metrics, get_widget_update, get_widget_visibility,
-    hide_widget, open_main_window, set_widget_mode, show_widget, toggle_widget, update_settings,
-    window_close, window_minimize, window_toggle_maximize,
+    get_categorized_recommendations, get_full_snapshot, get_settings, get_system_metrics,
+    get_widget_update, get_widget_visibility, hide_widget, open_main_window, set_widget_mode,
+    show_widget, toggle_widget, update_settings, window_close, window_minimize,
+    window_toggle_maximize,
 };
 use commands::AppMonitoringState;
 use settings::{
@@ -108,6 +114,7 @@ pub fn run() {
             get_processes,
             get_system_metrics,
             get_full_snapshot,
+            get_categorized_recommendations,
             get_widget_update,
             get_widget_visibility,
             get_settings,
@@ -122,6 +129,13 @@ pub fn run() {
             window_minimize,
             window_toggle_maximize,
             window_close,
+            get_startup_items,
+            disable_startup_item,
+            enable_startup_item,
+            get_boot_performance_summary,
+            wpr_get_status,
+            wpr_start_boot_trace,
+            wpr_cancel_boot_trace,
             get_storage_drives,
             get_storage_snapshot,
             start_storage_scan,

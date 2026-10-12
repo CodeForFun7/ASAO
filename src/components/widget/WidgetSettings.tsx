@@ -1,11 +1,19 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AppWindow,
   Eye,
   EyeOff,
   Sliders,
+  Sparkles,
+  Globe,
+  Layers,
+  Key,
+  ArrowUpRight,
+  Check,
 } from "lucide-react";
 import { useWidgetStore } from "../../stores/widget-store";
+import { useAgentStore } from "../../stores/agent-store";
+import { useProcessStore } from "../../stores/process-store";
 import { hideWidget } from "../../services/widget";
 
 const OPACITY_PRESETS = [60, 70, 75, 80, 90, 100];
@@ -66,6 +74,14 @@ export const WidgetSettings: React.FC = () => {
     (s) => s.toggleWidgetVisibility
   );
   const updateSettingsPatch = useWidgetStore((s) => s.updateSettingsPatch);
+
+  const agentConfig = useAgentStore((s) => s.config);
+  const updateAgentConfig = useAgentStore((s) => s.updateConfig);
+  const setRoute = useProcessStore((s) => s.setRoute);
+
+  const [aiProjectId, setAiProjectId] = useState(agentConfig.projectId || "");
+  const [aiApiKey, setAiApiKey] = useState(agentConfig.apiKey || "");
+  const [aiSaved, setAiSaved] = useState(false);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -262,6 +278,103 @@ export const WidgetSettings: React.FC = () => {
                   void updateSettingsPatch({ notifications: val })
                 }
               />
+            </div>
+          </section>
+
+          {/* AI Diagnostics Assistant (Vertex AI ADK) Section */}
+          <section className="rounded-xl lunar-glass-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-lunar-ai" />
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
+                  AI Diagnostics Assistant (Vertex AI ADK)
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoute("assistant")}
+                className="px-2.5 py-1 rounded-md bg-lunar-surface-2 hover:bg-lunar-elevated border border-lunar-border text-xs text-lunar-white flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Open Assistant</span>
+                <ArrowUpRight className="w-3 h-3 text-lunar-ai" />
+              </button>
+            </div>
+
+            <div className="space-y-4 pt-1 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-lunar-bg border border-lunar-border/60">
+                  <div className="text-lunar-muted text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-lunar-ai" />
+                    <span>Target Model</span>
+                  </div>
+                  <div className="font-mono text-lunar-white font-medium mt-1">
+                    gemini-3.5-flash-lite
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-lunar-bg border border-lunar-border/60">
+                  <div className="text-lunar-muted text-[10px] uppercase tracking-wider flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-lunar-text-sec" />
+                    <span>Vertex Location</span>
+                  </div>
+                  <div className="font-mono text-lunar-white font-medium mt-1">
+                    global
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center justify-between text-lunar-white font-medium">
+                  <span>Google Cloud Project ID</span>
+                  <span className="text-[10px] text-lunar-muted">Configurable by you</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiProjectId}
+                  onChange={(e) => setAiProjectId(e.target.value)}
+                  placeholder="e.g. your-gcp-project-id"
+                  className="w-full px-3 py-2 rounded-lg bg-lunar-bg border border-lunar-border text-lunar-text placeholder:text-lunar-muted font-mono text-[11px] focus:outline-none focus:border-lunar-text-sec"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center justify-between text-lunar-white font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-lunar-text-sec" />
+                    <span>API Key / Bearer Token</span>
+                  </span>
+                  <span className="text-[10px] text-lunar-muted">Optional</span>
+                </label>
+                <input
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  placeholder="AIzaSy... or OAuth Access Token"
+                  className="w-full px-3 py-2 rounded-lg bg-lunar-bg border border-lunar-border text-lunar-text placeholder:text-lunar-muted font-mono text-[11px] focus:outline-none focus:border-lunar-text-sec"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[11px] text-lunar-muted">
+                  When not configured, ASAO uses its local diagnostic engine.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateAgentConfig({
+                      projectId: aiProjectId.trim(),
+                      apiKey: aiApiKey.trim(),
+                    });
+                    setAiSaved(true);
+                    setTimeout(() => setAiSaved(false), 1500);
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-lunar-white text-lunar-bg font-medium text-xs hover:bg-lunar-text transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  {aiSaved && <Check className="w-3.5 h-3.5" />}
+                  <span>{aiSaved ? "Saved" : "Save AI Config"}</span>
+                </button>
+              </div>
             </div>
           </section>
       </div>
