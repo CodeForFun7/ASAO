@@ -8,6 +8,7 @@ import { SystemMetrics } from "./SystemMetrics";
 import { RecommendationCard } from "./RecommendationCard";
 import { WidgetChat } from "./WidgetChat";
 import { openMainWindow } from "../../services/widget";
+import { getEffectiveTheme } from "../../services/theme";
 
 type ResizeDirection =
   | "East"
@@ -62,6 +63,10 @@ export const AsaoWidget: React.FC = () => {
   };
 
   const opacityAlpha = Math.max(0.6, Math.min(1, settings.widgetOpacity / 100));
+  const isLight = getEffectiveTheme(settings.theme || "dark") === "light";
+  const bgRgba = isLight
+    ? `rgba(255, 255, 255, ${opacityAlpha})`
+    : `rgba(14, 14, 14, ${opacityAlpha})`;
   const condition = telemetry?.condition ?? "GOOD";
   const recommendationsList =
     telemetry?.recommendations && telemetry.recommendations.length > 0
@@ -73,7 +78,7 @@ export const AsaoWidget: React.FC = () => {
   return (
     <div
       style={{
-        backgroundColor: `rgba(14, 14, 14, ${opacityAlpha})`,
+        backgroundColor: bgRgba,
       }}
       className="relative h-screen w-screen rounded-xl border border-lunar-border flex flex-col overflow-hidden select-none backdrop-blur-md"
     >

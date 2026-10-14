@@ -10,6 +10,10 @@ import {
   Key,
   ArrowUpRight,
   Check,
+  Sun,
+  Moon,
+  Monitor,
+  Palette,
 } from "lucide-react";
 import { useWidgetStore } from "../../stores/widget-store";
 import { useAgentStore } from "../../stores/agent-store";
@@ -117,14 +121,117 @@ export const WidgetSettings: React.FC = () => {
 
       {/* Main Settings Content */}
       <div className="w-full max-w-3xl mx-auto space-y-6">
-          {/* Startup & Background Service Section */}
-          <section className="rounded-xl lunar-glass-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Sliders className="w-3.5 h-3.5 text-lunar-text-sec" />
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
-                System &amp; Startup Behavior
-              </h2>
-            </div>
+        {/* Appearance & Theme Section */}
+        <section className="rounded-xl lunar-glass-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Palette className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
+              Appearance &amp; Theme
+            </h2>
+          </div>
+
+          <p className="text-[11px] text-lunar-text-sec mb-4 leading-relaxed">
+            Choose your preferred color theme or synchronize dynamically with your Windows system preference.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Dark Theme Option */}
+            <button
+              type="button"
+              onClick={() => void updateSettingsPatch({ theme: "dark" })}
+              className={`relative p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                (settings.theme || "dark") === "dark"
+                  ? "bg-lunar-elevated border-lunar-white/80 shadow-sm"
+                  : "bg-lunar-surface-2/60 border-lunar-border hover:bg-lunar-surface-2 hover:border-lunar-text-sec/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[#141414] border border-[#2A2A2A] flex items-center justify-center text-white shrink-0">
+                  <Moon className="w-4 h-4" />
+                </div>
+                {(settings.theme || "dark") === "dark" && (
+                  <span className="w-4 h-4 rounded-full bg-lunar-white text-lunar-bg flex items-center justify-center text-[10px]">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-lunar-white">Dark Theme</div>
+                <div className="text-[10px] text-lunar-text-sec mt-0.5 leading-tight">
+                  Deep lunar black palette for low-light focus
+                </div>
+              </div>
+            </button>
+
+            {/* Light Theme Option */}
+            <button
+              type="button"
+              onClick={() => void updateSettingsPatch({ theme: "light" })}
+              className={`relative p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                settings.theme === "light"
+                  ? "bg-lunar-elevated border-lunar-white/80 shadow-sm"
+                  : "bg-lunar-surface-2/60 border-lunar-border hover:bg-lunar-surface-2 hover:border-lunar-text-sec/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#E2E4E8] flex items-center justify-center text-[#0D1117] shrink-0">
+                  <Sun className="w-4 h-4" />
+                </div>
+                {settings.theme === "light" && (
+                  <span className="w-4 h-4 rounded-full bg-lunar-white text-lunar-bg flex items-center justify-center text-[10px]">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-lunar-white">Light Theme</div>
+                <div className="text-[10px] text-lunar-text-sec mt-0.5 leading-tight">
+                  Clean, crisp high-contrast palette for daytime
+                </div>
+              </div>
+            </button>
+
+            {/* System Option */}
+            <button
+              type="button"
+              onClick={() => void updateSettingsPatch({ theme: "system" })}
+              className={`relative p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                settings.theme === "system"
+                  ? "bg-lunar-elevated border-lunar-white/80 shadow-sm"
+                  : "bg-lunar-surface-2/60 border-lunar-border hover:bg-lunar-surface-2 hover:border-lunar-text-sec/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-lunar-surface border border-lunar-border flex items-center justify-center text-lunar-white shrink-0">
+                  <Monitor className="w-4 h-4" />
+                </div>
+                {settings.theme === "system" && (
+                  <span className="w-4 h-4 rounded-full bg-lunar-white text-lunar-bg flex items-center justify-center text-[10px]">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-lunar-white">System (Auto)</div>
+                <div className="text-[10px] text-lunar-text-sec mt-0.5 leading-tight">
+                  Synchronize automatically with Windows appearance
+                </div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* Startup & Background Service Section */}
+        <section className="rounded-xl lunar-glass-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Sliders className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
+              System &amp; Startup Behavior
+            </h2>
+          </div>
 
             <div className="divide-y divide-lunar-border/60">
               <ToggleRow
