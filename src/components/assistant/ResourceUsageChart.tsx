@@ -17,14 +17,14 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ data }) 
   const fgName = overview.foregroundProcessName || "Active Window";
 
   return (
-    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 my-3 text-xs">
+    <div className="rounded-2xl bg-lunar-surface border border-lunar-border p-4 my-3 text-xs shadow-xs">
       <div className="flex items-center justify-between mb-3.5">
-        <div className="flex items-center gap-2 font-medium text-white text-[12.5px]">
-          <Activity className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 font-medium text-lunar-white text-[12.5px]">
+          <Activity className="w-4 h-4 text-lunar-white" />
           <span>Resource Usage Breakdown</span>
         </div>
-        <div className="text-[11px] text-zinc-400 flex items-center gap-1.5">
-          <Laptop className="w-3.5 h-3.5 text-zinc-400" />
+        <div className="text-[11px] text-lunar-text-sec flex items-center gap-1.5">
+          <Laptop className="w-3.5 h-3.5 text-lunar-muted" />
           <span className="truncate max-w-[150px]">{fgName}</span>
         </div>
       </div>
@@ -33,37 +33,37 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ data }) 
         {/* CPU Bar */}
         <div>
           <div className="flex items-center justify-between text-[11px] mb-1.5">
-            <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
-              <Cpu className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="flex items-center gap-1.5 text-lunar-text font-medium">
+              <Cpu className="w-3.5 h-3.5 text-lunar-muted" />
               <span>CPU Utilization</span>
             </span>
-            <span className="font-mono text-white font-semibold">
+            <span className="font-mono text-lunar-white font-semibold">
               {cpuPercent.toFixed(1)}%
             </span>
           </div>
 
-          <div className="h-2 w-full rounded-full bg-white/[0.08] overflow-hidden flex">
-            {/* Foreground load share: pure white */}
+          <div className="h-2 w-full rounded-full bg-lunar-border overflow-hidden flex">
+            {/* Foreground load share: lunar-white */}
             <div
               style={{ width: `${Math.min(100, fgLoad)}%` }}
-              className="h-full bg-white transition-all duration-500"
+              className="h-full bg-lunar-white transition-all duration-500"
               title={`Foreground: ${fgLoad.toFixed(1)}%`}
             />
-            {/* Background load share: zinc-400 */}
+            {/* Background load share: lunar-muted */}
             <div
               style={{ width: `${Math.min(100, bgLoad)}%` }}
-              className="h-full bg-zinc-400 transition-all duration-500"
+              className="h-full bg-lunar-muted transition-all duration-500"
               title={`Background: ${bgLoad.toFixed(1)}%`}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-1.5">
+          <div className="flex items-center justify-between text-[10px] text-lunar-text-sec mt-1.5">
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+              <span className="w-1.5 h-1.5 rounded-full bg-lunar-white inline-block" />
               <span>Foreground: {fgLoad.toFixed(0)}%</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 inline-block" />
+              <span className="w-1.5 h-1.5 rounded-full bg-lunar-muted inline-block" />
               <span>Background: {bgLoad.toFixed(0)}%</span>
             </span>
             <span>Idle: {Math.max(0, 100 - cpuPercent).toFixed(0)}%</span>
@@ -73,19 +73,19 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ data }) 
         {/* RAM Bar */}
         <div>
           <div className="flex items-center justify-between text-[11px] mb-1.5">
-            <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
-              <Layers className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="flex items-center gap-1.5 text-lunar-text font-medium">
+              <Layers className="w-3.5 h-3.5 text-lunar-muted" />
               <span>RAM Allocation</span>
             </span>
-            <span className="font-mono text-white font-semibold">
+            <span className="font-mono text-lunar-white font-semibold">
               {ramPercent.toFixed(1)}% ({overview.memoryUsed} / {overview.memoryTotal})
             </span>
           </div>
 
-          <div className="h-2 w-full rounded-full bg-white/[0.08] overflow-hidden">
+          <div className="h-2 w-full rounded-full bg-lunar-border overflow-hidden">
             <div
               style={{ width: `${ramPercent}%` }}
-              className="h-full bg-white transition-all duration-500"
+              className="h-full bg-lunar-white transition-all duration-500"
             />
           </div>
         </div>

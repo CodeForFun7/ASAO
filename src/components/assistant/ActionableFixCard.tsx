@@ -15,13 +15,13 @@ export const ActionableFixCard: React.FC<ActionableFixCardProps> = ({ fix, onApp
   const getActionIcon = () => {
     switch (fix.actionType) {
       case "disable_startup":
-        return <PowerOff className="w-3.5 h-3.5 text-white" />;
+        return <PowerOff className="w-3.5 h-3.5 text-lunar-white" />;
       case "inspect_process":
-        return <ArrowUpRight className="w-3.5 h-3.5 text-white" />;
+        return <ArrowUpRight className="w-3.5 h-3.5 text-lunar-white" />;
       case "open_storage":
-        return <FolderOpen className="w-3.5 h-3.5 text-white" />;
+        return <FolderOpen className="w-3.5 h-3.5 text-lunar-white" />;
       default:
-        return <Wrench className="w-3.5 h-3.5 text-zinc-300" />;
+        return <Wrench className="w-3.5 h-3.5 text-lunar-text-sec" />;
     }
   };
 
@@ -43,17 +43,17 @@ export const ActionableFixCard: React.FC<ActionableFixCardProps> = ({ fix, onApp
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all text-xs">
+    <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-lunar-border bg-lunar-surface hover:bg-lunar-surface-2 transition-all text-xs shadow-xs">
       <div className="flex items-start gap-2.5 min-w-0">
-        <div className="p-2 rounded-lg bg-white/[0.05] border border-white/[0.08] shrink-0 mt-0.5">
+        <div className="p-2 rounded-lg bg-lunar-surface-2 border border-lunar-border shrink-0 mt-0.5">
           {getActionIcon()}
         </div>
 
         <div className="min-w-0">
-          <div className="font-medium text-white text-[12.5px] truncate">
+          <div className="font-medium text-lunar-white text-[12.5px] truncate">
             {fix.title}
           </div>
-          <div className="text-[11px] text-zinc-400 mt-0.5 leading-tight">
+          <div className="text-[11px] text-lunar-text-sec mt-0.5 leading-tight">
             {fix.description}
           </div>
         </div>
@@ -65,16 +65,16 @@ export const ActionableFixCard: React.FC<ActionableFixCardProps> = ({ fix, onApp
         onClick={() => onApply(fix.id)}
         className={`px-3 py-1.5 rounded-lg font-medium text-[11.5px] shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
           isApplied
-            ? "bg-white/10 text-white border border-white/20 cursor-default"
+            ? "bg-lunar-elevated text-lunar-white border border-lunar-border cursor-default"
             : isFailed
-            ? "bg-white/15 text-white border border-white/30 hover:bg-white/25"
+            ? "bg-lunar-critical/15 text-lunar-critical border border-lunar-critical/30 hover:bg-lunar-critical/25"
             : isApplying
-            ? "bg-white/[0.05] text-zinc-400 border border-white/10 cursor-wait"
-            : "bg-white text-black hover:bg-zinc-200 active:scale-95 shadow-sm"
+            ? "bg-lunar-surface-2 text-lunar-muted border border-lunar-border cursor-wait"
+            : "bg-lunar-white text-lunar-bg hover:opacity-90 active:scale-95 shadow-xs"
         }`}
       >
-        {isApplying && <Loader2 className="w-3 h-3 animate-spin text-black" />}
-        {isApplied && <Check className="w-3 h-3 text-white" />}
+        {isApplying && <Loader2 className="w-3 h-3 animate-spin text-lunar-bg" />}
+        {isApplied && <Check className="w-3 h-3 text-lunar-white" />}
         <span>{getButtonLabel()}</span>
       </button>
     </div>

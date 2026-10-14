@@ -28,14 +28,14 @@ export const StartupImpactChart: React.FC<StartupImpactChartProps> = ({
   );
 
   return (
-    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 my-3 text-xs">
+    <div className="rounded-2xl bg-lunar-surface border border-lunar-border p-4 my-3 text-xs shadow-xs">
       <div className="flex items-center justify-between mb-3.5">
-        <div className="flex items-center gap-2 font-medium text-white text-[12.5px]">
-          <Rocket className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 font-medium text-lunar-white text-[12.5px]">
+          <Rocket className="w-4 h-4 text-lunar-white" />
           <span>Startup Impact Ranking</span>
         </div>
-        <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 font-mono">
-          <Clock className="w-3 h-3 text-zinc-500" />
+        <div className="text-[11px] text-lunar-text-sec flex items-center gap-1.5 font-mono">
+          <Clock className="w-3 h-3 text-lunar-muted" />
           <span>~{(startup.estimatedBootDelayMs / 1000).toFixed(1)}s Boot Delay</span>
         </div>
       </div>
@@ -52,57 +52,57 @@ export const StartupImpactChart: React.FC<StartupImpactChartProps> = ({
             return (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] transition-all"
+                className="p-3 rounded-xl bg-lunar-surface-2/60 border border-lunar-border hover:bg-lunar-surface-2 transition-all"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-semibold text-white truncate text-[12.5px]">
+                    <span className="font-semibold text-lunar-white truncate text-[12.5px]">
                       {item.name}
                     </span>
 
-                    {/* Impact badge in white/zinc */}
+                    {/* Impact badge */}
                     <span
                       className={`text-[9.5px] font-mono uppercase px-1.5 py-0.5 rounded border ${
                         isHigh
-                          ? "bg-white text-black font-semibold border-white"
-                          : "bg-white/10 text-zinc-200 border-white/20"
+                          ? "bg-lunar-white text-lunar-bg font-semibold border-lunar-white"
+                          : "bg-lunar-elevated text-lunar-text border-lunar-border"
                       }`}
                     >
                       {item.impact}
                     </span>
 
                     {item.isCurrentlyRunning && (
-                      <span className="text-[9.5px] text-zinc-400 font-mono bg-white/[0.05] border border-white/[0.08] px-1.5 py-0.5 rounded">
+                      <span className="text-[9.5px] text-lunar-text-sec font-mono bg-lunar-elevated border border-lunar-border px-1.5 py-0.5 rounded">
                         Running
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2 text-right shrink-0">
-                    <span className="font-mono font-bold text-[12px] text-white">
+                    <span className="font-mono font-bold text-[12px] text-lunar-white">
                       {item.bootDurationMs.toLocaleString()} ms
                     </span>
-                    <span className="font-mono text-[10px] text-zinc-500">
+                    <span className="font-mono text-[10px] text-lunar-muted">
                       ({item.bootCpuMs} ms CPU)
                     </span>
                   </div>
                 </div>
 
-                {/* Horizontal Bar - strictly white and shades of white */}
-                <div className="h-1.5 w-full rounded-full bg-white/[0.08] overflow-hidden mb-1.5">
+                {/* Horizontal Bar */}
+                <div className="h-1.5 w-full rounded-full bg-lunar-border overflow-hidden mb-1.5">
                   <div
                     style={{ width: `${barWidthPercent}%` }}
                     className={`h-full rounded-full transition-all duration-500 ${
-                      isHigh ? "bg-white" : "bg-zinc-400"
+                      isHigh ? "bg-lunar-white" : "bg-lunar-muted"
                     }`}
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-[10.5px] text-zinc-400 mt-1">
+                <div className="flex items-center justify-between text-[10.5px] text-lunar-text-sec mt-1">
                   <span className="truncate max-w-[220px]">
                     Source: {item.source || "Registry"}
                   </span>
-                  <span className="text-zinc-300">
+                  <span className="text-lunar-text">
                     {item.recommendation === "disable"
                       ? "Recommended to disable"
                       : "User preference"}
@@ -112,25 +112,25 @@ export const StartupImpactChart: React.FC<StartupImpactChartProps> = ({
             );
           })
         ) : (
-          <div className="p-3 rounded-xl bg-white/[0.02] text-center text-zinc-400 text-[11px]">
+          <div className="p-3 rounded-xl bg-lunar-surface-2 text-center text-lunar-muted text-[11px]">
             No high-impact startup delays detected.
           </div>
         )}
       </div>
 
       {/* Footer controls: Show All / View in Startup page */}
-      <div className="mt-3.5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+      <div className="mt-3.5 pt-3 border-t border-lunar-border flex items-center justify-between text-[11px]">
         {highImpactItems.length > 5 ? (
           <button
             type="button"
             onClick={() => setShowAllSampled(!showAllSampled)}
-            className="text-zinc-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-lunar-text-sec hover:text-lunar-white flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>{showAllSampled ? "Show Top 5" : `Show all ${highImpactItems.length} heavy apps`}</span>
             {showAllSampled ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         ) : (
-          <span className="text-zinc-500 text-[10px]">
+          <span className="text-lunar-muted text-[10px]">
             {startup.totalStartupItems} total autostart items
           </span>
         )}
@@ -138,7 +138,7 @@ export const StartupImpactChart: React.FC<StartupImpactChartProps> = ({
         <button
           type="button"
           onClick={() => setRoute("startup")}
-          className="text-white hover:text-zinc-300 flex items-center gap-1 font-medium transition-colors cursor-pointer ml-auto"
+          className="text-lunar-white hover:text-lunar-text-sec flex items-center gap-1 font-medium transition-colors cursor-pointer ml-auto"
         >
           <span>Startup Manager</span>
           <ArrowUpRight className="w-3 h-3" />

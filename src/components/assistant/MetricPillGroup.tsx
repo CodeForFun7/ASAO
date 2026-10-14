@@ -29,12 +29,12 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
 
   const getMetricBadge = (val: number, highThreshold = 80, warningThreshold = 60) => {
     if (val >= highThreshold) {
-      return { label: "High", className: "bg-white text-black font-semibold" };
+      return { label: "High", className: "bg-lunar-white text-lunar-bg font-semibold" };
     }
     if (val >= warningThreshold) {
-      return { label: "Elevated", className: "bg-white/20 text-white border border-white/30" };
+      return { label: "Elevated", className: "bg-lunar-elevated text-lunar-white border border-lunar-border" };
     }
-    return { label: "Normal", className: "bg-white/[0.07] text-zinc-300 border border-white/10" };
+    return { label: "Normal", className: "bg-lunar-surface-2 text-lunar-text-sec border border-lunar-border" };
   };
 
   const getHeaderTitle = () => {
@@ -55,11 +55,11 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
 
   return (
     <div className="my-3">
-      <div className="text-[11px] font-medium tracking-wide text-zinc-400 mb-2 flex items-center justify-between">
+      <div className="text-[11px] font-medium tracking-wide text-lunar-text-sec mb-2 flex items-center justify-between">
         <span>{getHeaderTitle()}</span>
         {overview?.condition && (showCpu || showRam) && (
-          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white border border-white/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-lunar-elevated text-lunar-white border border-lunar-border">
+            <span className="w-1.5 h-1.5 rounded-full bg-lunar-white animate-pulse" />
             <span className="capitalize">{overview.condition}</span>
           </span>
         )}
@@ -68,15 +68,15 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
       <div className={gridColsClass}>
         {/* CPU Pill */}
         {showCpu && overview && (
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] transition-all flex flex-col justify-between">
-            <div className="flex items-center justify-between text-zinc-400 text-[10px] mb-1">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                <Cpu className="w-3.5 h-3.5 text-white" />
+          <div className="p-3 rounded-xl bg-lunar-surface border border-lunar-border hover:bg-lunar-surface-2 transition-all flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-lunar-text-sec text-[10px] mb-1">
+              <span className="flex items-center gap-1.5 font-medium text-lunar-text">
+                <Cpu className="w-3.5 h-3.5 text-lunar-white" />
                 <span>CPU Load</span>
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-white font-mono tracking-tight">
+              <span className="text-lg font-bold text-lunar-white font-mono tracking-tight">
                 {cpuVal.toFixed(0)}%
               </span>
               {(() => {
@@ -93,18 +93,18 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
 
         {/* RAM Pill */}
         {showRam && overview && (
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] transition-all flex flex-col justify-between">
-            <div className="flex items-center justify-between text-zinc-400 text-[10px] mb-1">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                <Activity className="w-3.5 h-3.5 text-white" />
+          <div className="p-3 rounded-xl bg-lunar-surface border border-lunar-border hover:bg-lunar-surface-2 transition-all flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-lunar-text-sec text-[10px] mb-1">
+              <span className="flex items-center gap-1.5 font-medium text-lunar-text">
+                <Activity className="w-3.5 h-3.5 text-lunar-white" />
                 <span>Memory</span>
               </span>
-              <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[75px]">
+              <span className="text-[10px] text-lunar-muted font-mono truncate max-w-[75px]">
                 {overview.memoryUsed}
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-white font-mono tracking-tight">
+              <span className="text-lg font-bold text-lunar-white font-mono tracking-tight">
                 {ramVal.toFixed(0)}%
               </span>
               {(() => {
@@ -121,18 +121,18 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
 
         {/* Storage Pill */}
         {showDisk && (primaryDrive ? (
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] transition-all flex flex-col justify-between">
-            <div className="flex items-center justify-between text-zinc-400 text-[10px] mb-1">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                <HardDrive className="w-3.5 h-3.5 text-white" />
+          <div className="p-3 rounded-xl bg-lunar-surface border border-lunar-border hover:bg-lunar-surface-2 transition-all flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-lunar-text-sec text-[10px] mb-1">
+              <span className="flex items-center gap-1.5 font-medium text-lunar-text">
+                <HardDrive className="w-3.5 h-3.5 text-lunar-white" />
                 <span>Disk {primaryDrive.drive}</span>
               </span>
-              <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[75px]">
+              <span className="text-[10px] text-lunar-muted font-mono truncate max-w-[75px]">
                 {primaryDrive.free} free
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-white font-mono tracking-tight">
+              <span className="text-lg font-bold text-lunar-white font-mono tracking-tight">
                 {diskVal.toFixed(0)}%
               </span>
               {(() => {
@@ -146,15 +146,15 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
             </div>
           </div>
         ) : overview ? (
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] transition-all flex flex-col justify-between">
-            <div className="flex items-center justify-between text-zinc-400 text-[10px] mb-1">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                <Activity className="w-3.5 h-3.5 text-white" />
+          <div className="p-3 rounded-xl bg-lunar-surface border border-lunar-border hover:bg-lunar-surface-2 transition-all flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-lunar-text-sec text-[10px] mb-1">
+              <span className="flex items-center gap-1.5 font-medium text-lunar-text">
+                <Activity className="w-3.5 h-3.5 text-lunar-white" />
                 <span>Strain</span>
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-white font-mono tracking-tight">
+              <span className="text-lg font-bold text-lunar-white font-mono tracking-tight">
                 {overview.systemStrainPercent}%
               </span>
               {(() => {
@@ -171,26 +171,26 @@ export const MetricPillGroup: React.FC<MetricPillGroupProps> = ({ data }) => {
 
         {/* Startups Pill */}
         {showStartup && startup && (
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] transition-all flex flex-col justify-between">
-            <div className="flex items-center justify-between text-zinc-400 text-[10px] mb-1">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                <Rocket className="w-3.5 h-3.5 text-white" />
+          <div className="p-3 rounded-xl bg-lunar-surface border border-lunar-border hover:bg-lunar-surface-2 transition-all flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between text-lunar-text-sec text-[10px] mb-1">
+              <span className="flex items-center gap-1.5 font-medium text-lunar-text">
+                <Rocket className="w-3.5 h-3.5 text-lunar-white" />
                 <span>Startups</span>
               </span>
-              <span className="text-[10px] text-zinc-500 font-mono">
+              <span className="text-[10px] text-lunar-muted font-mono">
                 {startup.disabledCount} off
               </span>
             </div>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-white font-mono tracking-tight">
+              <span className="text-lg font-bold text-lunar-white font-mono tracking-tight">
                 {startupCount}
               </span>
               {highImpactCount > 0 ? (
-                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-white text-black">
+                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-lunar-white text-lunar-bg">
                   {highImpactCount} Heavy
                 </span>
               ) : (
-                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/[0.07] text-zinc-300 border border-white/10">
+                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-lunar-surface-2 text-lunar-text-sec border border-lunar-border">
                   Optimal
                 </span>
               )}

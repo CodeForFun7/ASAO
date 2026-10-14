@@ -49,7 +49,7 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
     Boolean(message.fixes && message.fixes.length > 0);
 
   return (
-    <div className="w-full text-zinc-200">
+    <div className="w-full text-lunar-text">
       {/* Subtle Step Execution Badge */}
       {hasSteps && (
         <AgentActivityProgress
@@ -60,7 +60,7 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
 
       {/* Error Notice */}
       {message.error && (
-        <div className="mb-3 p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2 text-xs text-white">
+        <div className="mb-3 p-3 rounded-xl bg-lunar-critical/10 border border-lunar-critical/30 flex items-center gap-2 text-xs text-lunar-critical">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{message.error}</span>
         </div>
@@ -68,12 +68,12 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
 
       {/* Natural Conversational Markdown Output */}
       {message.text && (
-        <div className="text-[13.5px] leading-relaxed text-zinc-100 font-normal">
+        <div className="text-[13.5px] leading-relaxed text-lunar-text font-normal">
           {renderFormattedText(message.text)}
         </div>
       )}
 
-      {/* Dynamic Visualizations Selected by the AI Model (Strictly White & Shades of White) */}
+      {/* Dynamic Visualizations Selected by the AI Model */}
       {diagnostic && (
         <div className="mt-4 space-y-3">
           {/* 1. Selective Performance Metric Pills */}
@@ -96,8 +96,8 @@ export const AssistantMessageView: React.FC<AssistantMessageViewProps> = ({
       {/* 6. Available Fix Action Cards */}
       {showFixes && message.fixes && message.fixes.length > 0 && (
         <div className="mt-4 space-y-2">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+          <div className="text-[11px] font-medium uppercase tracking-wider text-lunar-text-sec flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-lunar-white" />
             <span>Available Actions ({message.fixes.length})</span>
           </div>
           <div className="space-y-2">
@@ -129,7 +129,7 @@ function renderFormattedText(text: string) {
           return (
             <h3
               key={idx}
-              className="text-[14px] font-semibold text-white tracking-tight mt-4 mb-2"
+              className="text-[14px] font-semibold text-lunar-white tracking-tight mt-4 mb-2"
             >
               {headerText}
             </h3>
@@ -143,10 +143,10 @@ function renderFormattedText(text: string) {
           const rest = numberMatch[2];
           return (
             <div key={idx} className="flex items-start gap-2.5 pl-1 my-1.5">
-              <span className="w-5 h-5 rounded-full bg-white/[0.08] text-white text-[11px] font-mono font-medium flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-5 h-5 rounded-full bg-lunar-elevated text-lunar-white text-[11px] font-mono font-medium flex items-center justify-center shrink-0 mt-0.5">
                 {num}
               </span>
-              <span className="flex-1 min-w-0 text-[13px] leading-relaxed text-zinc-200">
+              <span className="flex-1 min-w-0 text-[13px] leading-relaxed text-lunar-text">
                 {renderInlineFormatting(rest)}
               </span>
             </div>
@@ -157,8 +157,8 @@ function renderFormattedText(text: string) {
         if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
           return (
             <div key={idx} className="flex items-start gap-2.5 pl-2 my-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-2 shrink-0 inline-block" />
-              <span className="flex-1 min-w-0 text-[13px] leading-relaxed text-zinc-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-lunar-muted mt-2 shrink-0 inline-block" />
+              <span className="flex-1 min-w-0 text-[13px] leading-relaxed text-lunar-text">
                 {renderInlineFormatting(trimmed.replace(/^[\*\-]\s+/, ""))}
               </span>
             </div>
@@ -167,7 +167,7 @@ function renderFormattedText(text: string) {
 
         // Regular paragraph
         return (
-          <p key={idx} className="my-1.5 text-[13px] leading-relaxed text-zinc-200">
+          <p key={idx} className="my-1.5 text-[13px] leading-relaxed text-lunar-text">
             {renderInlineFormatting(line)}
           </p>
         );
@@ -183,7 +183,7 @@ function renderInlineFormatting(text: string) {
       return (
         <code
           key={index}
-          className="px-1.5 py-0.5 rounded bg-white/[0.07] border border-white/10 font-mono text-[12px] text-white"
+          className="px-1.5 py-0.5 rounded bg-lunar-surface-2 border border-lunar-border font-mono text-[12px] text-lunar-white"
         >
           {part.slice(1, -1)}
         </code>
@@ -191,7 +191,7 @@ function renderInlineFormatting(text: string) {
     }
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={index} className="font-semibold text-white">
+        <strong key={index} className="font-semibold text-lunar-white">
           {part.slice(2, -2)}
         </strong>
       );

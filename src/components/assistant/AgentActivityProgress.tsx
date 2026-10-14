@@ -24,39 +24,39 @@ export const AgentActivityProgress: React.FC<AgentActivityProgressProps> = ({
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-zinc-300 transition-colors cursor-pointer select-none"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-lunar-surface hover:bg-lunar-elevated border border-lunar-border text-lunar-text transition-colors cursor-pointer select-none shadow-xs"
       >
         {isStreaming ? (
-          <div className="flex items-center gap-1.5 text-white font-medium text-[11px]">
+          <div className="flex items-center gap-1.5 text-lunar-white font-medium text-[11px]">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lunar-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-lunar-white" />
             </span>
             <span>
               {currentRunningStep?.label || "Analyzing system telemetry..."}
             </span>
           </div>
         ) : hasError ? (
-          <div className="flex items-center gap-1.5 text-zinc-300 text-[11px]">
-            <Sparkles className="w-3 h-3 text-white" />
+          <div className="flex items-center gap-1.5 text-lunar-text-sec text-[11px]">
+            <Sparkles className="w-3 h-3 text-lunar-white" />
             <span>Analysis completed with notes</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-zinc-300 text-[11px]">
-            <Check className="w-3.5 h-3.5 text-white" />
-            <span className="text-white font-medium">Diagnostics completed</span>
-            <span className="text-zinc-500">({steps.length} checks)</span>
+          <div className="flex items-center gap-1.5 text-lunar-text-sec text-[11px]">
+            <Check className="w-3.5 h-3.5 text-lunar-healthy" />
+            <span className="text-lunar-white font-medium">Diagnostics completed</span>
+            <span className="text-lunar-muted">({steps.length} checks)</span>
           </div>
         )}
 
-        <div className="flex items-center pl-1 text-zinc-500">
+        <div className="flex items-center pl-1 text-lunar-muted">
           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </div>
       </button>
 
       {/* Expanded Steps List */}
       {isExpanded && (
-        <div className="mt-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 max-w-xl">
+        <div className="mt-2 p-3 rounded-xl bg-lunar-surface border border-lunar-border space-y-2 max-w-xl shadow-xs">
           {steps.map((step) => {
             const isRun = step.status === "running";
             const isDone = step.status === "completed";
@@ -70,22 +70,22 @@ export const AgentActivityProgress: React.FC<AgentActivityProgressProps> = ({
                 <div className="flex items-start gap-2 min-w-0">
                   <div className="mt-0.5 shrink-0">
                     {isRun ? (
-                      <Loader2 className="w-3 h-3 text-white animate-spin" />
+                      <Loader2 className="w-3 h-3 text-lunar-white animate-spin" />
                     ) : isDone ? (
-                      <Check className="w-3 h-3 text-white" />
+                      <Check className="w-3 h-3 text-lunar-healthy" />
                     ) : isErr ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 mt-1 inline-block" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-lunar-warning mt-1 inline-block" />
                     ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 mt-1 inline-block" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-lunar-muted mt-1 inline-block" />
                     )}
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-zinc-200 font-medium truncate">
+                    <div className="text-lunar-text font-medium truncate">
                       {step.label}
                     </div>
                     {step.detail && (
-                      <div className="text-zinc-500 text-[10px] mt-0.5 truncate">
+                      <div className="text-lunar-muted text-[10px] mt-0.5 truncate">
                         {step.detail}
                       </div>
                     )}
@@ -93,7 +93,7 @@ export const AgentActivityProgress: React.FC<AgentActivityProgressProps> = ({
                 </div>
 
                 {step.durationMs !== undefined && (
-                  <span className="font-mono text-zinc-500 text-[10px] shrink-0">
+                  <span className="font-mono text-lunar-muted text-[10px] shrink-0">
                     {step.durationMs}ms
                   </span>
                 )}

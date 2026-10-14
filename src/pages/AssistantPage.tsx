@@ -114,7 +114,7 @@ export const AssistantPage: React.FC = () => {
   const isStarterState = messages.length <= 1;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0c0c0e] overflow-hidden select-none">
+    <div className="flex-1 flex flex-col h-full bg-lunar-bg overflow-hidden select-none">
       {/* Main Conversation Stream */}
       <div
         ref={scrollRef}
@@ -134,10 +134,10 @@ export const AssistantPage: React.FC = () => {
           {isStarterState && !isProcessing && (
             <div className="pt-8 pb-4">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-medium text-white tracking-tight">
+                <h2 className="text-lg font-medium text-lunar-white tracking-tight">
                   What would you like to analyze?
                 </h2>
-                <p className="text-xs text-zinc-400 mt-1">
+                <p className="text-xs text-lunar-text-sec mt-1">
                   Select a diagnostic workflow or ask anything below.
                 </p>
               </div>
@@ -147,17 +147,17 @@ export const AssistantPage: React.FC = () => {
                   <div
                     key={idx}
                     onClick={() => handleSend(card.prompt)}
-                    className="p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] hover:border-white/20 transition-all cursor-pointer group select-none"
+                    className="p-3.5 rounded-2xl bg-lunar-surface hover:bg-lunar-surface-2 border border-lunar-border transition-all cursor-pointer group select-none shadow-xs"
                   >
                     <div className="flex items-center gap-2.5 mb-1.5">
-                      <div className="p-1 rounded-md bg-white/[0.05] border border-white/10 text-white">
+                      <div className="p-1 rounded-md bg-lunar-surface-2 border border-lunar-border text-lunar-white">
                         {card.icon}
                       </div>
-                      <span className="font-semibold text-xs text-white group-hover:text-zinc-200 transition-colors">
+                      <span className="font-semibold text-xs text-lunar-white group-hover:text-lunar-text transition-colors">
                         {card.title}
                       </span>
                     </div>
-                    <p className="text-[11.5px] text-zinc-400 leading-relaxed pl-0.5">
+                    <p className="text-[11.5px] text-lunar-text-sec leading-relaxed pl-0.5">
                       {card.description}
                     </p>
                   </div>
@@ -168,10 +168,10 @@ export const AssistantPage: React.FC = () => {
 
           {/* Processing Indicator */}
           {isProcessing && messages[messages.length - 1]?.sender === "user" && (
-            <div className="flex items-center gap-2.5 text-xs text-zinc-400 py-3">
+            <div className="flex items-center gap-2.5 text-xs text-lunar-text-sec py-3">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lunar-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-lunar-white" />
               </span>
               <span className="animate-pulse">
                 Analyzing system data &amp; calculating recommendations...
@@ -182,13 +182,13 @@ export const AssistantPage: React.FC = () => {
       </div>
 
       {/* Floating Bottom Input Area (ChatGPT Style Capsule) */}
-      <div className="relative p-4 shrink-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/95 to-transparent">
+      <div className="relative p-4 shrink-0 bg-gradient-to-t from-lunar-bg via-lunar-bg/95 to-transparent">
         {/* Floating Scroll To Bottom Button */}
         {showScrollBottom && (
           <button
             type="button"
             onClick={scrollToBottom}
-            className="absolute -top-6 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#262626] border border-white/[0.15] text-white flex items-center justify-center shadow-lg hover:bg-[#333] transition-all cursor-pointer z-10"
+            className="absolute -top-6 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-lunar-surface border border-lunar-border text-lunar-white flex items-center justify-center shadow-lg hover:bg-lunar-surface-2 transition-all cursor-pointer z-10"
             title="Scroll to bottom"
           >
             <ArrowDown className="w-3.5 h-3.5" />
@@ -204,7 +204,7 @@ export const AssistantPage: React.FC = () => {
                 type="button"
                 disabled={isProcessing}
                 onClick={() => handleSend(chip)}
-                className="px-3 py-1 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.07] text-[11px] text-zinc-400 hover:text-white whitespace-nowrap transition-all cursor-pointer disabled:opacity-30"
+                className="px-3 py-1 rounded-full bg-lunar-surface hover:bg-lunar-elevated border border-lunar-border text-[11px] text-lunar-text-sec hover:text-lunar-white whitespace-nowrap transition-all cursor-pointer disabled:opacity-30 shadow-xs"
               >
                 {chip}
               </button>
@@ -214,7 +214,7 @@ export const AssistantPage: React.FC = () => {
           {/* Capsule Composer */}
           <form
             onSubmit={handleSubmit}
-            className="relative rounded-3xl bg-[#1e1e1e] border border-white/[0.12] p-1.5 shadow-2xl flex items-center gap-2 focus-within:border-white/30 transition-all"
+            className="relative rounded-3xl bg-lunar-surface border border-lunar-border p-1.5 shadow-xl flex items-center gap-2 focus-within:border-lunar-text-sec transition-all"
           >
             {/* Input field */}
             <input
@@ -229,17 +229,17 @@ export const AssistantPage: React.FC = () => {
                   ? "Analyzing system data..."
                   : "Ask anything about slow PC, boot delay, RAM, storage..."
               }
-              className="w-full bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none pl-4 pr-2 py-1"
+              className="w-full bg-transparent text-[13px] text-lunar-text placeholder:text-lunar-muted focus:outline-none pl-4 pr-2 py-1"
             />
 
-            {/* Send Button (White circle with dark up arrow) */}
+            {/* Send Button */}
             <button
               type="submit"
               disabled={!input.trim() || isProcessing}
-              className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-200 transition-all disabled:opacity-20 disabled:hover:bg-white shrink-0 cursor-pointer shadow-sm mr-0.5 active:scale-95"
+              className="w-8 h-8 rounded-full bg-lunar-white text-lunar-bg flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-20 disabled:hover:opacity-20 shrink-0 cursor-pointer shadow-sm mr-0.5 active:scale-95"
               title="Send Message"
             >
-              <ArrowUp className="w-4 h-4 text-black stroke-[2.5]" />
+              <ArrowUp className="w-4 h-4 text-lunar-bg stroke-[2.5]" />
             </button>
           </form>
         </div>
