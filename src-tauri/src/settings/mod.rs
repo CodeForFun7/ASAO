@@ -3,6 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
+fn default_theme() -> String {
+    "dark".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AsaoSettings {
@@ -18,6 +22,8 @@ pub struct AsaoSettings {
     pub custom_y: Option<i32>,
     /// 60..=100
     pub widget_opacity: u8,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 impl Default for AsaoSettings {
@@ -33,6 +39,7 @@ impl Default for AsaoSettings {
             custom_x: None,
             custom_y: None,
             widget_opacity: 80,
+            theme: "dark".to_string(),
         }
     }
 }

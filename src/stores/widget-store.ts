@@ -17,6 +17,7 @@ import {
 } from "../services/widget";
 import { useAgentStore } from "./agent-store";
 import { recommendationService } from "../services/recommendation";
+import { applyTheme, getStoredTheme } from "../services/theme";
 
 const MAX_WIDGET_HISTORY = 24;
 
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: AsaoSettings = {
   customX: null,
   customY: null,
   widgetOpacity: 80,
+  theme: getStoredTheme(),
 };
 
 interface WidgetStoreState {
@@ -94,6 +96,9 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
           getWidgetUpdate(),
           getWidgetVisibility(),
         ]);
+      if (initialSettings.theme) {
+        applyTheme(initialSettings.theme);
+      }
       set({ settings: initialSettings, widgetVisible: initialVisible });
       pushUpdate(initialUpdate);
     } catch {
@@ -105,6 +110,9 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
         pushUpdate(update);
       },
       onSettingsUpdated: (newSettings) => {
+        if (newSettings.theme) {
+          applyTheme(newSettings.theme);
+        }
         set({
           settings: newSettings,
           widgetVisible: newSettings.widgetEnabled ? get().widgetVisible : false,
@@ -140,6 +148,9 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
   },
 
   updateSettingsPatch: async (patch) => {
+    if (patch.theme) {
+      applyTheme(patch.theme);
+    }
     const merged: AsaoSettings = {
       ...get().settings,
       ...patch,

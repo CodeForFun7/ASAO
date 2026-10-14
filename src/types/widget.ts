@@ -18,6 +18,8 @@ export type WidgetPositionPreset =
   | "bottom-right"
   | "custom";
 
+export type ThemeMode = "dark" | "light" | "system";
+
 export interface AsaoSettings {
   startWithWindows: boolean;
   widgetEnabled: boolean;
@@ -29,6 +31,7 @@ export interface AsaoSettings {
   customX: number | null;
   customY: number | null;
   widgetOpacity: number; // 60..100
+  theme?: ThemeMode;
 }
 
 export interface CompactProcessContext {
