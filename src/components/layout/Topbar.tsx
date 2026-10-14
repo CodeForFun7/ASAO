@@ -57,7 +57,7 @@ export const Topbar: React.FC = () => {
         </span>
       </div>
 
-      {/* Right: Custom Window Controls (Minimize, Maximize/Restore, Close) */}
+      {/* Right: Window Controls */}
       <div className="flex items-center h-full">
         <button
           type="button"

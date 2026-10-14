@@ -126,8 +126,8 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
         >
           <defs>
             <linearGradient id="lunarAreaFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E8EAED" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#E8EAED" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="var(--color-lunar-text)" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="var(--color-lunar-text)" stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -137,7 +137,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
             y1="14"
             x2="300"
             y2="14"
-            stroke="#262C34"
+            stroke="var(--color-lunar-border)"
             strokeDasharray="2,2"
             strokeWidth="1"
           />
@@ -146,7 +146,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
             y1="46"
             x2="300"
             y2="46"
-            stroke="#262C34"
+            stroke="var(--color-lunar-border)"
             strokeDasharray="2,2"
             strokeWidth="1"
           />
@@ -155,7 +155,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
             y1="82"
             x2="300"
             y2="82"
-            stroke="#262C34"
+            stroke="var(--color-lunar-border)"
             strokeWidth="1"
           />
 
@@ -166,7 +166,7 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
           {polylineStr && (
             <polyline
               fill="none"
-              stroke="#E8EAED"
+              stroke="var(--color-lunar-text)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"

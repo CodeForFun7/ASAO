@@ -40,7 +40,7 @@ export const StorageChart: React.FC<StorageChartProps> = ({
           cy={center}
           r={radius}
           fill="transparent"
-          stroke="#1E1E1E"
+          stroke="var(--color-lunar-border)"
           strokeWidth={strokeWidth}
         />
 

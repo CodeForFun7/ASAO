@@ -128,7 +128,7 @@ export const RecButtonAndModal: React.FC<RecButtonAndModalProps> = ({
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="w-full max-w-2xl max-h-[82vh] rounded-xl bg-[#111114] border border-lunar-border shadow-2xl flex flex-col overflow-hidden"
+            className="w-full max-w-2xl max-h-[82vh] rounded-xl bg-lunar-surface border border-lunar-border shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header (without icon or recommendation number badge) */}

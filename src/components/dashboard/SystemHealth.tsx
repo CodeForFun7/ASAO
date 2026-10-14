@@ -51,7 +51,7 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
   currentPercent,
   values,
   strokeColor,
-  badgeTextColor = "#0B0D10",
+  badgeTextColor = "var(--color-lunar-bg)",
   gradientId,
   peakValue,
   averageValue,
@@ -159,7 +159,7 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
                 cy={highlightPoint.y}
                 r="4"
                 fill={strokeColor}
-                stroke="#0B0D10"
+                stroke="var(--color-lunar-surface)"
                 strokeWidth="1.5"
               />
               <rect
@@ -290,8 +290,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
             currentPercent={metrics.cpuUsagePercent}
             values={cpuSeries}
-            strokeColor="#FFFFFF"
-            badgeTextColor="#0E0E0E"
+            strokeColor="var(--color-lunar-white)"
+            badgeTextColor="var(--color-lunar-bg)"
             gradientId="gradCpuActivity"
             peakValue={`${cpuStats.peak.toFixed(0)}%`}
             averageValue={`${cpuStats.avg.toFixed(1)}%`}
@@ -305,8 +305,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
             currentPercent={metrics.memoryUsagePercent}
             values={memSeries}
-            strokeColor="#FFFFFF"
-            badgeTextColor="#0E0E0E"
+            strokeColor="var(--color-lunar-white)"
+            badgeTextColor="var(--color-lunar-bg)"
             gradientId="gradRamActivity"
             peakValue={`${memStats.peak.toFixed(0)}%`}
             averageValue={`${memStats.avg.toFixed(1)}%`}
@@ -323,8 +323,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
             currentPercent={metrics.gpuUsagePercent ?? 0}
             values={gpuSeries}
-            strokeColor="#FFFFFF"
-            badgeTextColor="#0E0E0E"
+            strokeColor="var(--color-lunar-white)"
+            badgeTextColor="var(--color-lunar-bg)"
             gradientId="gradGpuActivity"
             peakValue={`${gpuStats.peak.toFixed(0)}%`}
             averageValue={`${gpuStats.avg.toFixed(1)}%`}
@@ -338,8 +338,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={formatRate(netStats.cur)}
             currentPercent={netStats.curPct}
             values={netStats.normalized}
-            strokeColor="#FFFFFF"
-            badgeTextColor="#0E0E0E"
+            strokeColor="var(--color-lunar-white)"
+            badgeTextColor="var(--color-lunar-bg)"
             gradientId="gradNetActivity"
             peakValue={formatRate(netStats.peak)}
             averageValue={formatRate(Math.round(netStats.avg))}
@@ -353,8 +353,8 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
             badgeText={formatRate(diskStats.cur)}
             currentPercent={diskStats.curPct}
             values={diskStats.normalized}
-            strokeColor="#FFFFFF"
-            badgeTextColor="#0E0E0E"
+            strokeColor="var(--color-lunar-white)"
+            badgeTextColor="var(--color-lunar-bg)"
             gradientId="gradDiskActivity"
             peakValue={formatRate(diskStats.peak)}
             averageValue={formatRate(Math.round(diskStats.avg))}

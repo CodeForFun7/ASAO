@@ -114,7 +114,7 @@ export const BatteryStatusCard: React.FC<BatteryStatusCardProps> = ({
               <div
                 key={idx}
                 className={`h-5 flex-1 rounded-[3px] transition-colors duration-300 ${
-                  isFilled ? "bg-lunar-white" : "bg-[#222222]"
+                  isFilled ? "bg-lunar-white" : "bg-lunar-elevated"
                 }`}
               />
             );
