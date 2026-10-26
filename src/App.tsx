@@ -6,9 +6,9 @@ import { Dashboard } from "./pages/Dashboard";
 import { Processes } from "./pages/Processes";
 import { Startup } from "./pages/Startup";
 import { StoragePage } from "./pages/StoragePage";
-import { AssistantPage } from "./pages/AssistantPage";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
+import { NyraChat } from "./pages/NyraChat";
 import { useProcessStore } from "./stores/process-store";
 import type { AppRoute } from "./types/process";
 
@@ -37,6 +37,12 @@ function App() {
 
   // Transparent background override for the frameless widget window
   useEffect(() => {
+    try {
+      localStorage.removeItem("asao_vertex_agent_config");
+    } catch {
+      // Ignore unavailable browser storage.
+    }
+
     if (isWidgetWindow) {
       document.documentElement.classList.add("widget-window");
       document.documentElement.style.background = "transparent";
@@ -66,8 +72,8 @@ function App() {
         target === "processes" ||
         target === "startup" ||
         target === "storage" ||
-        target === "assistant" ||
-        target === "settings"
+        target === "settings" ||
+        target === "assistant"
       ) {
         setRoute(target);
       }
@@ -85,8 +91,8 @@ function App() {
             route === "processes" ||
             route === "startup" ||
             route === "storage" ||
-            route === "assistant" ||
-            route === "settings"
+            route === "settings" ||
+            route === "assistant"
         ) {
           setRoute(route as AppRoute);
         }
@@ -117,8 +123,8 @@ function App() {
       {currentRoute === "processes" && <Processes />}
       {currentRoute === "startup" && <Startup />}
       {currentRoute === "storage" && <StoragePage />}
-      {currentRoute === "assistant" && <AssistantPage />}
       {currentRoute === "settings" && <WidgetSettings />}
+      {currentRoute === "assistant" && <NyraChat />}
     </AppShell>
   );
 }

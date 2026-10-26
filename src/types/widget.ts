@@ -9,8 +9,6 @@ export type SystemConditionState = "GOOD" | "ELEVATED" | "ATTENTION";
 
 export type RecommendationPriority = "normal" | "interesting" | "important";
 
-export type WidgetMode = "monitor" | "chat";
-
 export type WidgetPositionPreset =
   | "top-left"
   | "top-right"
@@ -100,33 +98,4 @@ export interface WidgetHistorySample {
   timestamp: number;
   cpuUsage: number;
   memoryUsage: number;
-}
-
-export interface StructuredSystemContext {
-  cpuUsage: number;
-  ramUsage: number;
-  memoryUsedBytes: number;
-  memoryTotalBytes: number;
-  gpuUsage: number;
-  foregroundLoad: number;
-  backgroundLoad: number;
-  systemStrain: number;
-  userActive: boolean;
-  foregroundProcessName: string | null;
-  processCount: number;
-  attentionCount: number;
-  systemCondition: SystemConditionState;
-  conditionReason: string;
-  topCpuProcesses: CompactProcessContext[];
-  topMemoryProcesses: CompactProcessContext[];
-  recentResourceHistory: WidgetHistorySample[];
-  activeRecommendation: WidgetRecommendation | null;
-}
-
-export interface ChatMessage {
-  id: string;
-  sender: "user" | "asao";
-  text: string;
-  contextSummary?: string;
-  timestamp: number;
 }

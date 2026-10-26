@@ -1,5 +1,5 @@
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, LogicalSize, Manager, Size, State, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::{
@@ -237,36 +237,6 @@ pub fn toggle_widget(
         }
     }
     show_widget(app, state)
-}
-
-#[tauri::command]
-pub fn set_widget_mode(
-    app: AppHandle,
-    state: State<'_, AppMonitoringState>,
-    mode: String,
-) -> Result<(), String> {
-    if let Some(widget_win) = app.get_webview_window("widget") {
-        let max_dim = Size::Logical(LogicalSize::new(380.0, 480.0));
-        let min_dim = Size::Logical(LogicalSize::new(280.0, 320.0));
-
-        if mode == "chat" {
-            // In chatbot chat: dimensions remain fixed (neither expandable nor shrinkable)
-            let _ = widget_win.set_min_size(Some(max_dim));
-            let _ = widget_win.set_max_size(Some(max_dim));
-            let _ = widget_win.set_size(max_dim);
-            let _ = widget_win.set_resizable(false);
-        } else {
-            // In monitor mode: max dimensions remain fixed & same, but can be dragged to shrink
-            let _ = widget_win.set_min_size(Some(min_dim));
-            let _ = widget_win.set_max_size(Some(max_dim));
-            let _ = widget_win.set_resizable(true);
-        }
-
-        if let Ok(guard) = state.settings.lock() {
-            apply_widget_window_geometry(&widget_win, &guard);
-        }
-    }
-    Ok(())
 }
 
 #[tauri::command]

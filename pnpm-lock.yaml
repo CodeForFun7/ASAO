@@ -8,12 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@google/adk':
-        specifier: ^2.1.0
-        version: 2.1.0(@grpc/grpc-js@1.14.5)
-      '@google/genai':
-        specifier: ^2.24.0
-        version: 2.24.0
       '@tauri-apps/api':
         specifier: ^2
         version: 2.11.1

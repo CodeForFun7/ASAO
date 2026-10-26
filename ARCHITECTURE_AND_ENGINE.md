@@ -3,7 +3,7 @@
 This document provides an end-to-end architectural and mathematical reference for **ASAO**:
 1. **How the Native Rust Backend Collects Processes, Startup, and Storage Telemetry**
 2. **How the Multi-Domain Recommendation Engine (`RecommendationEngine`) Works & Exact Mathematical Formulas**
-3. **End-to-End Feature Workflows (Processes, Startup, Storage, Companion Widget, and AI Diagnostics)**
+3. **End-to-End Feature Workflows (Processes, Startup, Storage, and Companion Widget)**
 4. **Complete Codebase Directory & Module Structure (`src-tauri/` and `src/`)**
 
 ---
@@ -29,8 +29,8 @@ flowchart TD
     end
 
     subgraph Frontend["React + Zustand Frontend (src)"]
-        M["Main Dashboard Window\n(Dashboard, Processes, Startup, Storage, AI Diagnostics, Settings)"]
-        W["Companion Overlay Widget (#widget)\n(Real-Time Strain, Auto-Scrolling REC Carousel, Ask Asao Chat)"]
+        M["Main Dashboard Window\n(Dashboard, Processes, Startup, Storage, Settings)"]
+        W["Companion Overlay Widget (#widget)\n(Real-Time Strain and Auto-Scrolling REC Carousel)"]
     end
 
     K1 & K2 --> C
@@ -109,7 +109,7 @@ Storage inspection is implemented in [`src-tauri/src/collector/storage.rs`](file
      - `CACHE` (`Temp`, `Cache`, `GPUCache`, `Code Cache`, `npm-cache`, `pip\cache`, `Cargo\registry`, browser caches)
      - `TEMPORARY` (`$Recycle.Bin`, `.tmp`, `.log`, `.bak`, `.old`, crash dumps)
      - `UNKNOWN`
-   - Maintains bounded min-heaps / sorted vectors for the **Top Largest Files** (`large_files`) and **Top Largest Folders** (`large_folders`), and caches the completed `StorageSnapshot` in `AppMonitoringState::storage_snapshots` so the Recommendation Engine and AI Diagnostics assistant can query it instantaneously.
+   - Maintains bounded min-heaps / sorted vectors for the **Top Largest Files** (`large_files`) and **Top Largest Folders** (`large_folders`), and caches the completed `StorageSnapshot` in `AppMonitoringState::storage_snapshots` for the Recommendation Engine and Storage Insights.
 
 ---
 
@@ -236,8 +236,7 @@ flowchart LR
 | **Processes** | [`Processes.tsx`](file:///c:/Coding%20Files/ASAO/src/pages/Processes.tsx) / [`system-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/system-store.ts) | `get_full_snapshot`, `kill_process`, `get_categorized_recommendations` | Category/impact filtering, tree & flat table views, process drawer, **REC** button with Lunar White badge + 1-click *End Task*. |
 | **Startup** | [`Startup.tsx`](file:///c:/Coding%20Files/ASAO/src/pages/Startup.tsx) / [`startup-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/startup-store.ts) | `get_startup_items`, `enable_startup_item`, `disable_startup_item`, `wpr_start_boot_trace` | Multi-source autostart table, boot delay breakdown, safe enable/disable toggles, WPR boot tracing, **REC** button + 1-click *Disable Startup*. |
 | **Storage** | [`StoragePage.tsx`](file:///c:/Coding%20Files/ASAO/src/pages/StoragePage.tsx) / [`storage-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/storage-store.ts) | `get_storage_drives`, `start_storage_scan`, `open_storage_location`, `read_storage_directory` | Drive selector, category breakdown bar, directory browser, largest files/folders, **REC** modal + native `explorer.exe /select,"<path>"` launcher. |
-| **AI Diagnostics** | [`AssistantPage.tsx`](file:///c:/Coding%20Files/ASAO/src/pages/AssistantPage.tsx) / [`agent-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/agent-store.ts) | [`vertexAdkAgentService`](file:///c:/Coding%20Files/ASAO/src/services/ai-agent/agent-service.ts) + [`tools.ts`](file:///c:/Coding%20Files/ASAO/src/services/ai-agent/tools.ts) | Autonomous diagnostic tool calling (`check_startup_applications`, `check_background_processes`, `check_storage_status`, `check_system_health_overview`), visual charts, and 1-click fixes. |
-| **Companion Widget** | [`AsaoWidget.tsx`](file:///c:/Coding%20Files/ASAO/src/components/widget/AsaoWidget.tsx) / [`widget-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/widget-store.ts) | `get_widget_update`, `set_widget_mode`, `open_main_window` | Always-on-top translucent Lunar monitor, 4.5s auto-scrolling `RecommendationCard` across all 3 domains, and embedded **Ask Asao** AI Diagnostics chat (`WidgetChat.tsx`). |
+| **Companion Widget** | [`AsaoWidget.tsx`](file:///c:/Coding%20Files/ASAO/src/components/widget/AsaoWidget.tsx) / [`widget-store.ts`](file:///c:/Coding%20Files/ASAO/src/stores/widget-store.ts) | `get_widget_update`, `open_main_window` | Always-on-top translucent Lunar monitor with auto-scrolling `RecommendationCard` across all 3 domains. |
 
 ---
 
@@ -283,18 +282,15 @@ ASAO/
     │   ├── Processes.tsx               # Process table, filters, REC button & detail drawer
     │   ├── Startup.tsx                 # Startup manager, boot delay summary & REC button
     │   ├── StoragePage.tsx             # Storage analyzer, file browser & REC button
-    │   ├── AssistantPage.tsx           # AI Diagnostics conversational assistant
     │   └── Settings.tsx                # Application & companion widget preferences
     ├── components/
     │   ├── common/
     │   │   └── RecommendationsModal.tsx# Unified REC modal with 1-click actions (End Process / Disable / Review)
-    │   ├── assistant/                  # AI Diagnostics UI (ChatMessageItem, AssistantMessageView, Charts, Fix Cards)
-    │   ├── widget/                     # Companion Widget UI (AsaoWidget, RecommendationCard, WidgetChat)
+    │   ├── widget/                     # Companion Widget UI (AsaoWidget, RecommendationCard)
     │   ├── processes/                  # Process table, filters & inspector drawer
     │   ├── startup/                    # Startup table, filters & WPR trace UI
     │   └── layout/                     # Sidebar (with NeuronIcon & live badges), Header, MainLayout
-    ├── services/                       # Frontend Service & AI Agent Layer
-    │   ├── ai-agent/                   # Vertex ADK / Gemini tool-calling agent (agent-service.ts, tools.ts)
+    ├── services/                       # Frontend service layer
     │   ├── tauri.ts                    # Typed wrappers for process & system Tauri commands
     │   ├── startup.ts                  # Typed wrappers for startup Tauri commands
     │   ├── storage.ts                  # Typed wrappers for storage Tauri commands
@@ -303,6 +299,5 @@ ASAO/
         ├── system-store.ts             # Live processes, system metrics & process actions
         ├── startup-store.ts            # Startup items, boot summary & toggle actions
         ├── storage-store.ts            # Drives, storage snapshots & scan progress
-        ├── agent-store.ts              # AI Diagnostics chat history, tool steps & 1-click fix execution
-        └── widget-store.ts             # Widget mode, telemetry stream & Ask Asao chat bridge
+        └── widget-store.ts             # Widget telemetry stream and settings
 ```

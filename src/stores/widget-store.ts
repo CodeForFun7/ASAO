@@ -1,21 +1,17 @@
 import { create } from "zustand";
 import type {
   AsaoSettings,
-  ChatMessage,
   WidgetHistorySample,
-  WidgetMode,
   WidgetSystemUpdate,
 } from "../types/widget";
 import {
   getSettings,
   getWidgetUpdate,
   getWidgetVisibility,
-  setWidgetMode,
   subscribeToWidgetEvents,
   toggleWidget,
   updateSettings,
 } from "../services/widget";
-import { useAgentStore } from "./agent-store";
 import { recommendationService } from "../services/recommendation";
 import { applyTheme, getStoredTheme } from "../services/theme";
 
@@ -36,36 +32,21 @@ const DEFAULT_SETTINGS: AsaoSettings = {
 };
 
 interface WidgetStoreState {
-  mode: WidgetMode;
   widgetVisible: boolean;
   settings: AsaoSettings;
   telemetry: WidgetSystemUpdate | null;
   history: WidgetHistorySample[];
-  messages: ChatMessage[];
-  isSendingChat: boolean;
 
   initializeWidget: () => Promise<() => void>;
   toggleWidgetVisibility: () => Promise<void>;
-  switchMode: (mode: WidgetMode, initialQuestion?: string) => Promise<void>;
   updateSettingsPatch: (patch: Partial<AsaoSettings>) => Promise<void>;
-  sendChatPrompt: (promptText: string) => Promise<void>;
 }
 
 export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
-  mode: "monitor",
   widgetVisible: false,
   settings: DEFAULT_SETTINGS,
   telemetry: null,
   history: [],
-  messages: [
-    {
-      id: "welcome-msg",
-      sender: "asao",
-      text: "Monitoring your system in real time. Ask me about running processes, memory usage, or current recommendations.",
-      timestamp: Date.now(),
-    },
-  ],
-  isSendingChat: false,
 
   initializeWidget: async () => {
     const pushUpdate = (update: WidgetSystemUpdate) => {
@@ -135,18 +116,6 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
     }
   },
 
-  switchMode: async (mode, initialQuestion) => {
-    set({ mode });
-    try {
-      await setWidgetMode(mode);
-    } catch {
-      // Ignore window resize error in browser preview
-    }
-    if (mode === "chat" && initialQuestion) {
-      await get().sendChatPrompt(initialQuestion);
-    }
-  },
-
   updateSettingsPatch: async (patch) => {
     if (patch.theme) {
       applyTheme(patch.theme);
@@ -161,17 +130,6 @@ export const useWidgetStore = create<WidgetStoreState>((set, get) => ({
       set({ settings: saved });
     } catch {
       // Keep optimistic update
-    }
-  },
-
-  sendChatPrompt: async (promptText) => {
-    const trimmed = promptText.trim();
-    if (!trimmed) return;
-    set({ isSendingChat: true });
-    try {
-      await useAgentStore.getState().sendMessage(trimmed);
-    } finally {
-      set({ isSendingChat: false });
     }
   },
 }));
