@@ -1,30 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  ArrowLeft,
   MoreHorizontal,
   X,
   ExternalLink,
   Settings,
 } from "lucide-react";
-import type {
-  AsaoSettings,
-  SystemConditionState,
-  WidgetMode,
-} from "../../types/widget";
 import { hideWidget, openMainWindow } from "../../services/widget";
 
-interface WidgetHeaderProps {
-  mode: WidgetMode;
-  condition: SystemConditionState;
-  settings: AsaoSettings;
-  onBackToMonitor: () => void;
-  onUpdateSettings: (patch: Partial<AsaoSettings>) => void;
-}
-
-export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
-  mode,
-  onBackToMonitor,
-}) => {
+export const WidgetHeader: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -43,28 +26,11 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
       data-tauri-drag-region
       className="h-9 px-3.5 border-b border-lunar-border/80 flex items-center justify-between shrink-0 select-none"
     >
-      {/* Left: Brand or Back Button */}
+      {/* Brand */}
       <div className="flex items-center gap-2">
-        {mode === "chat" ? (
-          <button
-            type="button"
-            onClick={onBackToMonitor}
-            className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-lunar-white hover:text-lunar-text-sec transition-colors cursor-pointer"
-            title="Return to Monitor Mode"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>ASAO</span>
-          </button>
-        ) : (
-          <div
-            data-tauri-drag-region
-            className="flex items-center pointer-events-none"
-          >
-            <span className="text-xs font-semibold tracking-[0.18em] text-lunar-white">
-              ASAO
-            </span>
-          </div>
-        )}
+        <div data-tauri-drag-region className="flex items-center pointer-events-none">
+          <span className="text-xs font-semibold tracking-[0.18em] text-lunar-white">ASAO</span>
+        </div>
       </div>
 
       {/* Right: Overflow Menu & Hide Button */}

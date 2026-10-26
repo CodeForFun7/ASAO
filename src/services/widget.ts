@@ -3,7 +3,6 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   AsaoSettings,
   CategorizedRecommendations,
-  WidgetMode,
   WidgetSystemUpdate,
 } from "../types/widget";
 
@@ -47,10 +46,6 @@ export async function hideWidget(): Promise<void> {
 
 export async function toggleWidget(): Promise<boolean> {
   return invoke<boolean>("toggle_widget");
-}
-
-export async function setWidgetMode(mode: WidgetMode): Promise<void> {
-  return invoke<void>("set_widget_mode", { mode });
 }
 
 export async function openMainWindow(

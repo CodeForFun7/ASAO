@@ -19,7 +19,7 @@ use commands::storage::{
 };
 use commands::system::{
     get_categorized_recommendations, get_full_snapshot, get_settings, get_system_metrics,
-    get_widget_update, get_widget_visibility, hide_widget, open_main_window, set_widget_mode,
+    get_widget_update, get_widget_visibility, hide_widget, open_main_window,
     show_widget, toggle_widget, update_settings, window_close, window_minimize,
     window_toggle_maximize,
 };
@@ -38,6 +38,35 @@ pub fn run() {
         .manage(monitoring_state.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
+
+            // Local bridge used only by the Python agent's get_info tool.
+            let bridge_state = monitoring_state.clone();
+            std::thread::spawn(move || {
+                let Ok(server) = tiny_http::Server::http("127.0.0.1:8766") else {
+                    eprintln!("Nyra Rust tool bridge could not bind 127.0.0.1:8766");
+                    return;
+                };
+                for request in server.incoming_requests() {
+                    let allowed = request.method() == &tiny_http::Method::Get
+                        && request.url() == "/get_info";
+                    if !allowed {
+                        let _ = request.respond(tiny_http::Response::empty(404));
+                        continue;
+                    }
+                    let result = bridge_state.engine.lock()
+                        .map_err(|_| "Failed to acquire system analyzer lock".to_string())
+                        .and_then(|mut engine| engine.get_latest_or_collect())
+                        .map(|snapshot| serde_json::json!({ "metrics": snapshot.metrics, "processes": snapshot.processes }));
+                    let (status, body) = match result {
+                        Ok(data) => (tiny_http::StatusCode(200), data.to_string()),
+                        Err(error) => (tiny_http::StatusCode(500), error),
+                    };
+                    let response = tiny_http::Response::from_string(body)
+                        .with_status_code(status)
+                        .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json").unwrap());
+                    let _ = request.respond(response);
+                }
+            });
 
             // 1. Load persisted settings
             let loaded_settings = load_settings(&handle);
@@ -122,7 +151,6 @@ pub fn run() {
             show_widget,
             hide_widget,
             toggle_widget,
-            set_widget_mode,
             open_main_window,
             start_monitoring,
             stop_monitoring,
