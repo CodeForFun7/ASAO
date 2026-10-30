@@ -1,4 +1,6 @@
 pub mod classifier;
+pub mod mft_scanner;
+pub mod parallel_walker;
 pub mod process_analyzer;
 pub mod recommendation_engine;
 pub mod resource_analyzer;

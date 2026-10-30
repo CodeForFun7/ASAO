@@ -102,6 +102,7 @@ export interface StorageAnalysisSnapshot {
   foldersAnalyzed: number;
   bytesAnalyzed: number;
   scanTimestampMs: number;
+  scanMethod?: "mft" | "parallel-walk";
 }
 
 export type StorageSortField =
