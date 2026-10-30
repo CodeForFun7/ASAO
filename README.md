@@ -10,8 +10,8 @@ local Python service powers an in-app chat assistant ("Nyra").
 This document is the map for anyone extending or modifying ASAO. It describes
 the real, current behavior of the code — not the aspirational version in
 `ARCHITECTURE_AND_ENGINE.md` or `ASAO_BTech_Project_Report_NSUT.md`, which
-describe some features (a kill-process command, a battery collector, a
-parallel storage walk, Vertex AI chat) that do not exist in this codebase.
+describe some features (a kill-process command, a parallel storage walk,
+Vertex AI chat) that do not exist in this codebase.
 Treat those two documents as design history, not a spec.
 
 ---
@@ -112,9 +112,13 @@ Five metric cards (CPU, RAM, GPU, network, disk) each compared against a
 rolling average, plus system health, system strain, and battery panels.
 Clicking CPU/RAM cards deep-links into Processes with a matching sort/filter.
 GPU usage falls back to an estimate from compositor/browser CPU use when the
-hardware counter reports zero. Battery percentage comes from the browser
-Battery API; the wattage shown is an estimate derived from current load, not
-a real power reading.
+hardware counter reports zero. The battery panel reads Windows directly
+(`collector/battery.rs`, `get_battery_status`, polled every 5 s): charge level,
+state (charging, on battery, plugged in), the real charge or discharge rate in
+watts from the battery driver, time left or time to full, and health
+(full-charge vs. design capacity). When the driver reports no rate (usually
+while plugged in) or there is no battery, the wattage is an estimate from
+current load, shown with a `~`.
 
 Core formulas (`resource_analyzer.rs`, `process_analyzer.rs`):
 
@@ -232,7 +236,7 @@ actions. The Python service only runs in `pnpm tauri dev` (via
    never imported/used (no `sqlite` crate is even in `Cargo.toml`).
 8. **`ARCHITECTURE_AND_ENGINE.md` and `ASAO_BTech_Project_Report_NSUT.md` are
    aspirational**, not descriptive — several features and thresholds they
-   describe (kill-process command, battery collector, parallel storage walk,
+   describe (kill-process command, parallel storage walk,
    Vertex AI integration, different scoring constants) are not in this code.
 
 ---

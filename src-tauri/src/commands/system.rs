@@ -28,6 +28,12 @@ pub fn get_system_metrics(state: State<'_, AppMonitoringState>) -> Result<System
     Ok(snapshot.metrics)
 }
 
+/// Charge level, charging state, real charge/discharge rate and health of the battery.
+#[tauri::command]
+pub fn get_battery_status() -> crate::collector::battery::BatteryStatus {
+    crate::collector::battery::read_battery_status()
+}
+
 #[tauri::command]
 pub fn get_full_snapshot(
     state: State<'_, AppMonitoringState>,
