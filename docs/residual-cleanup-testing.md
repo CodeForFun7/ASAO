@@ -136,10 +136,35 @@ Get-Content "$env:APPDATA\com.asao.app\residual\logs\deletions.jsonl" | ConvertF
 Other files in `%APPDATA%\com.asao.app\residual\`: `app_history.json` (the installed-app record),
 `ignore_list.json`, and `logs\scan.log` (folders that could not be read, and history notes).
 
-## 8. Known limitations of this version
+## 8. Apps uninstalled before ASAO started tracking
+
+ASAO also looks for evidence of older uninstalls, so their folders don't all land under
+Uncertain. Both sources are read without administrator rights.
+
+| Source | What counts as an uninstall | Points |
+| --- | --- | --- |
+| Windows Installer log (event 1034 in the Application log) | A successful MSI removal. Microsoft components are skipped. | +8, the same as ASAO's own history |
+| UserAssist (Windows' record of programs launched from Explorer or Start) | A program you ran whose whole app folder is now gone, or holds no programs | +6 |
+
+Updated apps are not uninstalls. Store apps (WindowsApps), self-updating apps whose folder
+still holds a program, and anything matching an installed app (including Store package names)
+are dropped. In addition, a folder whose files have not changed in over a year earns +3, and a
+folder that matches no uninstalled app is never High, so it is never pre-ticked.
+
+To see the raw evidence on a machine (read-only):
+
+```powershell
+cd src-tauri
+cargo test --lib live_evidence_dump -- --ignored --nocapture
+```
+
+To check it in the app: matched groups show "Last run <date>, program now gone" (UserAssist) or
+"Uninstalled around <date>" (Installer log), and each folder's reasons name the source.
+
+## 9. Known limitations of this version
 
 - **Not covered yet:** game saves in Documents, `Documents\My Games`, `Saved Games`, Steam `userdata`, and leftover registry entries.
-- **No history before ASAO:** apps uninstalled before ASAO first ran are never "recently uninstalled". Their folders can only appear as Medium (Program Files) or Uncertain.
+- **Older uninstalls are partly covered:** the Windows Installer log only keeps recent events, and UserAssist only knows programs launched from Explorer or the Start menu. Apps removed long ago, or never launched that way, still show as Medium (Program Files) or Uncertain.
 - **Microsoft folders:** folders named "Microsoft…" or "Windows…", and folders holding Microsoft-published `.exe` or `.sys` files, are never flagged. Windows components often have no uninstall entry. Leftovers of Microsoft apps are therefore not found.
 - **Vendor folders:** inside a folder whose publisher still has an installed app (for example `AppData\Roaming\Adobe`), only sub-folders that match an uninstalled app are shown.
 - **Very large folders:** folders with more than 250,000 entries are skipped. They cannot be checked for recent files safely.
