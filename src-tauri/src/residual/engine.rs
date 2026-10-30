@@ -17,7 +17,8 @@ use super::roots::{
     find_microsoft_binary, folder_stats, is_in_onedrive, is_reparse_point, known_roots, list_dirs,
     onedrive_roots,
 };
-use super::scoring::{removed_apps, score, RemovedApp, ScoreInput};
+use super::evidence::collect_past_uninstalls;
+use super::scoring::{removed_apps_with_evidence, score, RemovalSource, RemovedApp, ScoreInput};
 use super::store_files::{IgnoreList, ResidualFiles};
 use super::{
     now_ms, Confidence, ResidualCandidate, ResidualCategory, ResidualGroup, ResidualScanProgress,
@@ -155,6 +156,8 @@ impl<'a> Engine<'a> {
             depth,
             root_kind: root.kind,
             empty_or_logs: stats.is_empty_or_logs(),
+            newest_modified_ms: stats.newest_modified_ms,
+            now_ms: self.ctx.now_ms,
             removed: &self.ctx.removed,
         });
 
@@ -180,6 +183,7 @@ impl<'a> Engine<'a> {
             matched_app_key: scored.matched.as_ref().map(|m| m.key.clone()),
             matched_app_name: scored.matched.as_ref().map(|m| m.display_name.clone()),
             removed_on_ms: scored.matched.as_ref().and_then(|m| m.removed_on_ms),
+            last_run_ms: scored.matched.as_ref().and_then(|m| m.last_run_ms),
             newest_modified_ms: stats.newest_modified_ms,
             size_bytes: None,
             needs_admin: root.kind.needs_admin(),
@@ -197,6 +201,12 @@ impl<'a> Engine<'a> {
         let mut stats = ResidualScanStats {
             installed_apps: self.ctx.installed.len(),
             removed_apps_known: self.ctx.removed.len(),
+            removed_from_evidence: self
+                .ctx
+                .removed
+                .iter()
+                .filter(|r| r.source != RemovalSource::History)
+                .count(),
             references_available: self.ctx.references_available,
             ..Default::default()
         };
@@ -414,6 +424,7 @@ pub fn group_candidates(candidates: Vec<ResidualCandidate>) -> Vec<ResidualGroup
             is_unknown: unknown,
             confidence: Confidence::Low,
             removed_on_ms: None,
+            last_run_ms: None,
             folders: Vec::new(),
         });
         if c.confidence > g.confidence {
@@ -421,6 +432,9 @@ pub fn group_candidates(candidates: Vec<ResidualCandidate>) -> Vec<ResidualGroup
         }
         if g.removed_on_ms.is_none() {
             g.removed_on_ms = c.removed_on_ms;
+        }
+        if g.last_run_ms.is_none() {
+            g.last_run_ms = c.last_run_ms;
         }
         g.folders.push(c);
     }
@@ -471,7 +485,9 @@ pub fn build_live_context(files: &ResidualFiles, opts: LiveOptions) -> Result<Li
     } else {
         None
     };
-    let removed = removed_apps(&history, &inventory.apps);
+    // Evidence of apps uninstalled before ASAO kept its history.
+    let evidence = collect_past_uninstalls();
+    let removed = removed_apps_with_evidence(&history, &evidence, &inventory.apps);
 
     let references = collect_referenced_executables();
     let mut exe_paths = opts.running_exes;

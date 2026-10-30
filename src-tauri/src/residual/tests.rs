@@ -279,3 +279,12 @@ fn live_scan_smoke() {
     println!("low total: {}", low);
     let _ = fs::remove_dir_all(&data);
 }
+
+/// Prints the raw evidence of past uninstalls on this machine. Read-only.
+#[test]
+#[ignore]
+fn live_evidence_dump() {
+    for e in super::evidence::collect_past_uninstalls() {
+        println!("{:?}\t{}\tpub={:?}\talt={:?}\tdirs={:?}", e.source, e.display_name, e.publisher, e.alt_names, e.install_dirs);
+    }
+}

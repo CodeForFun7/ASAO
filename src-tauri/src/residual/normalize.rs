@@ -195,6 +195,27 @@ pub fn match_names(a_norm: &str, b_norm: &str) -> NameMatch {
     NameMatch::None
 }
 
+/// Stricter fuzzy match used for scoring: names under 8 characters may differ by one edit,
+/// longer names by two. ("packer" and "docker" differ by two and do not match.)
+/// The ownership checker keeps the looser `match_names`, since a false match there only
+/// protects a folder.
+pub fn match_names_for_scoring(a_norm: &str, b_norm: &str) -> NameMatch {
+    match match_names(a_norm, b_norm) {
+        NameMatch::Fuzzy => {
+            let ca = compact(a_norm);
+            let cb = compact(b_norm);
+            let shortest = ca.chars().count().min(cb.chars().count());
+            let allowed = if shortest >= 8 { 2 } else { 1 };
+            if levenshtein(&ca, &cb) <= allowed {
+                NameMatch::Fuzzy
+            } else {
+                NameMatch::None
+            }
+        }
+        other => other,
+    }
+}
+
 /// Similar-name check: does `hay` contain `needle` as whole words, or (for needles of
 /// 5+ characters) as a substring of the compact form? "chrome remote desktop" contains "chrome".
 pub fn token_contains(hay_norm: &str, needle_norm: &str) -> bool {
@@ -370,6 +391,12 @@ mod tests {
         assert_eq!(match_names("zoom", "zoon"), NameMatch::None);
         assert_eq!(match_names("audacity", "gimp"), NameMatch::None);
         assert_eq!(levenshtein("kitten", "sitting"), 3);
+        // Scoring is stricter for short names
+        assert_eq!(match_names("packer", "docker"), NameMatch::Fuzzy);
+        assert_eq!(match_names_for_scoring("packer", "docker"), NameMatch::None);
+        assert_eq!(match_names_for_scoring("audacity", "audacty"), NameMatch::Fuzzy);
+        assert_eq!(match_names_for_scoring("blender", "blendr2"), NameMatch::None);
+        assert_eq!(match_names_for_scoring("photoshop", "photoshp2"), NameMatch::Fuzzy);
     }
 
     #[test]

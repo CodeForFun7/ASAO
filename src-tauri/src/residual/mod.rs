@@ -21,6 +21,7 @@
 pub mod cleaner;
 pub mod elevated;
 pub mod engine;
+pub mod evidence;
 pub mod exclusions;
 pub mod history;
 pub mod inventory;
@@ -143,6 +144,8 @@ pub struct ResidualCandidate {
     pub matched_app_key: Option<String>,
     pub matched_app_name: Option<String>,
     pub removed_on_ms: Option<u64>,
+    /// Last time the matched app was run, when that is how ASAO knows it is gone (UserAssist).
+    pub last_run_ms: Option<u64>,
     pub newest_modified_ms: Option<u64>,
     pub size_bytes: Option<u64>,
     pub needs_admin: bool,
@@ -159,6 +162,7 @@ pub struct ResidualGroup {
     pub is_unknown: bool,
     pub confidence: Confidence,
     pub removed_on_ms: Option<u64>,
+    pub last_run_ms: Option<u64>,
     pub folders: Vec<ResidualCandidate>,
 }
 
@@ -173,6 +177,8 @@ pub struct ResidualScanStats {
     pub access_denied: u64,
     pub installed_apps: usize,
     pub removed_apps_known: usize,
+    /// Of those, how many came from the Windows Installer log or UserAssist.
+    pub removed_from_evidence: usize,
     pub references_available: bool,
 }
 
