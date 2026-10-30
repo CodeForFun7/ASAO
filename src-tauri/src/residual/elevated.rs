@@ -212,6 +212,7 @@ fn run_job(job: &ElevatedJob) -> ElevatedResult {
         CleanOptions {
             dry_run: false,
             permanent: job.permanent,
+            only_empty: false,
         },
         &files.deletion_log(),
         true,

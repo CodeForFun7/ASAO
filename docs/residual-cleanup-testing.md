@@ -24,7 +24,7 @@ Where to find it:
 - **Desktop widget.** The same card rotates in the widget. Clicking it opens the tab.
 - **Settings, Leftover Cleanup.** This holds the age threshold, the ignored items and the log locations.
 
-Automated tests (30 tests, all against fake folders in a temp directory):
+Automated tests (52 in the library, all against fake folders in a temp directory):
 
 ```powershell
 cd src-tauri
@@ -52,7 +52,8 @@ cargo test --lib live_scan_smoke -- --ignored --nocapture
    - No folder of an app you have installed appears as High or Medium. Expand every group to check.
    - On a first run, nothing is High: ASAO has no record yet of apps being uninstalled. The info banner says so.
    - Medium items are Program Files folders with no uninstall entry at all. They start unticked.
-   - Everything else is under the collapsed **Uncertain items** section, unticked.
+   - Everything else is under the collapsed **Uncertain items** section, unticked, grouped by kind (see section 9).
+   - Below the list, one line says how many uncertain folders under 1 MB are not listed.
 4. Tick one item, click **Dry run selected**, then **Run dry run**. The report should say "Dry run finished", the folder must still exist, and the dry-run log gains a `would-delete` line.
 
 If an installed app's folder shows up, note its path and the app's name in Settings, Apps. That is a bug in the ownership checks and should be reported.
@@ -84,10 +85,10 @@ updated quietly a few seconds after every launch and on every scan.
 
    ```powershell
    New-Item -ItemType Directory "$env:APPDATA\AsaoTestLeftover" | Out-Null
-   1..3 | ForEach-Object { Set-Content "$env:APPDATA\AsaoTestLeftover\file$_.dat" ("x" * 4096) }
+   1..3 | ForEach-Object { Set-Content "$env:APPDATA\AsaoTestLeftover\file$_.dat" ("x" * 512000) }
    ```
 
-3. Scan again. `AsaoTestLeftover` must appear under **Uncertain items**, in the **Unknown leftovers** group, labelled Uncertain and **unticked**. No uninstalled app matches it.
+3. Scan again. `AsaoTestLeftover` must appear under **Uncertain items**, in the **Other app data** group, labelled Uncertain and **unticked**. No uninstalled app matches it. The folder is about 1.5 MB on purpose: uncertain folders under 1 MB are not listed.
 4. Optional: click the eye icon on the row ("Don't show this folder again"). It disappears, and Settings, Leftover Cleanup, Ignored items lists it. Remove it there to see it again.
 5. Clean up with `Remove-Item -Recurse "$env:APPDATA\AsaoTestLeftover"` and set the age back to 30 days.
 
@@ -161,7 +162,61 @@ cargo test --lib live_evidence_dump -- --ignored --nocapture
 To check it in the app: matched groups show "Last run <date>, program now gone" (UserAssist) or
 "Uninstalled around <date>" (Installer log), and each folder's reasons name the source.
 
-## 9. Known limitations of this version
+## 9. Narrowing the Uncertain list
+
+Four rules keep the Uncertain list short.
+
+**Tiny folders are not listed.** Uncertain folders under 1 MB are counted in one line below
+the list ("93 more uncertain folders under 1 MB (7.3 MB in total) are not listed"). High and
+Medium folders are always listed, whatever their size. When some of the hidden folders hold no
+files at all, the line has a **Clean N empty folders** button (**Dry run N empty folders**
+while dry run is on). Each folder is checked again first and must still be empty. They go to
+the Recycle Bin. Only folders in your own AppData are offered, never Program Files,
+ProgramData or `AppData\Local\Packages` (Windows keeps empty sandbox profiles there).
+
+Test it:
+
+```powershell
+New-Item -ItemType Directory "$env:LOCALAPPDATA\AsaoEmptyTest" | Out-Null
+```
+
+Choose **0 days (dev)**, scan, and check the line counts it as empty. Click the button with dry
+run on: the report lists it as "would delete" and the folder is still there. Turn dry run off
+and click again: it goes to the Recycle Bin. If you put a file in it between the scan and the
+click, it is skipped with "The folder is no longer empty".
+
+**Updater and app-id folder names.** Before matching, ASAO also reads a folder name without a
+trailing "updater" or "update" and without the wrappers of an app id (`com.`, `io.`, `.app`,
+and so on). `staruml-updater` is checked as "staruml" and `io.testfully.app` as "testfully".
+The folder is hidden when that app is installed, and High when it was uninstalled.
+
+**Developer caches.** Folders such as `Pub`, `.dartServer`, `node-gyp`, `Yarn`, `pypa`, `pip`,
+`Jedi`, `kotlin`, `ms-playwright` and `ms-playwright-go` belong to a developer tool. When the
+tool's command (`dart`, `node`, `python`, `go`, ...) is on PATH, the folder is in use and is
+hidden. Otherwise it shows as Cache in the **Developer caches** group. PATH is read from ASAO's
+own environment and from the saved user and machine PATH. Folders on PATH that no longer exist
+do not count, so the cache of a deleted SDK shows up.
+
+**Grouped by kind.** Folders that match no uninstalled app are grouped by what they look like.
+Groups and the folders inside each group are sorted largest first.
+
+| Group | What lands there |
+| --- | --- |
+| Developer caches | The tool caches above, when the tool is not on PATH |
+| Game data | Anything in `AppData\LocalLow` (except software vendors such as Adobe), names with "game" or "games", and folders with a `Saved`, `SaveGames` or `Mods` sub-folder |
+| Web-based app data | Electron, Chromium and embedded browser data (`Local Storage`, `IndexedDB`, `GPUCache` sub-folders, or names like JxBrowser and CEF) |
+| Install remnants | Program Files folders |
+| Caches and logs | Folders named like a cache or a log |
+| Other app data | Everything else |
+
+To see the list for a machine (read-only), including the empty folders that would be offered:
+
+```powershell
+cd src-tauri
+cargo test --lib live_scan_smoke -- --ignored --nocapture
+```
+
+## 10. Known limitations of this version
 
 - **Not covered yet:** game saves in Documents, `Documents\My Games`, `Saved Games`, Steam `userdata`, and leftover registry entries.
 - **Older uninstalls are partly covered:** the Windows Installer log only keeps recent events, and UserAssist only knows programs launched from Explorer or the Start menu. Apps removed long ago, or never launched that way, still show as Medium (Program Files) or Uncertain.

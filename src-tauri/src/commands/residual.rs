@@ -51,7 +51,7 @@ pub fn residual_files(app: &AppHandle) -> Result<ResidualFiles, String> {
     Ok(ResidualFiles::new(&dir))
 }
 
-fn protected_paths(app: &AppHandle) -> Vec<String> {
+pub fn protected_paths(app: &AppHandle) -> Vec<String> {
     let mut out = Vec::new();
     for dir in [
         app.path().app_data_dir().ok(),
@@ -67,7 +67,7 @@ fn protected_paths(app: &AppHandle) -> Vec<String> {
     out
 }
 
-fn running_exes(state: &AppMonitoringState) -> Vec<String> {
+pub fn running_exes(state: &AppMonitoringState) -> Vec<String> {
     state
         .engine
         .lock()
@@ -347,7 +347,7 @@ fn clean_blocking(
     let min_age = min_age_days(state);
     let running = running_exes(state);
     let protected = protected_paths(app);
-    let opts = CleanOptions { dry_run, permanent };
+    let opts = CleanOptions { dry_run, permanent, only_empty: false };
     let elevated = is_process_elevated();
     let mut admin_requested = false;
     let mut admin_declined = false;
@@ -434,6 +434,95 @@ fn clean_blocking(
     })
 }
 
+/// Moves the hidden empty folders of the latest scan to the Recycle Bin. Each one is
+/// checked again first and must still hold no files. Only folders in your own AppData.
+#[tauri::command]
+pub async fn residual_clean_empty(
+    app: AppHandle,
+    state: State<'_, AppMonitoringState>,
+    dry_run: bool,
+) -> Result<CleanReport, String> {
+    let st = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || clean_empty_blocking(&app, &st, dry_run))
+        .await
+        .map_err(|e| format!("Cleanup thread error: {}", e))?
+}
+
+fn clean_empty_blocking(app: &AppHandle, state: &AppMonitoringState, dry_run: bool) -> Result<CleanReport, String> {
+    let files = residual_files(app)?;
+    let log_path = if dry_run { files.dry_run_log() } else { files.deletion_log() };
+    let items: Vec<CleanItem> = {
+        let guard = state
+            .residual
+            .lock()
+            .map_err(|_| "Leftover state is unavailable".to_string())?;
+        let Some(result) = guard.last_result.as_ref() else {
+            return Err("Run a scan first.".into());
+        };
+        result
+            .empty_folders
+            .iter()
+            .map(|p| CleanItem {
+                path: p.clone(),
+                name: p.rsplit('\\').next().unwrap_or(p).to_string(),
+                category: None,
+                size_bytes: Some(0),
+                needs_admin: false,
+                in_onedrive: false,
+            })
+            .collect()
+    };
+    if items.is_empty() {
+        return Err("There are no empty folders to clean.".into());
+    }
+
+    if state
+        .residual_busy
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Err("A leftover scan or cleanup is already running.".into());
+    }
+    let _busy = BusyGuard(&state.residual_busy);
+
+    let live = build_live_context(
+        &files,
+        LiveOptions {
+            min_age_days: min_age_days(state),
+            running_exes: running_exes(state),
+            protected_paths: protected_paths(app),
+            update_history: false,
+            only_roots: None,
+        },
+    )?;
+    let engine = Engine::new(&live.ctx);
+    let opts = CleanOptions { dry_run, permanent: false, only_empty: true };
+    let outcomes = process_items(&engine, &items, opts, &log_path, is_process_elevated());
+
+    if !dry_run {
+        let removed: Vec<String> = outcomes
+            .iter()
+            .filter(|o| o.status == crate::residual::cleaner::CleanStatus::Deleted)
+            .map(|o| o.path.clone())
+            .collect();
+        if let Ok(mut guard) = state.residual.lock() {
+            if let Some(r) = guard.last_result.as_mut() {
+                r.remove_empty_folders(&removed);
+            }
+        }
+    }
+
+    Ok(CleanReport {
+        dry_run,
+        permanent: false,
+        freed_bytes: 0,
+        outcomes,
+        admin_requested: false,
+        admin_declined: false,
+        log_path: log_path.to_string_lossy().to_string(),
+    })
+}
+
 #[tauri::command]
 pub fn residual_get_ignore_list(app: AppHandle) -> Result<IgnoreList, String> {
     let files = residual_files(&app)?;
@@ -466,7 +555,7 @@ pub fn residual_ignore_app(
     key: String,
     name: String,
 ) -> Result<IgnoreList, String> {
-    if key == "unknown" {
+    if key.starts_with("unknown") {
         return Err("Unknown leftovers can only be ignored one folder at a time.".into());
     }
     let files = residual_files(&app)?;

@@ -34,7 +34,7 @@ pub mod sizer;
 pub mod store_files;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use std::path::PathBuf;
 
@@ -127,6 +127,42 @@ pub enum ResidualCategory {
     AppData,
 }
 
+/// What kind of folder an unmatched leftover looks like. Unmatched folders are grouped by it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum OrphanKind {
+    DeveloperCache,
+    GameData,
+    WebAppData,
+    InstallRemnant,
+    CachesAndLogs,
+    AppData,
+}
+
+impl OrphanKind {
+    pub fn key(&self) -> &'static str {
+        match self {
+            OrphanKind::DeveloperCache => "developer-cache",
+            OrphanKind::GameData => "game-data",
+            OrphanKind::WebAppData => "web-app-data",
+            OrphanKind::InstallRemnant => "install-remnant",
+            OrphanKind::CachesAndLogs => "caches-and-logs",
+            OrphanKind::AppData => "app-data",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            OrphanKind::DeveloperCache => "Developer caches",
+            OrphanKind::GameData => "Game data",
+            OrphanKind::WebAppData => "Web-based app data",
+            OrphanKind::InstallRemnant => "Install remnants",
+            OrphanKind::CachesAndLogs => "Caches and logs",
+            OrphanKind::AppData => "Other app data",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResidualCandidate {
@@ -143,6 +179,8 @@ pub struct ResidualCandidate {
     /// Key of the uninstalled app this folder was matched to, if any.
     pub matched_app_key: Option<String>,
     pub matched_app_name: Option<String>,
+    /// For folders no uninstalled app matches: what the folder looks like.
+    pub orphan_kind: Option<OrphanKind>,
     pub removed_on_ms: Option<u64>,
     /// Last time the matched app was run, when that is how ASAO knows it is gone (UserAssist).
     pub last_run_ms: Option<u64>,
@@ -156,7 +194,7 @@ pub struct ResidualCandidate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResidualGroup {
-    /// The uninstalled app's key, or "unknown" for pure orphans.
+    /// The uninstalled app's key, or "unknown:<kind>" for folders no app matches.
     pub key: String,
     pub app_name: String,
     pub is_unknown: bool,
@@ -180,6 +218,9 @@ pub struct ResidualScanStats {
     /// Of those, how many came from the Windows Installer log or UserAssist.
     pub removed_from_evidence: usize,
     pub references_available: bool,
+    /// Uncertain folders under 1 MB, not listed.
+    pub small_hidden: u64,
+    pub small_hidden_bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -191,6 +232,8 @@ pub struct ResidualScanResult {
     pub min_age_days: u32,
     pub groups: Vec<ResidualGroup>,
     pub stats: ResidualScanStats,
+    /// Hidden folders with no files at all, in your own AppData. Cleaned with one click.
+    pub empty_folders: Vec<String>,
     /// Lines worth showing to a developer (access denied, skipped roots, and so on).
     pub log: Vec<String>,
 }
@@ -213,6 +256,15 @@ impl ResidualScanResult {
                 .retain(|c| !keys.contains(&normalize::path_key(&c.path)));
         }
         self.groups.retain(|g| !g.folders.is_empty());
+    }
+
+    pub fn remove_empty_folders(&mut self, paths: &[String]) {
+        let keys: Vec<String> = paths.iter().map(|p| normalize::path_key(p)).collect();
+        let before = self.empty_folders.len();
+        self.empty_folders
+            .retain(|p| !keys.contains(&normalize::path_key(p)));
+        let removed = (before - self.empty_folders.len()) as u64;
+        self.stats.small_hidden = self.stats.small_hidden.saturating_sub(removed);
     }
 
     pub fn remove_app_group(&mut self, key: &str) {

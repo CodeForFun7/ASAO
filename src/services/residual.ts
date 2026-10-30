@@ -37,6 +37,11 @@ export async function cleanLeftovers(
   return invoke<CleanReport>("residual_clean", { paths, dryRun, permanent });
 }
 
+/** Moves the hidden empty folders of the latest scan to the Recycle Bin (or, in dry run, only logs them). */
+export async function cleanEmptyLeftovers(dryRun: boolean): Promise<CleanReport> {
+  return invoke<CleanReport>("residual_clean_empty", { dryRun });
+}
+
 export async function getIgnoreList(): Promise<IgnoreList> {
   return invoke<IgnoreList>("residual_get_ignore_list");
 }

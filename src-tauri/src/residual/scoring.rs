@@ -4,8 +4,8 @@ use super::evidence::{EvidenceSource, PastUninstall};
 use super::history::InventoryHistory;
 use super::inventory::InstalledApp;
 use super::normalize::{
-    is_generic_or_short, is_same_or_inside, match_names, match_names_for_scoring, normalize_name,
-    normalize_publisher, strip_publisher, token_contains, NameMatch,
+    folder_name_variants, is_generic_or_short, is_same_or_inside, match_names, match_names_for_scoring,
+    normalize_name, normalize_publisher, strip_publisher, token_contains, NameMatch,
 };
 use super::{Confidence, RootKind};
 
@@ -19,7 +19,7 @@ pub const PTS_MSI_LOG_MATCH: i32 = 8;
 /// Matches a program that was run on this PC (UserAssist) and whose file is gone now.
 /// A little weaker: the program may have been moved or was portable.
 pub const PTS_USERASSIST_MATCH: i32 = 6;
-/// Program Files folder that was the removed app's install location.
+/// Folder that was the removed app's install location.
 pub const PTS_OLD_INSTALL_LOCATION: i32 = 8;
 pub const PTS_EXACT_NAME: i32 = 6;
 pub const PTS_FUZZY_NAME: i32 = 3;
@@ -307,6 +307,8 @@ pub fn confidence_for(score: i32) -> Confidence {
 
 pub fn score(input: &ScoreInput) -> ScoreResult {
     let folder_norm = normalize_name(input.folder_name);
+    let mut folder_names = vec![folder_norm.clone()];
+    folder_names.extend(folder_name_variants(input.folder_name));
     let parent_norm = input.parent_name.map(normalize_publisher);
     let mut reasons = Vec::new();
     let mut total = 0;
@@ -322,19 +324,22 @@ pub fn score(input: &ScoreInput) -> ScoreResult {
         let mut pts = 0;
         let mut why = Vec::new();
 
-        let path_match = input.root_kind.is_program_files()
-            && app.install_dirs.iter().any(|d| {
-                is_same_or_inside(input.folder_key, d) || is_same_or_inside(d, input.folder_key)
-            });
+        // The app's former install folder, in any root (Program Files, or per-user installs
+        // under AppData\Local\Programs).
+        let path_match = app.install_dirs.iter().any(|d| {
+            is_same_or_inside(input.folder_key, d) || is_same_or_inside(d, input.folder_key)
+        });
 
         let mut name = NameMatch::None;
         let candidates = std::iter::once(app.name_norm.as_str())
             .chain(app.stripped_norm.as_deref())
             .chain(app.alt_norms.iter().map(|s| s.as_str()));
         for candidate in candidates {
-            let m = match_names_for_scoring(&folder_norm, candidate);
-            if m == NameMatch::Exact || (m == NameMatch::Fuzzy && name == NameMatch::None) {
-                name = m;
+            for folder in &folder_names {
+                let m = match_names_for_scoring(folder, candidate);
+                if m == NameMatch::Exact || (m == NameMatch::Fuzzy && name == NameMatch::None) {
+                    name = m;
+                }
             }
         }
 

@@ -114,6 +114,8 @@ pub fn system_time_ms(t: std::io::Result<std::time::SystemTime>) -> Option<u64> 
 #[derive(Debug, Clone, Default)]
 pub struct FolderStats {
     pub file_count: u64,
+    /// Sum of file sizes seen (complete unless the walk stopped early).
+    pub total_bytes: u64,
     pub newest_modified_ms: Option<u64>,
     /// True when every file is log-like or sits inside a cache/log/crash sub-folder.
     pub only_logs_or_caches: bool,
@@ -161,6 +163,7 @@ pub fn folder_stats(path: &Path, cutoff_ms: Option<u64>, max_entries: u64) -> Fo
                 continue;
             }
             stats.file_count += 1;
+            stats.total_bytes = stats.total_bytes.saturating_add(meta.len());
             if let Some(m) = system_time_ms(meta.modified()) {
                 if stats.newest_modified_ms.map(|n| m > n).unwrap_or(true) {
                     stats.newest_modified_ms = Some(m);
@@ -242,6 +245,42 @@ pub fn find_microsoft_binary(path: &Path, max_binaries: usize, max_entries: u64)
         }
     }
     None
+}
+
+/// Lowercase names of the commands on PATH (`dart`, `node`, `python`, ...), without extension.
+/// Reads ASAO's own PATH and the saved user and machine PATH. Folders that no longer exist
+/// are skipped, so a deleted SDK does not count.
+pub fn path_commands() -> std::collections::HashSet<String> {
+    let mut out = std::collections::HashSet::new();
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    if let Some(path) = std::env::var_os("PATH") {
+        dirs.extend(std::env::split_paths(&path));
+    }
+    for saved in super::inventory::saved_path() {
+        let expanded = super::normalize::expand_env(&saved);
+        dirs.extend(std::env::split_paths(&expanded));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for dir in dirs {
+        if !seen.insert(path_key(&dir.to_string_lossy())) {
+            continue;
+        }
+        let Ok(rd) = fs::read_dir(&dir) else { continue };
+        for entry in rd.flatten() {
+            let p = entry.path();
+            let ext = p
+                .extension()
+                .map(|e| e.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if !matches!(ext.as_str(), "exe" | "cmd" | "bat" | "com" | "ps1") {
+                continue;
+            }
+            if let Some(stem) = p.file_stem() {
+                out.insert(stem.to_string_lossy().to_lowercase());
+            }
+        }
+    }
+    out
 }
 
 /// OneDrive folders from the environment. Deleting inside one removes the item on every synced device.

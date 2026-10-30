@@ -14,8 +14,8 @@
 
 use super::inventory::InstalledApp;
 use super::normalize::{
-    is_same_or_inside, match_names, normalize_name, normalize_publisher, path_key,
-    strip_publisher, token_contains, NameMatch,
+    folder_name_variants, is_same_or_inside, match_names, normalize_name, normalize_publisher,
+    path_key, strip_publisher, token_contains, NameMatch,
 };
 use super::ScanRoot;
 
@@ -143,14 +143,18 @@ impl OwnershipChecker {
     pub fn owner_of(&self, folder_path: &str, folder_name: &str) -> Option<OwnedReason> {
         let key = path_key(folder_path);
         let norm = normalize_name(folder_name);
+        // "staruml-updater" and "io.testfully.app" are also checked as "staruml" and "testfully".
+        let mut names = vec![norm.clone()];
+        names.extend(folder_name_variants(folder_name));
+        names.retain(|n| !n.is_empty());
 
         // Rule 1: name matches first. A folder named after an installed app is that app's
         // folder, even when the publisher has the same name ("Discord" by Discord Inc.).
-        if !norm.is_empty() {
+        for n in &names {
             for app in &self.apps {
                 let candidates = [Some(app.name_norm.as_str()), app.stripped_norm.as_deref()];
                 for c in candidates.into_iter().flatten() {
-                    if match_names(&norm, c) != NameMatch::None {
+                    if match_names(n, c) != NameMatch::None {
                         return Some(OwnedReason::Name(app.display_name.clone()));
                     }
                 }
@@ -171,9 +175,11 @@ impl OwnershipChecker {
                 }
             }
             // Similar-name check: an installed app whose name contains this folder's name
-            for app in &self.apps {
-                if token_contains(&app.name_norm, &norm) {
-                    return Some(OwnedReason::SimilarName(app.display_name.clone()));
+            for n in &names {
+                for app in &self.apps {
+                    if token_contains(&app.name_norm, n) {
+                        return Some(OwnedReason::SimilarName(app.display_name.clone()));
+                    }
                 }
             }
         }

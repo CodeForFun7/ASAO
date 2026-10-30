@@ -236,6 +236,49 @@ pub fn is_generic_or_short(norm: &str) -> bool {
     compact(norm).chars().count() <= 4 || GENERIC_WORDS.contains(&norm)
 }
 
+/// Updater words at the end of helper folder names ("descript-updater" belongs to Descript).
+const UPDATER_WORDS: &[&str] = &["updater", "update", "updates"];
+
+/// Wrapper parts of reverse-DNS app ids ("io.testfully.app" is Testfully).
+const APP_ID_WRAPPERS: &[&str] = &["com", "io", "org", "net", "co", "app", "dev", "ai", "www"];
+
+/// Other normalised names a folder may go by: without a trailing "updater", and with the
+/// `com.` / `io.` / `.app` wrappers of an app id removed. The plain name is not included.
+pub fn folder_name_variants(folder_name: &str) -> Vec<String> {
+    let base = normalize_name(folder_name);
+    let mut forms = vec![base.clone()];
+
+    let tokens: Vec<&str> = base.split_whitespace().collect();
+    if tokens.len() == 1 && tokens[0].contains('.') {
+        let all: Vec<&str> = tokens[0].split('.').filter(|p| !p.is_empty()).collect();
+        let kept: Vec<&str> = all.iter().copied().filter(|p| !APP_ID_WRAPPERS.contains(p)).collect();
+        // Only an id that actually had a wrapper ("node.js" is left alone).
+        if !kept.is_empty() && kept.len() < all.len() {
+            forms.push(kept.join(" "));
+            if kept.len() > 1 {
+                forms.push(kept[kept.len() - 1].to_string());
+            }
+        }
+    }
+
+    for i in 0..forms.len() {
+        let mut t: Vec<&str> = forms[i].split_whitespace().collect();
+        if t.len() > 1 && UPDATER_WORDS.contains(t.last().unwrap()) {
+            t.pop();
+            let stripped = t.join(" ");
+            forms.push(stripped);
+        }
+    }
+
+    let mut out: Vec<String> = Vec::new();
+    for f in forms {
+        if f != base && !out.contains(&f) && !is_generic_or_short(&f) {
+            out.push(f);
+        }
+    }
+    out
+}
+
 /// Expands `%NAME%` references using the current environment.
 pub fn expand_env(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
@@ -346,6 +389,21 @@ pub fn stable_id(input: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn folder_variants_strip_updaters_and_app_ids() {
+        assert_eq!(folder_name_variants("descript-updater"), vec!["descript".to_string()]);
+        assert_eq!(folder_name_variants("io.testfully.app"), vec!["testfully".to_string()]);
+        assert_eq!(
+            folder_name_variants("com.github.desktop"),
+            vec!["github desktop".to_string(), "desktop".to_string()]
+        );
+        assert!(folder_name_variants("node.js").is_empty());
+        assert!(folder_name_variants("Notepad++").is_empty());
+        // "updater" alone, or a too-short result, gives nothing
+        assert!(folder_name_variants("updater").is_empty());
+        assert!(folder_name_variants("io.ab.app").is_empty());
+    }
 
     #[test]
     fn normalises_versions_arch_and_trademarks() {

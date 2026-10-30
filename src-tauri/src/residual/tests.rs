@@ -11,7 +11,7 @@ use super::exclusions::ExclusionList;
 use super::history::InventoryHistory;
 use super::inventory::{AppSource, InstalledApp};
 use super::scoring::removed_apps;
-use super::{now_ms, Confidence, ResidualCategory, RootKind, ScanRoot};
+use super::{now_ms, Confidence, OrphanKind, ResidualCategory, RootKind, ScanRoot};
 
 /// A fresh, empty folder under the system temp directory, unique per call so tests
 /// running in parallel never share (or clean up) each other's folders.
@@ -38,6 +38,13 @@ pub fn set_mtime(path: &Path, when: SystemTime) {
 fn old_file(path: &Path) {
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, b"settings").unwrap();
+    set_mtime(path, SystemTime::now() - Duration::from_secs(120 * 86_400));
+}
+
+/// An old 2 MB file, so the folder is above the 1 MB limit for uncertain folders.
+fn big_old_file(path: &Path) {
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, vec![0u8; 2 * 1024 * 1024]).unwrap();
     set_mtime(path, SystemTime::now() - Duration::from_secs(120 * 86_400));
 }
 
@@ -93,11 +100,23 @@ fn fixture() -> Fixture {
     old_file(&root_path.join("Contoso").join("Painter").join("prefs.xml"));
     // 4. Recently modified orphan: must NOT be flagged
     fs::create_dir_all(root_path.join("Fresh Orphan")).unwrap();
-    fs::write(root_path.join("Fresh Orphan").join("state.db"), b"new").unwrap();
+    fs::write(root_path.join("Fresh Orphan").join("state.db"), vec![1u8; 2 * 1024 * 1024]).unwrap();
     // 5. Excluded folder name: must NOT be flagged
     old_file(&root_path.join("NVIDIA").join("driver.cache"));
-    // 6. Old orphan nobody claims: shown as Unknown, Low, unticked
+    // 6. Tiny old orphan: under 1 MB, counted but not listed
     old_file(&root_path.join("Mystery Leftover").join("data.bin"));
+    // 7. Old orphan nobody claims, over 1 MB: listed as Low, unticked, under "Other app data"
+    big_old_file(&root_path.join("Big Mystery").join("data.bin"));
+    // 8. Empty orphan folder: hidden, offered to the one-click empty clean
+    fs::create_dir_all(root_path.join("Empty Husk")).unwrap();
+    // 9. Updater folders: of an installed app (hidden) and of a removed app (High)
+    old_file(&root_path.join("installed-editor-updater").join("pending.json"));
+    old_file(&root_path.join("removed-tool-updater").join("pending.json"));
+    // 10. Developer caches: Dart is on PATH (hidden), Yarn is not (Cache)
+    big_old_file(&root_path.join("Pub").join("Cache").join("pkg.tar"));
+    big_old_file(&root_path.join("Yarn").join("Cache").join("pkg.tgz"));
+    // 11. Game data: an Unreal-style "Saved" folder
+    big_old_file(&root_path.join("Pixel Quest").join("Saved").join("slot1.sav"));
 
     let installed = vec![
         app("Installed Editor", "Northwind"),
@@ -130,6 +149,7 @@ fn context(f: &Fixture, min_age_days: u32) -> EngineContext {
         now_ms: now_ms(),
         onedrive: vec![],
         max_walk_entries: MAX_WALK_ENTRIES,
+        path_commands: ["dart".to_string()].into_iter().collect(),
     }
 }
 
@@ -156,15 +176,46 @@ fn full_scan_against_fake_root() {
     assert_eq!(find("Painter"), Some(Confidence::High), "removed product under publisher must be High");
     assert_eq!(find("Fresh Orphan"), None, "recently modified orphan must not be flagged");
     assert_eq!(find("NVIDIA"), None, "excluded folder must not be flagged");
-    assert_eq!(find("Mystery Leftover"), Some(Confidence::Low));
+    assert_eq!(find("Mystery Leftover"), None, "uncertain folder under 1 MB is not listed");
+    assert_eq!(find("Empty Husk"), None, "empty folder is not listed");
+    assert_eq!(find("Big Mystery"), Some(Confidence::Low));
+    assert_eq!(find("installed-editor-updater"), None, "updater of an installed app must not be flagged");
+    assert_eq!(find("removed-tool-updater"), Some(Confidence::High), "updater of a removed app must be High");
+    assert_eq!(find("Pub"), None, "cache of a tool on PATH must not be flagged");
+    assert_eq!(find("Yarn"), Some(Confidence::Low));
 
-    // Grouping: removed apps by name, orphans under Unknown leftovers
+    // Hidden small folders are counted, and empty ones are offered for cleaning
+    assert!(result.stats.small_hidden >= 2, "{:?}", result.stats);
+    assert_eq!(result.empty_folders.len(), 1);
+    assert!(result.empty_folders[0].ends_with("Empty Husk"));
+
+    // Grouping: removed apps by name, orphans by kind
     let removed_group = result.groups.iter().find(|g| g.app_name == "Removed Tool").unwrap();
     assert!(!removed_group.is_unknown);
-    assert!(removed_group.folders[0].preselected);
-    assert_eq!(removed_group.folders[0].category, ResidualCategory::AppData);
-    let unknown = result.groups.iter().find(|g| g.is_unknown).unwrap();
-    assert!(unknown.folders.iter().all(|c| !c.preselected));
+    assert!(removed_group.folders.iter().all(|c| c.preselected));
+    assert_eq!(removed_group.folders.len(), 2, "app folder and its updater");
+    let group_of = |name: &str| {
+        result
+            .groups
+            .iter()
+            .find(|g| g.folders.iter().any(|c| c.name == name))
+            .unwrap()
+    };
+    let dev = group_of("Yarn");
+    assert!(dev.is_unknown);
+    assert_eq!(dev.key, "unknown:developer-cache");
+    assert_eq!(dev.app_name, "Developer caches");
+    assert_eq!(dev.folders[0].category, ResidualCategory::Cache);
+    assert_eq!(group_of("Pixel Quest").folders[0].orphan_kind, Some(OrphanKind::GameData));
+    let other = group_of("Big Mystery");
+    assert_eq!(other.key, "unknown:app-data");
+    assert!(other.folders.iter().all(|c| !c.preselected));
+
+    // The empty clean only accepts folders that are still empty
+    let husk = f.root.path.join("Empty Husk");
+    assert!(engine.verify_empty_for_deletion(&husk.to_string_lossy()).is_ok());
+    let big = f.root.path.join("Big Mystery");
+    assert!(engine.verify_empty_for_deletion(&big.to_string_lossy()).is_err());
 
     // Pre-delete verification agrees with the scan
     let installed_path = f.root.path.join("Installed Editor");
@@ -226,12 +277,12 @@ fn dry_run_and_permanent_delete_inside_temp_only() {
         in_onedrive: false,
     };
 
-    let dry = process_items(&engine, &[item.clone()], CleanOptions { dry_run: true, permanent: false }, &log, false);
+    let dry = process_items(&engine, &[item.clone()], CleanOptions { dry_run: true, permanent: false, only_empty: false }, &log, false);
     assert_eq!(dry[0].status, CleanStatus::WouldDelete);
     assert!(target.exists(), "dry run must not delete");
 
     // Permanent delete of a folder this test created. Never the Recycle Bin, never real data.
-    let real = process_items(&engine, &[item], CleanOptions { dry_run: false, permanent: true }, &log, false);
+    let real = process_items(&engine, &[item], CleanOptions { dry_run: false, permanent: true, only_empty: false }, &log, false);
     assert_eq!(real[0].status, CleanStatus::Deleted, "{:?}", real[0].reason);
     assert!(!target.exists());
     let lines = fs::read_to_string(&log).unwrap();
@@ -277,6 +328,10 @@ fn live_scan_smoke() {
         }
     }
     println!("low total: {}", low);
+    println!("empty folders offered for cleaning: {}", result.empty_folders.len());
+    for p in &result.empty_folders {
+        println!("EMPTY	{}", p);
+    }
     let _ = fs::remove_dir_all(&data);
 }
 
@@ -287,4 +342,25 @@ fn live_evidence_dump() {
     for e in super::evidence::collect_past_uninstalls() {
         println!("{:?}\t{}\tpub={:?}\talt={:?}\tdirs={:?}", e.source, e.display_name, e.publisher, e.alt_names, e.install_dirs);
     }
+}
+
+
+/// Read-only: prints every Uncertain folder with its size and root, for analysis.
+#[test]
+#[ignore]
+fn live_uncertain_breakdown() {
+    use super::engine::{build_live_context, LiveOptions};
+    use super::store_files::ResidualFiles;
+    let data = temp_dir("breakdown");
+    let files = ResidualFiles::new(&data);
+    let live = build_live_context(&files, LiveOptions { min_age_days: 30, running_exes: vec![], protected_paths: vec![], update_history: true, only_roots: None }).expect("context");
+    let engine = Engine::new(&live.ctx);
+    let result = engine.scan(&AtomicBool::new(false), &mut |_| {}).expect("scan");
+    let never = AtomicBool::new(false);
+    for c in result.candidates().filter(|c| c.confidence == Confidence::Low) {
+        let size = super::sizer::measure(Path::new(&c.path), &never).size_on_disk;
+        let exes = std::fs::read_dir(&c.path).map(|rd| rd.flatten().filter(|e| e.path().extension().map(|x| x.eq_ignore_ascii_case("exe")).unwrap_or(false)).count()).unwrap_or(0);
+        println!("LOW	{:?}	{}	{}	{}	{}", c.root_kind, c.depth, size, exes, c.path);
+    }
+    let _ = fs::remove_dir_all(&data);
 }

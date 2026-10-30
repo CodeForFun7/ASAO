@@ -78,6 +78,8 @@ impl From<&ResidualCandidate> for CleanItem {
 pub struct CleanOptions {
     pub dry_run: bool,
     pub permanent: bool,
+    /// Only remove folders that still hold no files (the one-click empty folder clean).
+    pub only_empty: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -301,7 +303,12 @@ pub fn process_items(
     let mut outcomes = Vec::new();
     for item in items {
         // 1. Is the app still uninstalled and the folder still a leftover?
-        if let Err(reason) = engine.verify_for_deletion(&item.path) {
+        let verified = if opts.only_empty {
+            engine.verify_empty_for_deletion(&item.path)
+        } else {
+            engine.verify_for_deletion(&item.path)
+        };
+        if let Err(reason) = verified {
             let o = CleanOutcome::skipped(item, reason);
             log(log_path, "skipped", &o, elevated);
             outcomes.push(o);

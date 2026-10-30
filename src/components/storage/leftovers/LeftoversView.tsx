@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   FlaskConical,
+  EyeOff,
   Info,
   PackageCheck,
   PackageSearch,
@@ -32,8 +33,10 @@ function splitSections(groups: ResidualGroup[]): { confident: Section[]; uncerta
   const confident: Section[] = [];
   const uncertain: Section[] = [];
   for (const g of groups) {
-    const sure = g.folders.filter((f) => f.confidence !== "low");
-    const unsure = g.folders.filter((f) => f.confidence === "low");
+    // Each group's folders largest first
+    const folders = [...g.folders].sort((a, b) => (b.sizeBytes ?? -1) - (a.sizeBytes ?? -1));
+    const sure = folders.filter((f) => f.confidence !== "low");
+    const unsure = folders.filter((f) => f.confidence === "low");
     if (sure.length) confident.push({ group: g, folders: sure });
     if (unsure.length) uncertain.push({ group: g, folders: unsure });
   }
@@ -72,6 +75,7 @@ export const LeftoversView: React.FC<LeftoversViewProps> = ({ onOpenInExplorer }
   const openConfirm = useResidualStore((s) => s.openConfirm);
   const closeConfirm = useResidualStore((s) => s.closeConfirm);
   const clean = useResidualStore((s) => s.clean);
+  const cleanEmpty = useResidualStore((s) => s.cleanEmpty);
   const closeReport = useResidualStore((s) => s.closeReport);
   const ignoreFolder = useResidualStore((s) => s.ignoreFolder);
   const ignoreApp = useResidualStore((s) => s.ignoreApp);
@@ -100,6 +104,8 @@ export const LeftoversView: React.FC<LeftoversViewProps> = ({ onOpenInExplorer }
   const appCount = (result?.groups ?? []).filter((g) => !g.isUnknown).length;
   const unknownCount = (result?.groups ?? []).filter((g) => g.isUnknown).reduce((acc, g) => acc + g.folders.length, 0);
   const uncertainCount = uncertain.reduce((acc, s) => acc + s.folders.length, 0);
+  const smallHidden = result?.stats.smallHidden ?? 0;
+  const emptyCount = result?.emptyFolders.length ?? 0;
   const busy = phase === "scanning" || phase === "cleaning";
   const selectedFn = (path: string) => isSelected({ selected }, path);
 
@@ -356,6 +362,39 @@ export const LeftoversView: React.FC<LeftoversViewProps> = ({ onOpenInExplorer }
                 </div>
               )}
             </>
+          )}
+
+          {/* Tiny uncertain folders: one line, plus a one-click clean of the empty ones */}
+          {smallHidden > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-lunar-surface border border-lunar-border">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <EyeOff className="w-3.5 h-3.5 text-lunar-text-sec shrink-0 mt-0.5" />
+                <p className="text-[11px] text-lunar-text-sec leading-relaxed">
+                  {smallHidden.toLocaleString()} more uncertain {smallHidden === 1 ? "folder" : "folders"} under 1 MB
+                  {" "}({formatStorageBytes(result.stats.smallHiddenBytes)} in total) {smallHidden === 1 ? "is" : "are"} not listed.
+                  {emptyCount > 0 &&
+                    ` ${emptyCount.toLocaleString()} of them ${emptyCount === 1 ? "is" : "are"} empty.`}
+                </p>
+              </div>
+              {emptyCount > 0 && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void cleanEmpty()}
+                  title="Each folder is checked again and must still hold no files. They go to the Recycle Bin."
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium border transition-colors shrink-0 ${
+                    busy
+                      ? "bg-lunar-surface text-lunar-muted border-lunar-border cursor-not-allowed"
+                      : "bg-lunar-elevated hover:bg-lunar-border text-lunar-white border-lunar-border cursor-pointer"
+                  }`}
+                >
+                  {dryRun ? <FlaskConical className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  <span>
+                    {dryRun ? "Dry run" : "Clean"} {emptyCount} empty {emptyCount === 1 ? "folder" : "folders"}
+                  </span>
+                </button>
+              )}
+            </div>
           )}
         </>
       )}

@@ -1,7 +1,7 @@
 //! Runs one scan, or re-checks one folder right before it is deleted.
 //! The same `evaluate` decides both, so a scan and a pre-delete check can never disagree.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -15,19 +15,128 @@ use super::ownership::{OwnedReason, OwnershipChecker};
 use super::references::collect_referenced_executables;
 use super::roots::{
     find_microsoft_binary, folder_stats, is_in_onedrive, is_reparse_point, known_roots, list_dirs,
-    onedrive_roots,
+    onedrive_roots, path_commands,
 };
 use super::evidence::collect_past_uninstalls;
 use super::scoring::{removed_apps_with_evidence, score, RemovalSource, RemovedApp, ScoreInput};
 use super::store_files::{IgnoreList, ResidualFiles};
 use super::{
-    now_ms, Confidence, ResidualCandidate, ResidualCategory, ResidualGroup, ResidualScanProgress,
+    now_ms, Confidence, OrphanKind, ResidualCandidate, ResidualCategory, ResidualGroup, ResidualScanProgress,
     ResidualScanResult, ResidualScanStats, RootKind, ScanRoot,
 };
 
 const DAY_MS: u64 = 86_400_000;
 /// Folders with more entries than this cannot be checked for recent files, so they are not flagged.
 pub const MAX_WALK_ENTRIES: u64 = 250_000;
+/// Uncertain folders smaller than this are not listed, only counted.
+pub const MIN_UNCERTAIN_BYTES: u64 = 1024 * 1024;
+
+/// Caches that developer tools keep in AppData, and the commands that use them.
+/// When one of the commands is on PATH the cache is in use and is never flagged.
+struct DevCache {
+    folder: &'static str,
+    tool: &'static str,
+    commands: &'static [&'static str],
+}
+
+const DEV_CACHES: &[DevCache] = &[
+    DevCache { folder: "pub", tool: "Dart and Flutter", commands: &["dart", "flutter"] },
+    DevCache { folder: ".dartserver", tool: "Dart and Flutter", commands: &["dart", "flutter"] },
+    DevCache { folder: ".dart-tool", tool: "Dart and Flutter", commands: &["dart", "flutter"] },
+    DevCache { folder: "node", tool: "Node.js", commands: &["node"] },
+    DevCache { folder: "node-gyp", tool: "Node.js", commands: &["node"] },
+    DevCache { folder: "npm", tool: "npm", commands: &["npm", "node"] },
+    DevCache { folder: "npm-cache", tool: "npm", commands: &["npm", "node"] },
+    DevCache { folder: "yarn", tool: "Yarn", commands: &["yarn", "corepack"] },
+    DevCache { folder: "pnpm", tool: "pnpm", commands: &["pnpm", "corepack"] },
+    DevCache { folder: "pnpm-cache", tool: "pnpm", commands: &["pnpm", "corepack"] },
+    DevCache { folder: "typescript", tool: "TypeScript", commands: &["tsc", "node"] },
+    DevCache { folder: "electron", tool: "Electron", commands: &["node"] },
+    DevCache { folder: "electron-builder", tool: "Electron", commands: &["node"] },
+    DevCache { folder: "cypress", tool: "Cypress", commands: &["node"] },
+    DevCache { folder: "ms-playwright", tool: "Playwright", commands: &["playwright", "node"] },
+    DevCache { folder: "ms-playwright-go", tool: "Playwright for Go", commands: &["go"] },
+    DevCache { folder: "go-build", tool: "Go", commands: &["go"] },
+    DevCache { folder: "pypa", tool: "Python", commands: &["python", "py", "pip"] },
+    DevCache { folder: "pip", tool: "Python", commands: &["python", "py", "pip"] },
+    DevCache { folder: "jedi", tool: "Python", commands: &["python", "py"] },
+    DevCache { folder: "nltk_data", tool: "Python", commands: &["python", "py"] },
+    DevCache { folder: "undetected_chromedriver", tool: "Python", commands: &["python", "py"] },
+    DevCache { folder: "pypoetry", tool: "Poetry", commands: &["poetry", "python", "py"] },
+    DevCache { folder: "uv", tool: "uv", commands: &["uv"] },
+    DevCache { folder: "kotlin", tool: "Kotlin", commands: &["kotlin", "kotlinc", "gradle"] },
+    DevCache { folder: "deno", tool: "Deno", commands: &["deno"] },
+    DevCache { folder: "composer", tool: "Composer", commands: &["composer", "php"] },
+    DevCache { folder: "nuget", tool: "NuGet", commands: &["dotnet", "nuget"] },
+];
+
+fn dev_cache_for(name: &str) -> Option<&'static DevCache> {
+    let lower = name.to_lowercase();
+    DEV_CACHES.iter().find(|d| d.folder == lower)
+}
+
+/// Sub-folders that Chromium, Electron and embedded browsers create for their profile data.
+const WEB_PROFILE_DIRS: &[&str] = &[
+    "local storage", "indexeddb", "gpucache", "code cache", "session storage", "blob_storage",
+    "service worker", "user data", "ebwebview",
+];
+const WEB_NAME_WORDS: &[&str] = &["jxbrowser", "cef", "electron", "webview", "chromium"];
+
+/// Sub-folders that games create: Unreal ("Saved"), save games, mods.
+const GAME_DIRS: &[&str] = &["saved", "savegames", "saves", "savedgames", "mods"];
+const GAME_NAME_WORDS: &[&str] = &["game", "games", "gaming", "unity", "unreal"];
+/// Software vendors that also keep data in AppData\LocalLow. Not games.
+const NON_GAME_VENDORS: &[&str] = &["adobe", "sun", "oracle", "intel", "nvidia", "google", "mozilla", "apple", "microsoft"];
+
+/// Can this hidden empty folder go in the one-click clean? Only in your own AppData, and
+/// never inside `Packages`, where Windows registers app container profiles (Chrome's
+/// sandbox, Internet Explorer) that are empty by design.
+fn offers_empty_clean(c: &ResidualCandidate) -> bool {
+    if c.needs_admin {
+        return false;
+    }
+    let parent = Path::new(&c.path)
+        .parent()
+        .and_then(|p| p.file_name())
+        .map(|n| n.to_string_lossy().to_lowercase());
+    !(c.depth == 2 && parent.as_deref() == Some("packages"))
+}
+
+fn child_dir_names(path: &Path) -> Vec<String> {
+    let mut scratch = Vec::new();
+    let mut denied = 0u64;
+    list_dirs(path, &mut scratch, &mut denied)
+        .into_iter()
+        .map(|(_, n)| n.to_lowercase())
+        .collect()
+}
+
+/// What an unmatched folder looks like, so similar folders are grouped together.
+pub fn orphan_kind(root: RootKind, path: &Path, name: &str, category: ResidualCategory) -> OrphanKind {
+    if dev_cache_for(name).is_some() {
+        return OrphanKind::DeveloperCache;
+    }
+    let norm = normalize_name(name);
+    let tokens: Vec<&str> = norm.split_whitespace().collect();
+    let children = child_dir_names(path);
+    // AppData\LocalLow is used almost only by games (Unity puts every game there).
+    if (root == RootKind::LocalAppDataLow && !NON_GAME_VENDORS.contains(&norm.as_str()))
+        || tokens.iter().any(|t| GAME_NAME_WORDS.contains(t))
+        || children.iter().any(|c| GAME_DIRS.contains(&c.as_str()))
+    {
+        return OrphanKind::GameData;
+    }
+    if tokens.iter().any(|t| WEB_NAME_WORDS.iter().any(|w| t.contains(w)))
+        || children.iter().any(|c| WEB_PROFILE_DIRS.contains(&c.as_str()))
+    {
+        return OrphanKind::WebAppData;
+    }
+    match category {
+        ResidualCategory::InstallRemnant => OrphanKind::InstallRemnant,
+        ResidualCategory::Cache | ResidualCategory::Logs => OrphanKind::CachesAndLogs,
+        ResidualCategory::AppData => OrphanKind::AppData,
+    }
+}
 
 pub struct EngineContext {
     pub roots: Vec<ScanRoot>,
@@ -41,6 +150,8 @@ pub struct EngineContext {
     pub now_ms: u64,
     pub onedrive: Vec<String>,
     pub max_walk_entries: u64,
+    /// Lowercase names of the commands on PATH, for the developer cache check.
+    pub path_commands: HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +165,8 @@ pub enum Verdict {
     Excluded(String),
     Recent(String),
     Unverifiable(String),
+    /// An uncertain folder under 1 MB: counted, not listed. The flag is true when it holds no files.
+    Small(ResidualCandidate, bool),
 }
 
 pub struct Engine<'a> {
@@ -64,6 +177,9 @@ pub struct Engine<'a> {
 pub fn categorize(root: RootKind, name: &str) -> ResidualCategory {
     if root.is_program_files() {
         return ResidualCategory::InstallRemnant;
+    }
+    if dev_cache_for(name).is_some() {
+        return ResidualCategory::Cache;
     }
     let norm = normalize_name(name);
     let tokens: Vec<&str> = norm.split_whitespace().collect();
@@ -114,6 +230,13 @@ impl<'a> Engine<'a> {
                 return Verdict::Container(reason.describe(), true);
             }
             return Verdict::Owned(reason.describe());
+        }
+
+        // Developer caches are in use while their tool is installed.
+        if let Some(cache) = dev_cache_for(name) {
+            if let Some(cmd) = cache.commands.iter().find(|c| self.ctx.path_commands.contains(**c)) {
+                return Verdict::Owned(format!("Cache of {}, which is installed ({} is on PATH)", cache.tool, cmd));
+            }
         }
 
         // A vendor folder holding any installed product is never flagged as a whole.
@@ -170,18 +293,25 @@ impl<'a> Engine<'a> {
             }
         }
 
-        Verdict::Candidate(ResidualCandidate {
+        let category = categorize(root.kind, name);
+        let orphan = if scored.matched.is_none() {
+            Some(orphan_kind(root.kind, path, name, category))
+        } else {
+            None
+        };
+        let candidate = ResidualCandidate {
             id: stable_id(&key),
             path: path_str,
             name: name.to_string(),
             root_kind: root.kind,
             depth,
-            category: categorize(root.kind, name),
+            category,
             confidence: scored.confidence,
             score: scored.score,
             reasons: scored.reasons,
             matched_app_key: scored.matched.as_ref().map(|m| m.key.clone()),
             matched_app_name: scored.matched.as_ref().map(|m| m.display_name.clone()),
+            orphan_kind: orphan,
             removed_on_ms: scored.matched.as_ref().and_then(|m| m.removed_on_ms),
             last_run_ms: scored.matched.as_ref().and_then(|m| m.last_run_ms),
             newest_modified_ms: stats.newest_modified_ms,
@@ -189,7 +319,19 @@ impl<'a> Engine<'a> {
             needs_admin: root.kind.needs_admin(),
             in_onedrive: is_in_onedrive(&key, &self.ctx.onedrive),
             preselected: scored.confidence == Confidence::High,
-        })
+        };
+
+        // Tiny uncertain folders are counted, not listed.
+        if scored.confidence == Confidence::Low && stats.total_bytes < MIN_UNCERTAIN_BYTES {
+            return Verdict::Small(
+                ResidualCandidate {
+                    size_bytes: Some(stats.total_bytes),
+                    ..candidate
+                },
+                stats.file_count == 0,
+            );
+        }
+        Verdict::Candidate(candidate)
     }
 
     pub fn scan(
@@ -318,6 +460,7 @@ impl<'a> Engine<'a> {
         let mut results = results.into_inner().unwrap_or_default();
         results.sort_by_key(|r| r.index);
         let mut candidates: Vec<ResidualCandidate> = Vec::new();
+        let mut empty_folders: Vec<String> = Vec::new();
         for r in results {
             log.extend(r.log);
             stats.access_denied += r.access_denied;
@@ -329,6 +472,13 @@ impl<'a> Engine<'a> {
                     }
                     Verdict::Excluded(_) => stats.excluded_skipped += 1,
                     Verdict::Recent(_) => stats.recent_skipped += 1,
+                    Verdict::Small(c, empty) => {
+                        stats.small_hidden += 1;
+                        stats.small_hidden_bytes += c.size_bytes.unwrap_or(0);
+                        if empty && offers_empty_clean(&c) {
+                            empty_folders.push(c.path);
+                        }
+                    }
                 }
             }
         }
@@ -341,6 +491,7 @@ impl<'a> Engine<'a> {
             min_age_days: self.ctx.min_age_days,
             groups: group_candidates(candidates),
             stats,
+            empty_folders,
             log,
         })
     }
@@ -348,6 +499,32 @@ impl<'a> Engine<'a> {
     /// Fresh check right before deleting: the folder must still be a depth 1 or 2 folder
     /// of a scan root, must not be a link, and must still pass every ownership rule.
     pub fn verify_for_deletion(&self, path: &str) -> Result<ResidualCandidate, String> {
+        match self.verify_verdict(path)? {
+            // Small folders are leftovers too; they are only left out of the list.
+            Verdict::Candidate(c) | Verdict::Small(c, _) => Ok(c),
+            Verdict::Container(r, _)
+            | Verdict::Owned(r)
+            | Verdict::Excluded(r)
+            | Verdict::Recent(r)
+            | Verdict::Unverifiable(r) => Err(r),
+        }
+    }
+
+    /// The same check for the one-click empty folder clean: the folder must still hold no files.
+    pub fn verify_empty_for_deletion(&self, path: &str) -> Result<ResidualCandidate, String> {
+        match self.verify_verdict(path)? {
+            Verdict::Small(c, true) if offers_empty_clean(&c) => Ok(c),
+            Verdict::Small(_, true) => Err("Not offered for the empty folder clean".into()),
+            Verdict::Small(_, false) | Verdict::Candidate(_) => Err("The folder is no longer empty".into()),
+            Verdict::Container(r, _)
+            | Verdict::Owned(r)
+            | Verdict::Excluded(r)
+            | Verdict::Recent(r)
+            | Verdict::Unverifiable(r) => Err(r),
+        }
+    }
+
+    fn verify_verdict(&self, path: &str) -> Result<Verdict, String> {
         if !self.ctx.references_available {
             return Err("Could not check services, scheduled tasks and startup entries".into());
         }
@@ -390,7 +567,7 @@ impl<'a> Engine<'a> {
             // The parent must still be a folder whose children may be evaluated.
             match self.evaluate(root, parent, &parent_name, 1, None, false) {
                 Verdict::Container(_, vendor) => parent_vendor = vendor,
-                Verdict::Candidate(_) => {}
+                Verdict::Candidate(_) | Verdict::Small(..) => {}
                 Verdict::Owned(r) | Verdict::Excluded(r) | Verdict::Recent(r) | Verdict::Unverifiable(r) => {
                     return Err(format!("Parent folder is protected: {}", r));
                 }
@@ -400,14 +577,7 @@ impl<'a> Engine<'a> {
             None
         };
 
-        match self.evaluate(root, p, &name, depth as u8, parent_name.as_deref(), parent_vendor) {
-            Verdict::Candidate(c) => Ok(c),
-            Verdict::Container(r, _)
-            | Verdict::Owned(r)
-            | Verdict::Excluded(r)
-            | Verdict::Recent(r)
-            | Verdict::Unverifiable(r) => Err(r),
-        }
+        Ok(self.evaluate(root, p, &name, depth as u8, parent_name.as_deref(), parent_vendor))
     }
 }
 
@@ -416,7 +586,10 @@ pub fn group_candidates(candidates: Vec<ResidualCandidate>) -> Vec<ResidualGroup
     for c in candidates {
         let (key, name, unknown) = match (&c.matched_app_key, &c.matched_app_name) {
             (Some(k), Some(n)) => (k.clone(), n.clone(), false),
-            _ => ("unknown".to_string(), "Unknown leftovers".to_string(), true),
+            _ => {
+                let kind = c.orphan_kind.unwrap_or(OrphanKind::AppData);
+                (format!("unknown:{}", kind.key()), kind.label().to_string(), true)
+            }
         };
         let g = groups.entry(key.clone()).or_insert_with(|| ResidualGroup {
             key,
@@ -531,6 +704,7 @@ pub fn build_live_context(files: &ResidualFiles, opts: LiveOptions) -> Result<Li
             now_ms: now,
             onedrive: onedrive_roots(),
             max_walk_entries: MAX_WALK_ENTRIES,
+            path_commands: path_commands(),
         },
         observe,
     })

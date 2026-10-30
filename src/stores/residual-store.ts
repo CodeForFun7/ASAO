@@ -8,6 +8,7 @@ import type {
 } from "../types/residual";
 import {
   cancelLeftoverScan,
+  cleanEmptyLeftovers,
   cleanLeftovers,
   getLastLeftoverResult,
   ignoreApp,
@@ -46,6 +47,29 @@ function applyPendingSizes(result: ResidualScanResult): ResidualScanResult {
   };
 }
 
+const hasUnsized = (r: ResidualScanResult) => r.groups.some((g) => g.folders.some((f) => f.sizeBytes === null));
+
+/** Copies sizes from the backend's copy of the same scan, keeping the folders shown now. */
+function mergeSizes(current: ResidualScanResult, latest: ResidualScanResult): ResidualScanResult {
+  const sizes = new Map<string, ResidualCandidate>();
+  for (const g of latest.groups) for (const f of g.folders) sizes.set(pathKey(f.path), f);
+  return {
+    ...current,
+    groups: current.groups.map((g) => ({
+      ...g,
+      folders: g.folders.map((f) => {
+        const l = sizes.get(pathKey(f.path));
+        if (!l || l.sizeBytes === null || f.sizeBytes !== null) return f;
+        return { ...f, sizeBytes: l.sizeBytes, newestModifiedMs: l.newestModifiedMs ?? f.newestModifiedMs };
+      }),
+    })),
+  };
+}
+
+// While sizes are missing, ask the backend now and then. Size events only reach an open
+// Leftovers tab, so after switching away and back some would otherwise never arrive.
+const SIZE_POLL_MS = 2500;
+
 interface ResidualStoreState {
   phase: LeftoverPhase;
   result: ResidualScanResult | null;
@@ -74,6 +98,7 @@ interface ResidualStoreState {
   openConfirm: () => void;
   closeConfirm: () => void;
   clean: () => Promise<void>;
+  cleanEmpty: () => Promise<void>;
   closeReport: () => void;
   ignoreFolder: (path: string) => Promise<void>;
   ignoreApp: (group: ResidualGroup) => Promise<void>;
@@ -176,6 +201,24 @@ export const useResidualStore = create<ResidualStoreState>((set, get) => ({
       },
     });
 
+    const syncSizes = async () => {
+      const current = get().result;
+      if (!current || !hasUnsized(current)) return;
+      try {
+        const latest = await getLastLeftoverResult();
+        const now = get().result;
+        if (!latest || !now || latest.scanId !== now.scanId) return;
+        const merged = mergeSizes(now, latest);
+        set({ result: merged, sizing: hasUnsized(merged) });
+      } catch {
+        // Outside Tauri
+      }
+    };
+    const poll = window.setInterval(() => {
+      if (get().phase !== "scanning") void syncSizes();
+    }, SIZE_POLL_MS);
+    void syncSizes();
+
     // Show the latest result (from a background or earlier scan) without rescanning.
     if (!get().result && get().phase === "idle") {
       try {
@@ -193,7 +236,10 @@ export const useResidualStore = create<ResidualStoreState>((set, get) => ({
         // Outside Tauri
       }
     }
-    return unlisten;
+    return () => {
+      window.clearInterval(poll);
+      unlisten();
+    };
   },
 
   scan: async () => {
@@ -279,6 +325,32 @@ export const useResidualStore = create<ResidualStoreState>((set, get) => ({
         phase: "ready",
         result: result ? withoutPaths(result, deleted) : result,
         selected,
+      });
+    } catch (err) {
+      set({ phase: "ready", error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  cleanEmpty: async () => {
+    const { dryRun, result } = get();
+    if (!result || result.emptyFolders.length === 0) return;
+    set({ phase: "cleaning", error: null });
+    try {
+      const report = await cleanEmptyLeftovers(dryRun);
+      const deleted = new Set(
+        report.outcomes.filter((o) => o.status === "deleted").map((o) => pathKey(o.path))
+      );
+      const current = get().result;
+      set({
+        report,
+        phase: "ready",
+        result: current
+          ? {
+              ...current,
+              emptyFolders: current.emptyFolders.filter((p) => !deleted.has(pathKey(p))),
+              stats: { ...current.stats, smallHidden: Math.max(0, current.stats.smallHidden - deleted.size) },
+            }
+          : current,
       });
     } catch (err) {
       set({ phase: "ready", error: err instanceof Error ? err.message : String(err) });
