@@ -24,7 +24,6 @@ export const AsaoWidget: React.FC = () => {
   const history = useWidgetStore((s) => s.history);
 
   const initializeWidget = useWidgetStore((s) => s.initializeWidget);
-  const updateSettingsPatch = useWidgetStore((s) => s.updateSettingsPatch);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;

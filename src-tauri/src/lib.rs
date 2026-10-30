@@ -1,7 +1,9 @@
 pub mod analyzer;
+pub mod apps;
 pub mod collector;
 pub mod commands;
 pub mod db;
+pub mod residual;
 pub mod settings;
 pub mod startup;
 pub mod tray;
@@ -12,6 +14,14 @@ use commands::process::{get_processes, start_monitoring, stop_monitoring};
 use commands::startup::{
     disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
     wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
+};
+use commands::apps::{
+    apps_get_last, apps_ignore, apps_remove, apps_scan, apps_unignore,
+};
+use commands::residual::{
+    residual_cancel_scan, residual_clean, residual_clean_empty, residual_get_ignore_list, residual_get_info,
+    residual_get_last_result, residual_ignore_app, residual_ignore_folder,
+    residual_open_recycle_bin, residual_scan, residual_unignore_app, residual_unignore_folder,
 };
 use commands::storage::{
     cancel_storage_scan, get_storage_drives, get_storage_snapshot, open_storage_location,
@@ -95,7 +105,14 @@ pub fn run() {
             }
 
             // 4. Start centralized 1Hz telemetry worker loop
-            monitoring_state.ensure_worker_loop(handle);
+            monitoring_state.ensure_worker_loop(handle.clone());
+
+            // 5. Leftover cleanup: record installed apps quietly in the background, then run
+            //    one scan so the Storage suggestion has numbers. Nothing is deleted from here.
+            commands::residual::start_background_work(handle.clone(), monitoring_state.clone());
+
+            // 6. Unused apps: remember which programs run, so "last used" improves over time.
+            commands::apps::start_usage_tracker(handle, monitoring_state.clone());
 
             Ok(())
         })
@@ -170,7 +187,24 @@ pub fn run() {
             cancel_storage_scan,
             read_storage_directory,
             search_storage_items,
-            open_storage_location
+            open_storage_location,
+            residual_scan,
+            residual_cancel_scan,
+            residual_get_last_result,
+            residual_clean,
+            residual_clean_empty,
+            residual_get_ignore_list,
+            residual_ignore_folder,
+            residual_ignore_app,
+            residual_unignore_folder,
+            residual_unignore_app,
+            residual_open_recycle_bin,
+            residual_get_info,
+            apps_scan,
+            apps_get_last,
+            apps_remove,
+            apps_ignore,
+            apps_unignore
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
