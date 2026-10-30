@@ -25,7 +25,11 @@ import {
 
 export type StorageScanState = "unscanned" | "scanning" | "ready" | "error";
 
+export type StorageView = "overview" | "leftovers";
+
 interface StorageStoreState {
+  activeView: StorageView;
+  setActiveView: (view: StorageView) => void;
   drives: StorageDrive[];
   selectedDrive: string | null;
   scanState: StorageScanState;
@@ -79,6 +83,8 @@ interface StorageStoreState {
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useStorageStore = create<StorageStoreState>((set, get) => ({
+  activeView: "overview",
+  setActiveView: (view) => set({ activeView: view }),
   drives: [],
   selectedDrive: null,
   scanState: "unscanned",

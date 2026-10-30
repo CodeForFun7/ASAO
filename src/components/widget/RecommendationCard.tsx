@@ -40,7 +40,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
     if (current.category === "startup") {
       void openMainWindow("startup");
     } else if (current.category === "storage") {
-      void openMainWindow("storage");
+      void openMainWindow(current.id.startsWith("storage-leftovers") ? "leftovers" : "storage");
     } else {
       void openMainWindow("processes", current.processPid ?? undefined);
     }

@@ -11,6 +11,7 @@ use crate::analyzer::{
     ProcessSnapshotPayload, WidgetRecommendation, WidgetSystemUpdate,
 };
 use crate::collector::storage::{normalize_win_path, system_time_to_ms};
+use crate::residual::LeftoverSummary;
 use crate::startup::scanner::{ItemClass, Recommendation, StartupImpact, StartupItem};
 
 pub struct RecommendationEngine;
@@ -390,14 +391,49 @@ impl RecommendationEngine {
 
     /// Native Rust inference for Storage Recommendations:
     /// 1. Identifies user-specific files occupying huge space with no activity for 1+ year (or longest dormant period) -> recommends reviewing.
-    /// 2. Identifies application files/folders whose parent application is not installed/present on the PC -> recommends deleting if not needed in future.
+    /// 2. Leftovers from uninstalled apps: a summary from the residual cleanup engine that opens the review screen.
     /// 3. Identifies large reclaimable caches & temporary staging directories.
     pub fn evaluate_storage_recommendations(
         storage_engine: &StorageAnalyzerEngine,
-        running_procs: &[ProcessInfo],
+        leftovers: Option<&LeftoverSummary>,
     ) -> Vec<WidgetRecommendation> {
         let mut recommendations: Vec<WidgetRecommendation> = Vec::new();
         let mut seen_paths: HashSet<String> = HashSet::new();
+
+        // Leftovers from uninstalled apps come from the residual cleanup engine, which runs
+        // the same ownership checks as the Leftovers tab. This card never deletes anything:
+        // it opens the review screen.
+        if let Some(summary) = leftovers.filter(|s| s.folder_count > 0) {
+            let size_str = Self::format_bytes(summary.total_bytes);
+            let apps = match summary.app_count {
+                0 => "apps that are no longer installed".to_string(),
+                1 => "1 uninstalled app".to_string(),
+                n => format!("{} uninstalled apps", n),
+            };
+            recommendations.push(WidgetRecommendation {
+                id: "storage-leftovers-summary".to_string(),
+                category: "storage".to_string(),
+                sub_category: Some("Leftovers from Uninstalled Apps".to_string()),
+                title: "Leftovers from uninstalled apps".to_string(),
+                message: format!(
+                    "{} of leftover folders from {}. Review them in Storage, under Leftovers. Nothing is removed until you confirm.",
+                    size_str, apps
+                ),
+                priority: if summary.total_bytes >= 500 * 1024 * 1024 {
+                    "important".to_string()
+                } else {
+                    "interesting".to_string()
+                },
+                action_label: Some("Review Leftovers".to_string()),
+                process_pid: None,
+                process_name: None,
+                startup_item_id: None,
+                storage_path: None,
+                metric_highlight: Some(format!("{} · {} folders", size_str, summary.folder_count)),
+                impact_level: Some(LoadImpactLevel::Moderate),
+                sustained_seconds: None,
+            });
+        }
 
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -405,8 +441,6 @@ impl RecommendationEngine {
             .unwrap_or(0);
         let one_year_ms: u64 = 365 * 24 * 60 * 60 * 1000;
 
-        // Gather installed application tokens from C:\Program Files, C:\Program Files (x86), AppData\Local\Programs, and running processes
-        let installed_app_tokens = Self::collect_installed_app_tokens(running_procs);
 
         // Collect candidate storage items from either the active DriveStorageIndex OR a fast native inspection
         let mut candidate_items: Vec<StorageItem> = Vec::new();
@@ -529,42 +563,6 @@ impl RecommendationEngine {
         }
 
         // -------------------------------------------------------------------
-        // Outcome B: Orphaned Application Files / Folders (Application not present on PC)
-        // -------------------------------------------------------------------
-        let orphan_candidates =
-            Self::find_orphaned_app_items(&candidate_items, &installed_app_tokens, &mut seen_paths);
-
-        for item in orphan_candidates.into_iter().take(3) {
-            let size_str = Self::format_bytes(item.size);
-            recommendations.push(WidgetRecommendation {
-                id: format!("storage-orphan-{}", Self::hash_id(&item.path)),
-                category: "storage".to_string(),
-                sub_category: Some("Orphaned Application File".to_string()),
-                title: format!("Uninstalled App Data: {}", item.name),
-                message: format!(
-                    "\"{}\" ({}) is an application {} occupying {}, but the corresponding application is not present on this PC. If you don't need this in the future, consider deleting it to reclaim storage.",
-                    item.name,
-                    item.path,
-                    if item.is_dir { "data directory" } else { "package/file" },
-                    size_str
-                ),
-                priority: if item.size >= 150 * 1024 * 1024 {
-                    "important".to_string()
-                } else {
-                    "interesting".to_string()
-                },
-                action_label: Some("Consider Deleting Leftover App File".to_string()),
-                process_pid: None,
-                process_name: None,
-                startup_item_id: None,
-                storage_path: Some(item.path.clone()),
-                metric_highlight: Some(format!("{} · App Missing", size_str)),
-                impact_level: Some(LoadImpactLevel::Moderate),
-                sustained_seconds: None,
-            });
-        }
-
-        // -------------------------------------------------------------------
         // Outcome C: Reclaimable Cache & Temporary Data if additional insights helpful
         // -------------------------------------------------------------------
         for item in &candidate_items {
@@ -606,149 +604,6 @@ impl RecommendationEngine {
         recommendations
     }
 
-    fn collect_installed_app_tokens(running_procs: &[ProcessInfo]) -> HashSet<String> {
-        let mut tokens = HashSet::new();
-
-        // Include running process names
-        for p in running_procs {
-            let stem = p.name.trim_end_matches(".exe").to_lowercase();
-            if stem.len() >= 3 {
-                tokens.insert(stem);
-            }
-        }
-
-        // Scan C:\Program Files, C:\Program Files (x86), and %LOCALAPPDATA%\Programs
-        let mut dirs_to_check = vec![
-            PathBuf::from(r"C:\Program Files"),
-            PathBuf::from(r"C:\Program Files (x86)"),
-        ];
-        if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            dirs_to_check.push(PathBuf::from(local_app).join("Programs"));
-        }
-
-        for dir in dirs_to_check {
-            if let Ok(rd) = fs::read_dir(dir) {
-                for entry in rd.flatten() {
-                    let name = entry.file_name().to_string_lossy().to_lowercase();
-                    if name.len() >= 3 {
-                        tokens.insert(name.clone());
-                        for part in name.split(|c: char| !c.is_alphanumeric()) {
-                            if part.len() >= 4 {
-                                tokens.insert(part.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        tokens
-    }
-
-    fn find_orphaned_app_items(
-        candidates: &[StorageItem],
-        installed_tokens: &HashSet<String>,
-        seen_paths: &mut HashSet<String>,
-    ) -> Vec<StorageItem> {
-        let mut orphans = Vec::new();
-
-        // Known system / common vendor names that should never be flagged as uninstalled apps
-        let vendor_allowlist: HashSet<&str> = [
-            "microsoft",
-            "windows",
-            "google",
-            "mozilla",
-            "apple",
-            "nvidia",
-            "intel",
-            "amd",
-            "realtek",
-            "packages",
-            "temp",
-            "cache",
-            "d3dscache",
-            "connecteddevicesplatform",
-            "identityservice",
-            "comms",
-            "publishers",
-            "virtualstore",
-            "programs",
-            "squirreltemp",
-            "npm",
-            "npm-cache",
-            "pnpm",
-            "cargo",
-            "rustup",
-            "pip",
-            "nuget",
-            "code",
-            "vscode",
-            "git",
-            "github",
-            "tauri",
-            "asao",
-            "steam",
-            "discord",
-            "spotify",
-            "onedrive",
-        ]
-        .into_iter()
-        .collect();
-
-        for item in candidates {
-            if item.size < 8 * 1024 * 1024 {
-                continue;
-            }
-            let norm_p = item.path.to_lowercase();
-            if seen_paths.contains(&norm_p) {
-                continue;
-            }
-
-            let is_appdata_folder = item.is_dir
-                && (norm_p.contains("\\appdata\\local\\")
-                    || norm_p.contains("\\appdata\\roaming\\")
-                    || norm_p.contains(":\\programdata\\"));
-
-            let is_standalone_installer = !item.is_dir
-                && matches!(item.extension.as_str(), "exe" | "msi")
-                && norm_p.contains("\\downloads\\");
-
-            if !is_appdata_folder && !is_standalone_installer {
-                continue;
-            }
-
-            let clean_name = item
-                .name
-                .trim_end_matches(".exe")
-                .trim_end_matches(".msi")
-                .trim_start_matches('.')
-                .to_lowercase();
-
-            if clean_name.len() < 3 || vendor_allowlist.contains(clean_name.as_str()) {
-                continue;
-            }
-
-            // Check if any word in clean_name matches an installed application token
-            let name_parts: Vec<&str> = clean_name
-                .split(|c: char| !c.is_alphanumeric())
-                .filter(|s| s.len() >= 4)
-                .collect();
-
-            let is_installed = installed_tokens.contains(&clean_name)
-                || name_parts.iter().any(|part| {
-                    vendor_allowlist.contains(part) || installed_tokens.contains(*part)
-                });
-
-            if !is_installed {
-                seen_paths.insert(norm_p);
-                orphans.push(item.clone());
-            }
-        }
-
-        orphans.sort_by(|a, b| b.size.cmp(&a.size));
-        orphans
-    }
-
     fn fast_probe_user_and_app_storage() -> Vec<StorageItem> {
         let mut results = Vec::new();
         let Ok(user_profile) = std::env::var("USERPROFILE") else {
@@ -768,7 +623,7 @@ impl RecommendationEngine {
             Self::probe_files_in_dir(&dir, cat, 2, &mut results);
         }
 
-        // 2. Probe AppData\Roaming and AppData\Local top-level directories for orphaned app folders / caches
+        // 2. Probe AppData\Roaming and AppData\Local top-level directories for large caches and temporary data
         let appdata_dirs = [up.join("AppData\\Roaming"), up.join("AppData\\Local")];
         for app_dir in appdata_dirs {
             let Ok(rd) = fs::read_dir(&app_dir) else {

@@ -259,7 +259,7 @@ const ESSENTIAL_NAMES: &[&str] = &[
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn run_ps(script: &str) -> Option<String> {
+pub(crate) fn run_ps(script: &str) -> Option<String> {
     let out = Command::new("powershell")
         .args([
             "-NoProfile",

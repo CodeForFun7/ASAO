@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS: AsaoSettings = {
   customY: null,
   widgetOpacity: 80,
   theme: getStoredTheme(),
+  residualMinAgeDays: 30,
 };
 
 interface WidgetStoreState {

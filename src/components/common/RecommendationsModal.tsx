@@ -22,6 +22,7 @@ interface RecButtonAndModalProps {
   onDisableStartup?: (itemId: string) => void;
   onInspectStoragePath?: (path: string) => void;
   onOpenStorageInExplorer?: (path: string) => void;
+  onReviewLeftovers?: () => void;
 }
 
 export const RecButtonAndModal: React.FC<RecButtonAndModalProps> = ({
@@ -32,6 +33,7 @@ export const RecButtonAndModal: React.FC<RecButtonAndModalProps> = ({
   onDisableStartup,
   onInspectStoragePath,
   onOpenStorageInExplorer,
+  onReviewLeftovers,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [rustRecommendations, setRustRecommendations] = useState<
@@ -97,7 +99,7 @@ export const RecButtonAndModal: React.FC<RecButtonAndModalProps> = ({
         return {
           title: "Storage Recommendations",
           subtitle:
-            "Native Rust inference identifying large dormant user files (1+ year inactive) and residual files from uninstalled applications.",
+            "Native Rust inference identifying large dormant user files, reclaimable caches, and leftovers from uninstalled applications.",
         };
     }
   };
@@ -280,6 +282,22 @@ export const RecButtonAndModal: React.FC<RecButtonAndModalProps> = ({
                             )}
                           </>
                         )}
+
+                        {category === "storage" &&
+                          rec.id.startsWith("storage-leftovers") &&
+                          onReviewLeftovers && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onReviewLeftovers();
+                                setIsOpen(false);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-lunar-elevated hover:bg-lunar-border text-[11px] font-medium text-lunar-white border border-lunar-border transition-colors cursor-pointer"
+                            >
+                              <Search className="w-3 h-3" />
+                              <span>Review Leftovers</span>
+                            </button>
+                          )}
 
                         {category === "storage" && rec.storagePath && (
                           <>

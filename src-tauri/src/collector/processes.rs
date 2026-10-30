@@ -253,7 +253,7 @@ fn current_time_as_filetime_100ns() -> u64 {
     }
 }
 
-unsafe fn extract_pe_version_metadata(path: &str) -> PeMetadata {
+pub(crate) unsafe fn extract_pe_version_metadata(path: &str) -> PeMetadata {
     let wide_path: Vec<u16> = std::ffi::OsStr::new(path)
         .encode_wide()
         .chain(std::iter::once(0))

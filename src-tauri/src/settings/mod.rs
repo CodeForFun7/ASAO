@@ -7,6 +7,10 @@ fn default_theme() -> String {
     "dark".to_string()
 }
 
+fn default_residual_min_age_days() -> u32 {
+    crate::residual::DEFAULT_MIN_AGE_DAYS
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AsaoSettings {
@@ -24,6 +28,10 @@ pub struct AsaoSettings {
     pub widget_opacity: u8,
     #[serde(default = "default_theme")]
     pub theme: String,
+    /// Leftover cleanup skips folders with any file modified in the last N days.
+    /// Zero is only accepted in developer mode.
+    #[serde(default = "default_residual_min_age_days")]
+    pub residual_min_age_days: u32,
 }
 
 impl Default for AsaoSettings {
@@ -40,6 +48,7 @@ impl Default for AsaoSettings {
             custom_y: None,
             widget_opacity: 80,
             theme: "dark".to_string(),
+            residual_min_age_days: crate::residual::DEFAULT_MIN_AGE_DAYS,
         }
     }
 }
@@ -105,6 +114,8 @@ pub fn load_settings(app: &AppHandle) -> AsaoSettings {
             if let Ok(mut parsed) = serde_json::from_str::<AsaoSettings>(&raw) {
                 parsed.widget_opacity = parsed.widget_opacity.clamp(60, 100);
                 parsed.always_on_top = true;
+                parsed.residual_min_age_days =
+                    crate::residual::sanitize_min_age_days(parsed.residual_min_age_days);
                 return parsed;
             }
         }

@@ -1,4 +1,5 @@
 pub mod process;
+pub mod residual;
 pub mod startup;
 pub mod storage;
 pub mod system;
@@ -12,6 +13,7 @@ use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
 use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::storage_analyzer::StorageAnalyzerEngine;
 use crate::analyzer::WidgetRecommendation;
+use crate::commands::residual::ResidualRuntime;
 use crate::settings::AsaoSettings;
 use crate::startup::scanner::StartupScanner;
 use crate::tray::TrayMenuHandles;
@@ -33,6 +35,9 @@ pub struct AppMonitoringState {
     pub worker_started: Arc<AtomicBool>,
     pub settings: Arc<Mutex<AsaoSettings>>,
     pub tray_handles: Arc<Mutex<Option<TrayMenuHandles>>>,
+    pub residual: Arc<Mutex<ResidualRuntime>>,
+    pub residual_busy: Arc<AtomicBool>,
+    pub residual_cancel: Arc<AtomicBool>,
 }
 
 impl AppMonitoringState {
@@ -48,6 +53,9 @@ impl AppMonitoringState {
             worker_started: Arc::new(AtomicBool::new(false)),
             settings: Arc::new(Mutex::new(AsaoSettings::default())),
             tray_handles: Arc::new(Mutex::new(None)),
+            residual: Arc::new(Mutex::new(ResidualRuntime::default())),
+            residual_busy: Arc::new(AtomicBool::new(false)),
+            residual_cancel: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -65,9 +73,8 @@ impl AppMonitoringState {
 
             // Background thread to periodically refresh Startup & Storage recommendations
             let bg_engine_ref = self.engine.clone();
-            let bg_storage_ref = self.storage_engine.clone();
             let bg_startup_recs = self.cached_startup_recs.clone();
-            let bg_storage_recs = self.cached_storage_recs.clone();
+            let bg_state = self.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(Duration::from_millis(1200));
                 loop {
@@ -84,13 +91,8 @@ impl AppMonitoringState {
                         *guard = s_recs;
                     }
 
-                    if let Ok(st_guard) = bg_storage_ref.lock() {
-                        let st_recs =
-                            RecommendationEngine::evaluate_storage_recommendations(&st_guard, &procs);
-                        if let Ok(mut guard) = bg_storage_recs.lock() {
-                            *guard = st_recs;
-                        }
-                    }
+                    // Storage suggestions, including the leftover summary from the latest scan
+                    crate::commands::residual::refresh_storage_recommendations(&bg_state);
 
                     std::thread::sleep(Duration::from_secs(30));
                 }

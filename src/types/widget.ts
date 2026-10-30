@@ -30,6 +30,8 @@ export interface AsaoSettings {
   customY: number | null;
   widgetOpacity: number; // 60..100
   theme?: ThemeMode;
+  /** Leftover cleanup skips folders with a file changed in the last N days (0 only in developer mode). */
+  residualMinAgeDays: number;
 }
 
 export interface CompactProcessContext {

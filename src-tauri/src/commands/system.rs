@@ -100,10 +100,11 @@ pub fn get_categorized_recommendations(
         .map(|g| g.clone())
         .unwrap_or_default();
     if storage_recommendations.is_empty() {
+        let leftovers = crate::commands::residual::leftover_summary(&state);
         if let Ok(st_guard) = state.storage_engine.lock() {
             storage_recommendations = RecommendationEngine::evaluate_storage_recommendations(
                 &st_guard,
-                &snapshot.processes,
+                leftovers.as_ref(),
             );
         }
         if let Ok(mut guard) = state.cached_storage_recs.lock() {
@@ -142,6 +143,8 @@ pub fn update_settings(
     mut new_settings: AsaoSettings,
 ) -> Result<AsaoSettings, String> {
     new_settings.widget_opacity = new_settings.widget_opacity.clamp(60, 100);
+    new_settings.residual_min_age_days =
+        crate::residual::sanitize_min_age_days(new_settings.residual_min_age_days);
 
     {
         let mut guard = state

@@ -89,14 +89,8 @@ pub async fn start_storage_scan(
                 guard.active_drive = Some(key.clone());
                 guard.indices.insert(key, index);
 
-                let running_procs = state
-                    .engine
-                    .lock()
-                    .ok()
-                    .and_then(|mut g| g.get_latest_or_collect().ok())
-                    .map(|s| s.processes)
-                    .unwrap_or_default();
-                let st_recs = crate::analyzer::recommendation_engine::RecommendationEngine::evaluate_storage_recommendations(&guard, &running_procs);
+                let leftovers = crate::commands::residual::leftover_summary(&state);
+                let st_recs = crate::analyzer::recommendation_engine::RecommendationEngine::evaluate_storage_recommendations(&guard, leftovers.as_ref());
                 if let Ok(mut rec_guard) = state.cached_storage_recs.lock() {
                     *rec_guard = st_recs;
                 }

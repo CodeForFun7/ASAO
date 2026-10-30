@@ -10,6 +10,7 @@ import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { NyraChat } from "./pages/NyraChat";
 import { useProcessStore } from "./stores/process-store";
+import { useStorageStore } from "./stores/storage-store";
 import type { AppRoute } from "./types/process";
 
 function isDedicatedWidgetWindow(): boolean {
@@ -66,6 +67,11 @@ function App() {
     });
 
     void listen<string>("asao:navigate", (event) => {
+      if (event.payload === "leftovers") {
+        useStorageStore.getState().setActiveView("leftovers");
+        setRoute("storage");
+        return;
+      }
       const target = event.payload as AppRoute;
       if (
         target === "dashboard" ||
@@ -86,6 +92,11 @@ function App() {
       "asao:navigate-inspect",
       (event) => {
         const { route, pid } = event.payload;
+        if (route === "leftovers") {
+          useStorageStore.getState().setActiveView("leftovers");
+          setRoute("storage");
+          return;
+        }
         if (
             route === "dashboard" ||
             route === "processes" ||

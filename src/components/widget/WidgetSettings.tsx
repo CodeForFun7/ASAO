@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   AppWindow,
+  Check,
   Eye,
   EyeOff,
   Sliders,
@@ -8,11 +9,21 @@ import {
   Moon,
   Monitor,
   Palette,
+  PackageX,
+  X,
 } from "lucide-react";
 import { useWidgetStore } from "../../stores/widget-store";
 import { hideWidget } from "../../services/widget";
+import {
+  getIgnoreList,
+  getResidualInfo,
+  unignoreApp,
+  unignoreFolder,
+} from "../../services/residual";
+import type { IgnoreList, ResidualInfo } from "../../types/residual";
 
 const OPACITY_PRESETS = [60, 70, 75, 80, 90, 100];
+const LEFTOVER_AGE_PRESETS = [7, 14, 30, 60, 90];
 
 interface ToggleRowProps {
   title: string;
@@ -70,6 +81,16 @@ export const WidgetSettings: React.FC = () => {
     (s) => s.toggleWidgetVisibility
   );
   const updateSettingsPatch = useWidgetStore((s) => s.updateSettingsPatch);
+  const [ignoreList, setIgnoreList] = useState<IgnoreList | null>(null);
+  const [residualInfo, setResidualInfo] = useState<ResidualInfo | null>(null);
+
+  useEffect(() => {
+    void getIgnoreList().then(setIgnoreList).catch(() => setIgnoreList(null));
+    void getResidualInfo().then(setResidualInfo).catch(() => setResidualInfo(null));
+  }, []);
+
+  const agePresets = residualInfo?.devMode ? [0, ...LEFTOVER_AGE_PRESETS] : LEFTOVER_AGE_PRESETS;
+  const ignoredCount = (ignoreList?.folders.length ?? 0) + (ignoreList?.apps.length ?? 0);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -370,6 +391,111 @@ export const WidgetSettings: React.FC = () => {
                 }
               />
             </div>
+          </section>
+
+          {/* Leftover Cleanup Section */}
+          <section className="rounded-xl lunar-glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <PackageX className="w-3.5 h-3.5 text-lunar-text-sec" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-lunar-white">
+                Leftover Cleanup
+              </h2>
+            </div>
+
+            <div className="py-3.5 border-b border-lunar-border/60 space-y-2.5">
+              <div>
+                <div className="text-xs font-medium text-lunar-white">Skip recently used folders</div>
+                <div className="text-[11px] text-lunar-text-sec mt-0.5">
+                  A folder with any file changed in this many days is never shown as a leftover.
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {agePresets.map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => void updateSettingsPatch({ residualMinAgeDays: days })}
+                    title={days === 0 ? "Developer override: also show folders changed today" : undefined}
+                    className={`flex-1 py-1 rounded border text-[11px] transition-colors cursor-pointer ${
+                      (settings.residualMinAgeDays ?? 30) === days
+                        ? "bg-lunar-elevated border-lunar-text-sec text-lunar-white"
+                        : "bg-lunar-bg border-lunar-border text-lunar-muted hover:text-lunar-text-sec"
+                    }`}
+                  >
+                    {days === 0 ? "0 days (dev)" : `${days} days`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="py-3.5 space-y-2.5">
+              <div>
+                <div className="text-xs font-medium text-lunar-white">Ignored items</div>
+                <div className="text-[11px] text-lunar-text-sec mt-0.5">
+                  Folders and apps you chose not to see again. Remove one to have scans show it again.
+                </div>
+              </div>
+
+              {ignoredCount === 0 ? (
+                <div className="text-[11px] text-lunar-muted py-2">
+                  Nothing is ignored. Use "Don't show again" on the Leftovers tab in Storage.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {ignoreList?.apps.map((a) => (
+                    <div
+                      key={`app-${a.key}`}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-lunar-surface-2/60 border border-lunar-border"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs text-lunar-white truncate">{a.name}</div>
+                        <div className="text-[10px] text-lunar-muted">App, all its folders</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void unignoreApp(a.key).then(setIgnoreList)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-lunar-text-sec hover:text-lunar-white hover:bg-lunar-elevated transition-colors cursor-pointer shrink-0"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  ))}
+                  {ignoreList?.folders.map((f) => (
+                    <div
+                      key={`folder-${f.path}`}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-lunar-surface-2/60 border border-lunar-border"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-mono text-[10px] text-lunar-text truncate" title={f.path}>
+                          {f.path}
+                        </div>
+                        <div className="text-[10px] text-lunar-muted">Folder</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void unignoreFolder(f.path).then(setIgnoreList)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-lunar-text-sec hover:text-lunar-white hover:bg-lunar-elevated transition-colors cursor-pointer shrink-0"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {residualInfo && (
+              <div className="pt-3 border-t border-lunar-border/60 text-[10px] text-lunar-muted space-y-0.5">
+                <div>
+                  Deletion log: <span className="font-mono break-all">{residualInfo.deletionLog}</span>
+                </div>
+                <div>
+                  Dry-run log: <span className="font-mono break-all">{residualInfo.dryRunLog}</span>
+                </div>
+              </div>
+            )}
           </section>
 
       </div>

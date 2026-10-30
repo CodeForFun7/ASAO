@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { RefreshCw, HardDrive, AlertTriangle } from "lucide-react";
+import { RefreshCw, HardDrive, AlertTriangle, PackageX } from "lucide-react";
 import { useStorageStore } from "../stores/storage-store";
 import type { WidgetRecommendation } from "../types/widget";
 import { DriveOverview } from "../components/storage/DriveOverview";
@@ -10,6 +10,7 @@ import { FilesystemExplorer } from "../components/storage/FilesystemExplorer";
 import { FileDetailsPanel } from "../components/storage/FileDetailsPanel";
 import { ScanProgress } from "../components/storage/ScanProgress";
 import { RecButtonAndModal } from "../components/common/RecommendationsModal";
+import { LeftoversView } from "../components/storage/leftovers/LeftoversView";
 
 export const StoragePage: React.FC = () => {
   const drives = useStorageStore((s) => s.drives);
@@ -34,6 +35,8 @@ export const StoragePage: React.FC = () => {
   const largestFilesSort = useStorageStore((s) => s.largestFilesSort);
 
   const selectedItem = useStorageStore((s) => s.selectedItem);
+  const activeView = useStorageStore((s) => s.activeView);
+  const setActiveView = useStorageStore((s) => s.setActiveView);
 
   const initializeStorage = useStorageStore((s) => s.initializeStorage);
   const selectDrive = useStorageStore((s) => s.selectDrive);
@@ -130,20 +133,6 @@ export const StoragePage: React.FC = () => {
             storagePath: f.path,
             metricHighlight: `${sizeMb} MB · Dormant`,
           });
-        } else if (f.category === "APPLICATION") {
-          list.push({
-            id: `storage-app-${f.path}`,
-            category: "storage",
-            subCategory: "Orphaned Application File",
-            title: `Uninstalled App File: ${f.name}`,
-            message: `"${f.name}" (${f.path}) is an application file occupying ${sizeMb} MB, and if the corresponding application is not present on this PC and you don't need it in the future, consider deleting it.`,
-            priority: "interesting",
-            actionLabel: "Consider Deleting Leftover App File",
-            processPid: null,
-            processName: null,
-            storagePath: f.path,
-            metricHighlight: `${sizeMb} MB · App File`,
-          });
         }
       }
     }
@@ -171,9 +160,14 @@ export const StoragePage: React.FC = () => {
               category="storage"
               fallbackRecommendations={fallbackStorageRecommendations}
               onOpenStorageInExplorer={(p) => void openLocationInExplorer(p)}
-              onInspectStoragePath={(p) => handleOpenFolderInExplorer(p)}
+              onInspectStoragePath={(p) => {
+                setActiveView("overview");
+                handleOpenFolderInExplorer(p);
+              }}
+              onReviewLeftovers={() => setActiveView("leftovers")}
             />
 
+            {activeView === "overview" && (
             <button
               type="button"
               disabled={isScanning || drives.length === 0}
@@ -189,8 +183,40 @@ export const StoragePage: React.FC = () => {
               />
               <span>Rescan</span>
             </button>
+            )}
           </div>
         </div>
+
+        {/* View switch: disk overview, or leftovers from uninstalled apps */}
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-lunar-surface border border-lunar-border w-fit">
+          {(
+            [
+              { id: "overview", label: "Overview", icon: HardDrive },
+              { id: "leftovers", label: "Leftovers", icon: PackageX },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveView(id)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+                activeView === id
+                  ? "bg-lunar-elevated text-lunar-white border-lunar-border"
+                  : "text-lunar-text-sec hover:text-lunar-text hover:bg-lunar-surface-2 border-transparent"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeView === "leftovers" && (
+          <LeftoversView onOpenInExplorer={(p) => void openLocationInExplorer(p)} />
+        )}
+
+        {activeView === "overview" && (
+        <>
 
         {/* 2. Drive Overview */}
         <DriveOverview
@@ -316,10 +342,12 @@ export const StoragePage: React.FC = () => {
             </div>
           </>
         )}
+        </>
+        )}
       </div>
 
       {/* Right-Hand File Details Inspector */}
-      {selectedItem && (
+      {selectedItem && activeView === "overview" && (
         <FileDetailsPanel
           item={selectedItem}
           onClose={() => selectItem(null)}
