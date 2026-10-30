@@ -3,17 +3,48 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
 
+use crate::analyzer::{mft_scanner, parallel_walker};
 use crate::collector::storage::{
     collect_storage_drives, normalize_win_path, system_time_to_ms, StorageDrive,
 };
 
 pub const EVENT_STORAGE_SCAN_PROGRESS: &str = "STORAGE_SCAN_PROGRESS";
 pub const EVENT_STORAGE_SCAN_COMPLETE: &str = "STORAGE_SCAN_COMPLETE";
+
+/// One directory's direct contents, produced by either scan backend.
+pub struct ScanBatch {
+    pub dir_path: String,
+    pub dirs: Vec<ScanDirInfo>,
+    pub files: Vec<ScanFileInfo>,
+}
+
+pub struct ScanDirInfo {
+    pub name: String,
+    pub path: String,
+    pub created_ms: Option<u64>,
+    pub modified_ms: Option<u64>,
+    pub accessed_ms: Option<u64>,
+}
+
+pub struct ScanFileInfo {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub created_ms: Option<u64>,
+    pub modified_ms: Option<u64>,
+    pub accessed_ms: Option<u64>,
+}
+
+pub enum ScanFailure {
+    Cancelled,
+    /// The backend cannot run here; no batches were emitted, so the caller may fall back.
+    Unavailable(String),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StorageCategory {
@@ -138,6 +169,8 @@ pub struct StorageAnalysisSnapshot {
     pub folders_analyzed: u64,
     pub bytes_analyzed: u64,
     pub scan_timestamp_ms: u64,
+    /// "mft" (direct NTFS read) or "parallel-walk" (fallback)
+    pub scan_method: String,
 }
 
 #[derive(Default)]
@@ -613,211 +646,115 @@ pub fn perform_drive_scan(
     let mut folders_analyzed: u64 = 0;
     let mut bytes_analyzed: u64 = 0;
 
-    // Seed priority traversal queue so user profile, AppData, Downloads, Program Files,
-    // ProgramData, and root directories are thoroughly analyzed within a fast scan budget.
-    let mut queue: VecDeque<(PathBuf, usize)> = VecDeque::new();
-    let mut visited_dirs: HashSet<String> = HashSet::new();
-
-    // Enqueue priority directories on this drive first if they exist
-    let mut priority_seeds: Vec<PathBuf> = Vec::new();
-    if let Ok(user_profile) = std::env::var("USERPROFILE") {
-        let up_path = PathBuf::from(&user_profile);
-        if up_path
-            .to_string_lossy()
-            .to_lowercase()
-            .starts_with(&root_key)
-        {
-            priority_seeds.push(up_path.join("Downloads"));
-            priority_seeds.push(up_path.join("Documents"));
-            priority_seeds.push(up_path.join("Desktop"));
-            priority_seeds.push(up_path.join("Videos"));
-            priority_seeds.push(up_path.join("Pictures"));
-            priority_seeds.push(up_path.join("AppData\\Local\\Temp"));
-            priority_seeds.push(up_path.join("AppData\\Local"));
-            priority_seeds.push(up_path.join("AppData\\Roaming"));
-            priority_seeds.push(up_path);
-        }
-    }
-    priority_seeds.push(root_path.join("Users"));
-    priority_seeds.push(root_path.join("Program Files"));
-    priority_seeds.push(root_path.join("Program Files (x86)"));
-    priority_seeds.push(root_path.join("ProgramData"));
-    priority_seeds.push(root_path.join("Windows\\Temp"));
-    priority_seeds.push(root_path.join("Windows\\SoftwareDistribution\\Download"));
-    priority_seeds.push(root_path.join("Windows"));
-    priority_seeds.push(root_path.clone());
-
-    // First, always read root directory entries so top-level folders and root files (like pagefile.sys/hiberfil.sys) are captured
-    if let Ok(root_entries) = fs::read_dir(&root_path) {
-        for entry_res in root_entries.flatten() {
-            let p = entry_res.path();
-            if p.is_dir() {
-                priority_seeds.insert(0, p);
-            }
-        }
-    }
-
-    for seed in priority_seeds {
-        if seed.exists() {
-            let k = normalize_key(&normalize_win_path(&seed));
-            if visited_dirs.insert(k) {
-                let depth = seed
-                    .strip_prefix(&root_path)
-                    .map(|rel| rel.components().count())
-                    .unwrap_or(0);
-                queue.push_back((seed, depth));
-            }
-        }
-    }
-
-    let max_entries_budget: u64 = 95_000;
-    let max_depth: usize = 7;
     let mut last_emit = Instant::now();
 
-    while let Some((curr_dir, depth)) = queue.pop_front() {
-        if cancel_flag.load(Ordering::SeqCst) {
-            return Err("Scan cancelled by user.".to_string());
+    let emit_progress = |current_path: &str, files: u64, folders: u64, bytes: u64| {
+        if let Some(handle) = app_handle {
+            let byte_ratio = if target_drive.used_capacity > 0 {
+                bytes as f64 / target_drive.used_capacity as f64
+            } else {
+                0.0
+            };
+            let pct = ((byte_ratio * 95.0).clamp(2.0, 96.0) * 10.0).round() / 10.0;
+            let _ = handle.emit(
+                EVENT_STORAGE_SCAN_PROGRESS,
+                StorageScanProgress {
+                    is_scanning: true,
+                    drive: target_drive.drive.clone(),
+                    current_path: current_path.to_string(),
+                    files_analyzed: files,
+                    folders_analyzed: folders,
+                    bytes_analyzed: bytes,
+                    total_used_bytes: target_drive.used_capacity,
+                    progress_percent: pct,
+                },
+            );
         }
+    };
 
-        if files_analyzed + folders_analyzed >= max_entries_budget {
-            break;
-        }
-
-        let curr_dir_str = normalize_win_path(&curr_dir);
+    // Receives one directory's contents at a time, regardless of which backend produced it.
+    let mut handle_batch = |batch: ScanBatch| {
         folders_analyzed += 1;
 
         if last_emit.elapsed().as_millis() >= 90 {
-            if let Some(handle) = app_handle {
-                let entry_ratio =
-                    (files_analyzed + folders_analyzed) as f64 / max_entries_budget as f64;
-                let byte_ratio = if target_drive.used_capacity > 0 {
-                    bytes_analyzed as f64 / target_drive.used_capacity as f64
-                } else {
-                    0.0
-                };
-                let pct = ((entry_ratio.max(byte_ratio) * 95.0).clamp(2.0, 96.0) * 10.0).round()
-                    / 10.0;
-                let _ = handle.emit(
-                    EVENT_STORAGE_SCAN_PROGRESS,
-                    StorageScanProgress {
-                        is_scanning: true,
-                        drive: target_drive.drive.clone(),
-                        current_path: curr_dir_str.clone(),
-                        files_analyzed,
-                        folders_analyzed,
-                        bytes_analyzed,
-                        total_used_bytes: target_drive.used_capacity,
-                        progress_percent: pct,
-                    },
-                );
-            }
+            emit_progress(&batch.dir_path, files_analyzed, folders_analyzed, bytes_analyzed);
             last_emit = Instant::now();
         }
 
-        let Ok(rd) = fs::read_dir(&curr_dir) else {
-            continue;
-        };
+        for d in batch.dirs {
+            let key = normalize_key(&d.path);
+            folder_meta
+                .entry(key)
+                .or_insert((d.name, d.path, d.created_ms, d.modified_ms, d.accessed_ms));
+        }
 
         let mut dir_direct_bytes = 0u64;
 
-        for entry_res in rd {
-            if cancel_flag.load(Ordering::SeqCst) {
-                return Err("Scan cancelled by user.".to_string());
+        for f in batch.files {
+            let ScanFileInfo {
+                name,
+                path: entry_path_str,
+                size: sz,
+                created_ms,
+                modified_ms,
+                accessed_ms,
+            } = f;
+
+            files_analyzed += 1;
+            bytes_analyzed = bytes_analyzed.saturating_add(sz);
+            dir_direct_bytes = dir_direct_bytes.saturating_add(sz);
+
+            let ext = Path::new(&name)
+                .extension()
+                .map(|e| e.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+
+            if !ext.is_empty() && ext.len() <= 10 && extension_set.len() < 60 {
+                extension_set.insert(ext.clone());
             }
 
-            let Ok(entry) = entry_res else {
-                continue;
-            };
-            let Ok(ft) = entry.file_type() else {
-                continue;
-            };
-            if ft.is_symlink() {
-                continue;
-            }
+            let (cat, imp, item_type, explanation) =
+                classify_storage_item(&entry_path_str, &name, false, &ext, sz, modified_ms);
 
-            let entry_path = entry.path();
-            let entry_path_str = normalize_win_path(&entry_path);
-            let name = entry.file_name().to_string_lossy().to_string();
-            let meta_opt = entry.metadata().ok();
+            *category_bytes.entry(cat).or_insert(0) += sz;
+            *category_counts.entry(cat).or_insert(0) += 1;
 
-            let created_ms = meta_opt.as_ref().and_then(|m| system_time_to_ms(m.created()));
-            let modified_ms = meta_opt.as_ref().and_then(|m| system_time_to_ms(m.modified()));
-            let accessed_ms = meta_opt.as_ref().and_then(|m| system_time_to_ms(m.accessed()));
+            // Keep notable files in search index & largest files tracker
+            if sz >= 2 * 1024 * 1024 || indexed_items.len() < 4_500 {
+                let item = StorageItem {
+                    name,
+                    path: entry_path_str,
+                    is_dir: false,
+                    size: sz,
+                    item_type,
+                    extension: ext,
+                    category: cat,
+                    importance: imp,
+                    created_ms,
+                    modified_ms,
+                    accessed_ms,
+                    analysis_explanation: explanation,
+                };
 
-            if ft.is_dir() {
-                let key = normalize_key(&entry_path_str);
-                folder_meta
-                    .entry(key.clone())
-                    .or_insert_with(|| (name.clone(), entry_path_str.clone(), created_ms, modified_ms, accessed_ms));
-
-                if depth < max_depth && visited_dirs.insert(key) {
-                    // Prioritize non-WinSxS directories so we don't spend the whole budget inside WinSxS
-                    let lower_p = entry_path_str.to_lowercase();
-                    if !lower_p.contains("\\windows\\winsxs\\")
-                        && !lower_p.contains("\\windows\\servicing\\")
-                    {
-                        queue.push_back((entry_path, depth + 1));
+                if sz >= 5 * 1024 * 1024 {
+                    largest_files.push(item.clone());
+                    if largest_files.len() > 220 {
+                        largest_files.sort_by(|a, b| b.size.cmp(&a.size));
+                        largest_files.truncate(120);
                     }
                 }
-            } else if ft.is_file() {
-                let sz = meta_opt.as_ref().map(|m| m.len()).unwrap_or(0);
-                files_analyzed += 1;
-                bytes_analyzed = bytes_analyzed.saturating_add(sz);
-                dir_direct_bytes = dir_direct_bytes.saturating_add(sz);
 
-                let ext = entry_path
-                    .extension()
-                    .map(|e| e.to_string_lossy().to_lowercase())
-                    .unwrap_or_default();
-
-                if !ext.is_empty() && ext.len() <= 10 && extension_set.len() < 60 {
-                    extension_set.insert(ext.clone());
-                }
-
-                let (cat, imp, item_type, explanation) =
-                    classify_storage_item(&entry_path_str, &name, false, &ext, sz, modified_ms);
-
-                *category_bytes.entry(cat).or_insert(0) += sz;
-                *category_counts.entry(cat).or_insert(0) += 1;
-
-                // Keep notable files in search index & largest files tracker
-                if sz >= 2 * 1024 * 1024 || indexed_items.len() < 4_500 {
-                    let item = StorageItem {
-                        name,
-                        path: entry_path_str,
-                        is_dir: false,
-                        size: sz,
-                        item_type,
-                        extension: ext,
-                        category: cat,
-                        importance: imp,
-                        created_ms,
-                        modified_ms,
-                        accessed_ms,
-                        analysis_explanation: explanation,
-                    };
-
-                    if sz >= 5 * 1024 * 1024 {
-                        largest_files.push(item.clone());
-                        if largest_files.len() > 220 {
-                            largest_files.sort_by(|a, b| b.size.cmp(&a.size));
-                            largest_files.truncate(120);
-                        }
-                    }
-
-                    if indexed_items.len() < 8_000 {
-                        indexed_items.push(item);
-                    }
+                if indexed_items.len() < 8_000 {
+                    indexed_items.push(item);
                 }
             }
         }
 
-        // Roll up dir_direct_bytes to curr_dir and all its ancestors up to root_path
+        // Roll up this folder's direct bytes to itself and all ancestors up to the drive root
         if dir_direct_bytes > 0 {
-            let mut anc_opt = Some(curr_dir.as_path());
+            let mut anc_opt = Some(Path::new(&batch.dir_path));
             while let Some(anc) = anc_opt {
-                let anc_str = normalize_win_path(anc);
-                let anc_key = normalize_key(&anc_str);
+                let anc_key = normalize_key(&normalize_win_path(anc));
                 *folder_sizes.entry(anc_key.clone()).or_insert(0) += dir_direct_bytes;
 
                 if anc_key == root_key {
@@ -825,6 +762,20 @@ pub fn perform_drive_scan(
                 }
                 anc_opt = anc.parent();
             }
+        }
+    };
+
+    // Preferred: read the NTFS MFT directly (seconds, needs admin). Otherwise walk in parallel.
+    emit_progress("Reading file system index...", 0, 0, 0);
+    let mut scan_method = "mft";
+    match mft_scanner::scan_volume(&target_drive.mount_point, cancel_flag, &mut handle_batch) {
+        Ok(()) => {}
+        Err(ScanFailure::Cancelled) => return Err("Scan cancelled by user.".to_string()),
+        Err(ScanFailure::Unavailable(reason)) => {
+            eprintln!("[storage] MFT scan unavailable ({reason}); using parallel directory walk");
+            scan_method = "parallel-walk";
+            parallel_walker::walk(&root_path, cancel_flag, &mut handle_batch)
+                .map_err(|_| "Scan cancelled by user.".to_string())?;
         }
     }
 
@@ -837,12 +788,6 @@ pub fn perform_drive_scan(
             let other_portion = unindexed_bytes.saturating_sub(sys_portion);
             *category_bytes.entry(StorageCategory::SYSTEM).or_insert(0) += sys_portion;
             *category_bytes.entry(StorageCategory::UNKNOWN).or_insert(0) += other_portion;
-
-            let win_key = normalize_key(&format!("{}Windows", target_drive.mount_point));
-            let cur_win = folder_sizes.get(&win_key).copied().unwrap_or(0);
-            if cur_win < sys_portion {
-                folder_sizes.insert(win_key, cur_win + (sys_portion / 2));
-            }
         } else {
             *category_bytes.entry(StorageCategory::UNKNOWN).or_insert(0) += unindexed_bytes;
         }
@@ -972,6 +917,7 @@ pub fn perform_drive_scan(
         folders_analyzed,
         bytes_analyzed,
         scan_timestamp_ms: now_ms,
+        scan_method: scan_method.to_string(),
     };
 
     let index = DriveStorageIndex {
