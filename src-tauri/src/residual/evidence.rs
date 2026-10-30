@@ -44,7 +44,7 @@ pub struct PastUninstall {
 const GENERIC_DIRS: &[&str] = &[
     "bin", "app", "apps", "application", "applications", "program", "programs", "current", "latest",
     "release", "x64", "x86", "win64", "win32", "amd64", "lib", "runtime", "versions", "client",
-    "update", "updates", "binaries", "redist", "_redist", "games",
+    "update", "updates", "binaries", "redist", "_redist", "games", "tools", "portable", "portableapps",
 ];
 
 /// Exe names that are installers, updaters or helpers rather than the app itself.
@@ -135,15 +135,15 @@ pub struct DiskView<'a> {
     pub profile: Option<&'a str>,
 }
 
-/// Turns one decoded UserAssist entry into evidence, when its app is gone.
-pub fn userassist_entry(decoded_name: &str, last_run_ms: Option<u64>, disk: &DiskView) -> Option<PastUninstall> {
+/// Full program path for a decoded UserAssist name. "{GUID}\Vendor\App\app.exe" uses a
+/// known folder; a full path is returned as is. Non-program entries give `None`.
+pub fn resolve_run_target(decoded_name: &str, resolve_folder: &dyn Fn(u128) -> Option<String>) -> Option<String> {
     if !decoded_name.to_lowercase().ends_with(".exe") {
         return None;
     }
-    // "{GUID}\Vendor\App\app.exe" uses a known folder; otherwise it is a full path.
     let full = if decoded_name.starts_with('{') {
         let end = decoded_name.find('}')?;
-        let base = (disk.resolve_folder)(parse_guid(&decoded_name[..=end])?)?;
+        let base = resolve_folder(parse_guid(&decoded_name[..=end])?)?;
         format!("{}{}", base.trim_end_matches('\\'), &decoded_name[end + 1..])
     } else {
         decoded_name.to_string()
@@ -152,12 +152,79 @@ pub fn userassist_entry(decoded_name: &str, last_run_ms: Option<u64>, disk: &Dis
     if key.len() < 4 || key.as_bytes().get(1) != Some(&b':') {
         return None;
     }
+    Some(full)
+}
+
+/// The app a program belongs to, judged from its path alone.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AppFolder {
+    /// The first meaningful folder under the root: "VideoLAN", "Docker", "Call of Duty".
+    pub name: String,
+    /// That folder, as written on disk.
+    pub dir: String,
+    /// The next meaningful folder, if any ("VLC").
+    pub second: Option<String>,
+    /// The program's name without ".exe".
+    pub exe_stem: String,
+}
+
+/// Finds the app folder of a program: the first meaningful folder below the deepest root
+/// (Program Files, AppData, Downloads, the drive, ...), skipping version and "bin"-style folders.
+pub fn app_folder_for(full: &str, roots: &[String]) -> Option<AppFolder> {
+    let key = path_key(full);
+    let root = roots
+        .iter()
+        .filter(|r| is_same_or_inside(&key, r) && key.len() > r.len())
+        .max_by_key(|r| r.len())
+        .cloned()
+        .unwrap_or_else(|| key.get(..2).unwrap_or("").to_string());
+    let segments: Vec<&str> = full.split(['\\', '/']).filter(|s| !s.is_empty()).collect();
+    let root_depth = root.split('\\').filter(|s| !s.is_empty()).count();
+    if segments.len() <= root_depth + 1 {
+        return None; // a program directly in a root says nothing about which app it is
+    }
+    let below = &segments[root_depth..segments.len() - 1];
+    let meaningful: Vec<(usize, &str)> = below
+        .iter()
+        .enumerate()
+        .filter(|(_, d)| !is_generic_dir(d))
+        .map(|(i, d)| (i, *d))
+        .take(2)
+        .collect();
+    let &(app_idx, first) = meaningful.first()?;
+    let exe = segments[segments.len() - 1];
+    Some(AppFolder {
+        name: first.to_string(),
+        dir: segments[..root_depth + app_idx + 1].join("\\"),
+        second: meaningful.get(1).map(|(_, s)| s.to_string()),
+        exe_stem: Path::new(exe)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default(),
+    })
+}
+
+/// True for exe names that are installers, updaters or helpers rather than the app itself.
+pub fn is_installer_like(exe_stem: &str) -> bool {
+    let lower = exe_stem.to_lowercase();
+    INSTALLER_WORDS.iter().any(|w| lower.contains(w))
+}
+
+/// True for places whose programs are installers, Store app versions, shared components or temp files.
+pub fn is_ignored_location(key: &str) -> bool {
+    IGNORED_LOCATIONS.iter().any(|loc| key.contains(loc))
+}
+
+/// Turns one decoded UserAssist entry into evidence, when its app is gone.
+pub fn userassist_entry(decoded_name: &str, last_run_ms: Option<u64>, disk: &DiskView) -> Option<PastUninstall> {
+    let full = resolve_run_target(decoded_name, disk.resolve_folder)?;
+    let key = path_key(&full);
     if let Ok(windir) = std::env::var("WINDIR") {
         if is_same_or_inside(&key, &path_key(&windir)) {
             return None;
         }
     }
-    if IGNORED_LOCATIONS.iter().any(|loc| key.contains(loc)) {
+    if is_ignored_location(&key) {
         return None;
     }
     if let Some(profile) = disk.profile {
@@ -169,49 +236,14 @@ pub fn userassist_entry(decoded_name: &str, last_run_ms: Option<u64>, disk: &Dis
         return None;
     }
 
-    // Segments below the deepest root (or the drive) that contains the program.
-    let root = disk
-        .roots
-        .iter()
-        .filter(|r| is_same_or_inside(&key, r) && key.len() > r.len())
-        .max_by_key(|r| r.len())
-        .cloned()
-        .unwrap_or_else(|| key[..2].to_string());
-    let original_segments: Vec<&str> = full.split(['\\', '/']).filter(|s| !s.is_empty()).collect();
-    let root_depth = root.split('\\').filter(|s| !s.is_empty()).count();
-    if original_segments.len() <= root_depth + 1 {
-        return None; // an exe directly in a root says nothing about which app it was
-    }
-    let below = &original_segments[root_depth..original_segments.len() - 1];
-    let exe = original_segments[original_segments.len() - 1];
-
-    // Name the app after the first meaningful folder under the root ("VideoLAN", "Docker",
-    // "Call of Duty"). The next folder and the exe name are kept as other names to match.
-    let meaningful: Vec<(usize, &str)> = below
-        .iter()
-        .enumerate()
-        .filter(|(_, d)| !is_generic_dir(d))
-        .map(|(i, d)| (i, *d))
-        .take(2)
-        .collect();
-    let Some(&(app_idx, first)) = meaningful.first() else {
-        return None;
-    };
-    let display = first.to_string();
-    let publisher: Option<String> = None;
-
+    let app = app_folder_for(&full, disk.roots)?;
     // An updated app still has a program in its folder. Only a folder that is gone, or
     // holds no programs, says the app was uninstalled.
-    let app_dir_str = original_segments[..root_depth + app_idx + 1].join("\\");
-    if (disk.exists)(&app_dir_str) && (disk.has_exe)(&app_dir_str) {
+    if (disk.exists)(&app.dir) && (disk.has_exe)(&app.dir) {
         return None;
     }
 
-    let stem = Path::new(exe)
-        .file_stem()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_default();
-    let stem_lower = stem.to_lowercase();
+    let display = app.name.clone();
     let mut alt_names: Vec<String> = Vec::new();
     let mut add_alt = |name: &str| {
         let norm = normalize_name(name);
@@ -222,22 +254,45 @@ pub fn userassist_entry(decoded_name: &str, last_run_ms: Option<u64>, disk: &Dis
             alt_names.push(name.to_string());
         }
     };
-    if let Some(&(_, second)) = meaningful.get(1) {
+    if let Some(second) = &app.second {
         add_alt(second);
     }
-    if !INSTALLER_WORDS.iter().any(|w| stem_lower.contains(w)) {
-        add_alt(&stem);
+    if !is_installer_like(&app.exe_stem) {
+        add_alt(&app.exe_stem);
     }
 
     Some(PastUninstall {
         source: EvidenceSource::UserAssist,
         display_name: display,
-        publisher,
+        publisher: None,
         alt_names,
-        install_dirs: vec![path_key(&app_dir_str)],
+        install_dirs: vec![path_key(&app.dir)],
         removed_on_ms: None,
         last_run_ms,
     })
+}
+
+/// One UserAssist launch record: the program path (or a Store app id) and its last run.
+#[derive(Debug, Clone)]
+pub struct RunRecord {
+    /// Full program path when it is a program, otherwise the raw id ("Family_x!App").
+    pub target: String,
+    pub is_program: bool,
+    pub last_run_ms: Option<u64>,
+}
+
+/// Every UserAssist launch record for the current user.
+pub fn userassist_records() -> Vec<RunRecord> {
+    read_userassist()
+        .into_iter()
+        .map(|(name, data)| {
+            let last = userassist_last_run_ms(&data);
+            match resolve_run_target(&name, &resolve_known_folder) {
+                Some(full) => RunRecord { target: full, is_program: true, last_run_ms: last },
+                None => RunRecord { target: name, is_program: false, last_run_ms: last },
+            }
+        })
+        .collect()
 }
 
 /// Parses `Get-WinEvent` output for MSI removal events (id 1034), as a JSON array of

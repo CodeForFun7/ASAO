@@ -1,4 +1,5 @@
 pub mod analyzer;
+pub mod apps;
 pub mod collector;
 pub mod commands;
 pub mod db;
@@ -14,8 +15,11 @@ use commands::startup::{
     disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
     wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
 };
+use commands::apps::{
+    apps_get_last, apps_ignore, apps_remove, apps_scan, apps_unignore,
+};
 use commands::residual::{
-    residual_cancel_scan, residual_clean, residual_get_ignore_list, residual_get_info,
+    residual_cancel_scan, residual_clean, residual_clean_empty, residual_get_ignore_list, residual_get_info,
     residual_get_last_result, residual_ignore_app, residual_ignore_folder,
     residual_open_recycle_bin, residual_scan, residual_unignore_app, residual_unignore_folder,
 };
@@ -105,7 +109,10 @@ pub fn run() {
 
             // 5. Leftover cleanup: record installed apps quietly in the background, then run
             //    one scan so the Storage suggestion has numbers. Nothing is deleted from here.
-            commands::residual::start_background_work(handle, monitoring_state.clone());
+            commands::residual::start_background_work(handle.clone(), monitoring_state.clone());
+
+            // 6. Unused apps: remember which programs run, so "last used" improves over time.
+            commands::apps::start_usage_tracker(handle, monitoring_state.clone());
 
             Ok(())
         })
@@ -185,13 +192,19 @@ pub fn run() {
             residual_cancel_scan,
             residual_get_last_result,
             residual_clean,
+            residual_clean_empty,
             residual_get_ignore_list,
             residual_ignore_folder,
             residual_ignore_app,
             residual_unignore_folder,
             residual_unignore_app,
             residual_open_recycle_bin,
-            residual_get_info
+            residual_get_info,
+            apps_scan,
+            apps_get_last,
+            apps_remove,
+            apps_ignore,
+            apps_unignore
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

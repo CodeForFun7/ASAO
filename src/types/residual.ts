@@ -12,6 +12,15 @@ export type ResidualConfidence = "high" | "medium" | "low";
 
 export type ResidualCategory = "install-remnant" | "cache" | "logs" | "app-data";
 
+/** What a folder no uninstalled app matches looks like. Such folders are grouped by it. */
+export type OrphanKind =
+  | "developer-cache"
+  | "game-data"
+  | "web-app-data"
+  | "install-remnant"
+  | "caches-and-logs"
+  | "app-data";
+
 export interface ResidualCandidate {
   id: string;
   path: string;
@@ -24,6 +33,7 @@ export interface ResidualCandidate {
   reasons: string[];
   matchedAppKey: string | null;
   matchedAppName: string | null;
+  orphanKind: OrphanKind | null;
   removedOnMs: number | null;
   /** Last time the matched app was run, when that is how ASAO knows it is gone. */
   lastRunMs: number | null;
@@ -56,6 +66,9 @@ export interface ResidualScanStats {
   /** Uninstalled apps known from the Windows Installer log or the launch record. */
   removedFromEvidence: number;
   referencesAvailable: boolean;
+  /** Uncertain folders under 1 MB, not listed. */
+  smallHidden: number;
+  smallHiddenBytes: number;
 }
 
 export interface ResidualScanResult {
@@ -65,6 +78,8 @@ export interface ResidualScanResult {
   minAgeDays: number;
   groups: ResidualGroup[];
   stats: ResidualScanStats;
+  /** Hidden folders with no files at all, in your own AppData. */
+  emptyFolders: string[];
   log: string[];
 }
 
@@ -125,6 +140,8 @@ export interface IgnoredApp {
 export interface IgnoreList {
   folders: IgnoredFolder[];
   apps: IgnoredApp[];
+  /** Apps not to suggest on the Unused apps tab. */
+  unusedApps?: IgnoredApp[];
 }
 
 export interface ResidualInfo {

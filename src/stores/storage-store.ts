@@ -25,7 +25,7 @@ import {
 
 export type StorageScanState = "unscanned" | "scanning" | "ready" | "error";
 
-export type StorageView = "overview" | "leftovers";
+export type StorageView = "overview" | "leftovers" | "unused";
 
 interface StorageStoreState {
   activeView: StorageView;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { RefreshCw, HardDrive, AlertTriangle, PackageX } from "lucide-react";
+import { RefreshCw, HardDrive, AlertTriangle, PackageX, Hourglass } from "lucide-react";
 import { useStorageStore } from "../stores/storage-store";
 import type { WidgetRecommendation } from "../types/widget";
 import { DriveOverview } from "../components/storage/DriveOverview";
@@ -11,6 +11,7 @@ import { FileDetailsPanel } from "../components/storage/FileDetailsPanel";
 import { ScanProgress } from "../components/storage/ScanProgress";
 import { RecButtonAndModal } from "../components/common/RecommendationsModal";
 import { LeftoversView } from "../components/storage/leftovers/LeftoversView";
+import { UnusedAppsView } from "../components/storage/unused/UnusedAppsView";
 
 export const StoragePage: React.FC = () => {
   const drives = useStorageStore((s) => s.drives);
@@ -193,6 +194,7 @@ export const StoragePage: React.FC = () => {
             [
               { id: "overview", label: "Overview", icon: HardDrive },
               { id: "leftovers", label: "Leftovers", icon: PackageX },
+              { id: "unused", label: "Unused apps", icon: Hourglass },
             ] as const
           ).map(({ id, label, icon: Icon }) => (
             <button
@@ -213,6 +215,13 @@ export const StoragePage: React.FC = () => {
 
         {activeView === "leftovers" && (
           <LeftoversView onOpenInExplorer={(p) => void openLocationInExplorer(p)} />
+        )}
+
+        {activeView === "unused" && (
+          <UnusedAppsView
+            onOpenInExplorer={(p) => void openLocationInExplorer(p)}
+            onReviewLeftovers={() => setActiveView("leftovers")}
+          />
         )}
 
         {activeView === "overview" && (

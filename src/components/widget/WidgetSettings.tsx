@@ -20,6 +20,7 @@ import {
   unignoreApp,
   unignoreFolder,
 } from "../../services/residual";
+import { unignoreUnusedApp } from "../../services/apps";
 import type { IgnoreList, ResidualInfo } from "../../types/residual";
 
 const OPACITY_PRESETS = [60, 70, 75, 80, 90, 100];
@@ -90,7 +91,8 @@ export const WidgetSettings: React.FC = () => {
   }, []);
 
   const agePresets = residualInfo?.devMode ? [0, ...LEFTOVER_AGE_PRESETS] : LEFTOVER_AGE_PRESETS;
-  const ignoredCount = (ignoreList?.folders.length ?? 0) + (ignoreList?.apps.length ?? 0);
+  const ignoredCount =
+    (ignoreList?.folders.length ?? 0) + (ignoreList?.apps.length ?? 0) + (ignoreList?.unusedApps?.length ?? 0);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -438,7 +440,7 @@ export const WidgetSettings: React.FC = () => {
 
               {ignoredCount === 0 ? (
                 <div className="text-[11px] text-lunar-muted py-2">
-                  Nothing is ignored. Use "Don't show again" on the Leftovers tab in Storage.
+                  Nothing is ignored. Use "Don't show again" on the Leftovers or Unused apps tabs in Storage.
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -454,6 +456,25 @@ export const WidgetSettings: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => void unignoreApp(a.key).then(setIgnoreList)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-lunar-text-sec hover:text-lunar-white hover:bg-lunar-elevated transition-colors cursor-pointer shrink-0"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  ))}
+                  {ignoreList?.unusedApps?.map((a) => (
+                    <div
+                      key={`unused-${a.key}`}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-lunar-surface-2/60 border border-lunar-border"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs text-lunar-white truncate">{a.name}</div>
+                        <div className="text-[10px] text-lunar-muted">Not suggested on Unused apps</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void unignoreUnusedApp(a.key).then(setIgnoreList)}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-lunar-text-sec hover:text-lunar-white hover:bg-lunar-elevated transition-colors cursor-pointer shrink-0"
                       >
                         <X className="w-3 h-3" />

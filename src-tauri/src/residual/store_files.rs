@@ -78,6 +78,9 @@ pub struct IgnoredApp {
 pub struct IgnoreList {
     pub folders: Vec<IgnoredFolder>,
     pub apps: Vec<IgnoredApp>,
+    /// Apps the user does not want suggested on the Unused apps tab.
+    #[serde(default)]
+    pub unused_apps: Vec<IgnoredApp>,
 }
 
 impl IgnoreList {
@@ -131,6 +134,24 @@ impl IgnoreList {
 
     pub fn remove_app(&mut self, key: &str) {
         self.apps.retain(|a| !a.key.eq_ignore_ascii_case(key));
+    }
+
+    pub fn add_unused_app(&mut self, key: &str, name: &str, now_ms: u64) {
+        if !self.unused_apps.iter().any(|a| a.key.eq_ignore_ascii_case(key)) {
+            self.unused_apps.push(IgnoredApp {
+                key: key.to_string(),
+                name: name.to_string(),
+                added_ms: now_ms,
+            });
+        }
+    }
+
+    pub fn remove_unused_app(&mut self, key: &str) {
+        self.unused_apps.retain(|a| !a.key.eq_ignore_ascii_case(key));
+    }
+
+    pub fn unused_app_keys(&self) -> Vec<String> {
+        self.unused_apps.iter().map(|a| a.key.clone()).collect()
     }
 }
 

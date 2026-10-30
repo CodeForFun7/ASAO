@@ -187,6 +187,30 @@ impl InventoryHistory {
         summary
     }
 
+    /// Records that the user removed an app's program folder (an app Windows never
+    /// registered), so its AppData folders are matched as an uninstalled app.
+    pub fn record_folder_removal(&mut self, name: &str, dir_key: &str, now_ms: u64) {
+        let key = format!("folder|{}", normalize_name(name));
+        if let Some(e) = self.entries.iter_mut().find(|e| e.key == key) {
+            e.removed_on_ms = Some(now_ms);
+            if !e.install_dirs.iter().any(|d| d == dir_key) {
+                e.install_dirs.push(dir_key.to_string());
+            }
+            return;
+        }
+        self.entries.push(AppHistoryEntry {
+            key,
+            display_name: name.to_string(),
+            publisher: None,
+            install_dirs: vec![dir_key.to_string()],
+            package_family_name: None,
+            source_class: "folder".to_string(),
+            first_seen_ms: now_ms,
+            last_seen_ms: now_ms,
+            removed_on_ms: Some(now_ms),
+        });
+    }
+
     pub fn removed(&self) -> impl Iterator<Item = &AppHistoryEntry> {
         self.entries.iter().filter(|e| e.removed_on_ms.is_some())
     }

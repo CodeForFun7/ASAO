@@ -1,3 +1,4 @@
+pub mod apps;
 pub mod process;
 pub mod residual;
 pub mod startup;
@@ -13,6 +14,7 @@ use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
 use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::storage_analyzer::StorageAnalyzerEngine;
 use crate::analyzer::WidgetRecommendation;
+use crate::commands::apps::AppsRuntime;
 use crate::commands::residual::ResidualRuntime;
 use crate::settings::AsaoSettings;
 use crate::startup::scanner::StartupScanner;
@@ -38,6 +40,8 @@ pub struct AppMonitoringState {
     pub residual: Arc<Mutex<ResidualRuntime>>,
     pub residual_busy: Arc<AtomicBool>,
     pub residual_cancel: Arc<AtomicBool>,
+    pub apps: Arc<Mutex<AppsRuntime>>,
+    pub apps_busy: Arc<AtomicBool>,
 }
 
 impl AppMonitoringState {
@@ -56,6 +60,8 @@ impl AppMonitoringState {
             residual: Arc::new(Mutex::new(ResidualRuntime::default())),
             residual_busy: Arc::new(AtomicBool::new(false)),
             residual_cancel: Arc::new(AtomicBool::new(false)),
+            apps: Arc::new(Mutex::new(AppsRuntime::default())),
+            apps_busy: Arc::new(AtomicBool::new(false)),
         }
     }
 
