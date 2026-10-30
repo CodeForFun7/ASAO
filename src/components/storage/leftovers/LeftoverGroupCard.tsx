@@ -113,11 +113,15 @@ export const LeftoverGroupCard: React.FC<LeftoverGroupCardProps> = ({
             {folders.length} {folders.length === 1 ? "folder" : "folders"}
           </span>
           <ConfidenceBadge confidence={confidenceOf(folders)} />
-          {group.removedOnMs && (
+          {group.removedOnMs ? (
             <span className="text-[11px] text-lunar-text-sec/80 truncate hidden lg:inline">
               Uninstalled around {formatStorageTimestamp(group.removedOnMs)}
             </span>
-          )}
+          ) : group.lastRunMs ? (
+            <span className="text-[11px] text-lunar-text-sec/80 truncate hidden lg:inline">
+              Last run {formatStorageTimestamp(group.lastRunMs)}, program now gone
+            </span>
+          ) : null}
         </div>
 
         <div className="w-28 shrink-0 text-right">

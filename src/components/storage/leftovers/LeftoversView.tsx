@@ -247,6 +247,19 @@ export const LeftoversView: React.FC<LeftoversViewProps> = ({ onOpenInExplorer }
             </div>
           )}
 
+          {result.stats.removedAppsKnown > 0 &&
+            result.stats.removedFromEvidence === result.stats.removedAppsKnown && (
+              <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg bg-lunar-surface border border-lunar-border">
+                <Info className="w-3.5 h-3.5 text-lunar-text-sec shrink-0 mt-0.5" />
+                <p className="text-[11px] text-lunar-text-sec leading-relaxed">
+                  ASAO found {result.stats.removedFromEvidence} {result.stats.removedFromEvidence === 1 ? "app" : "apps"} that
+                  were uninstalled before it started tracking, from the Windows Installer log and the record of programs
+                  you have launched. Their folders are matched by name. Folders of apps you uninstall from now on are
+                  matched too.
+                </p>
+              </div>
+            )}
+
           {result.stats.removedAppsKnown === 0 && (
             <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg bg-lunar-surface border border-lunar-border">
               <Info className="w-3.5 h-3.5 text-lunar-text-sec shrink-0 mt-0.5" />

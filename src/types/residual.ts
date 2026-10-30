@@ -25,6 +25,8 @@ export interface ResidualCandidate {
   matchedAppKey: string | null;
   matchedAppName: string | null;
   removedOnMs: number | null;
+  /** Last time the matched app was run, when that is how ASAO knows it is gone. */
+  lastRunMs: number | null;
   newestModifiedMs: number | null;
   sizeBytes: number | null;
   needsAdmin: boolean;
@@ -38,6 +40,7 @@ export interface ResidualGroup {
   isUnknown: boolean;
   confidence: ResidualConfidence;
   removedOnMs: number | null;
+  lastRunMs: number | null;
   folders: ResidualCandidate[];
 }
 
@@ -50,6 +53,8 @@ export interface ResidualScanStats {
   accessDenied: number;
   installedApps: number;
   removedAppsKnown: number;
+  /** Uninstalled apps known from the Windows Installer log or the launch record. */
+  removedFromEvidence: number;
   referencesAvailable: boolean;
 }
 
