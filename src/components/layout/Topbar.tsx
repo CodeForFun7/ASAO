@@ -47,11 +47,12 @@ export const Topbar: React.FC = () => {
       }}
       className="h-11 bg-lunar-surface backdrop-blur-xl border-b border-lunar-border pl-5 flex items-center justify-between shrink-0 select-none"
     >
-      {/* Left: Clean ASAO Brand Text Only */}
+      {/* Left: ASAO Brand */}
       <div
         data-tauri-drag-region
         className="flex items-center w-48 pointer-events-none"
       >
+        <img src="/logo.png" alt="" className="w-5 h-5 mr-2" />
         <span className="text-sm font-semibold tracking-wider text-lunar-white">
           ASAO
         </span>
