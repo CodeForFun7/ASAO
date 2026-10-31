@@ -1,4 +1,5 @@
 pub mod apps;
+pub mod bloat;
 pub mod cache;
 pub mod process;
 pub mod recycle_bin;
@@ -18,6 +19,7 @@ use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::storage_analyzer::StorageAnalyzerEngine;
 use crate::analyzer::WidgetRecommendation;
 use crate::commands::apps::AppsRuntime;
+use crate::commands::bloat::BloatRuntime;
 use crate::commands::residual::ResidualRuntime;
 use crate::settings::AsaoSettings;
 use crate::startup::scanner::StartupScanner;
@@ -45,6 +47,9 @@ pub struct AppMonitoringState {
     pub residual_cancel: Arc<AtomicBool>,
     pub apps: Arc<Mutex<AppsRuntime>>,
     pub apps_busy: Arc<AtomicBool>,
+    pub bloat: Arc<Mutex<BloatRuntime>>,
+    pub bloat_busy: Arc<AtomicBool>,
+    pub bloat_cancel: Arc<AtomicBool>,
     /// SQLite cache of scan runs. Set once at startup; empty if the database could not open.
     pub scan_cache: Arc<OnceLock<ScanCache>>,
 }
@@ -67,6 +72,9 @@ impl AppMonitoringState {
             residual_cancel: Arc::new(AtomicBool::new(false)),
             apps: Arc::new(Mutex::new(AppsRuntime::default())),
             apps_busy: Arc::new(AtomicBool::new(false)),
+            bloat: Arc::new(Mutex::new(BloatRuntime::default())),
+            bloat_busy: Arc::new(AtomicBool::new(false)),
+            bloat_cancel: Arc::new(AtomicBool::new(false)),
             scan_cache: Arc::new(OnceLock::new()),
         }
     }

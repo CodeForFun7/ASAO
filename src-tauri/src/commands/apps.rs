@@ -53,7 +53,7 @@ fn running_paths(state: &AppMonitoringState) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn ensure_usage_loaded(app: &AppHandle, state: &AppMonitoringState) {
+pub(crate) fn ensure_usage_loaded(app: &AppHandle, state: &AppMonitoringState) {
     if let Ok(mut rt) = state.apps.lock() {
         if !rt.usage_loaded {
             if let Ok(files) = residual_files(app) {
@@ -89,16 +89,16 @@ pub fn start_usage_tracker(app: AppHandle, state: AppMonitoringState) {
     });
 }
 
-struct Places {
-    roots: Vec<String>,
-    machine_roots: Vec<String>,
-    broad: Vec<String>,
-    path_dirs: Vec<String>,
-    profile: Option<String>,
-    windir: Option<String>,
+pub(crate) struct Places {
+    pub roots: Vec<String>,
+    pub machine_roots: Vec<String>,
+    pub broad: Vec<String>,
+    pub path_dirs: Vec<String>,
+    pub profile: Option<String>,
+    pub windir: Option<String>,
 }
 
-fn places() -> Places {
+pub(crate) fn places() -> Places {
     let known = known_roots();
     let mut roots: Vec<String> = known.iter().map(|r| path_key(&r.path.to_string_lossy())).collect();
     let machine_roots: Vec<String> = known
@@ -132,7 +132,7 @@ fn places() -> Places {
 }
 
 /// Program file names (lowercase) in a folder and one level down.
-fn list_exes(dir: &str) -> Vec<String> {
+pub(crate) fn list_exes(dir: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut stack = vec![(PathBuf::from(dir), 0u8)];
     while let Some((d, depth)) = stack.pop() {

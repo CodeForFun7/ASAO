@@ -545,7 +545,7 @@ impl StartupScanner {
     // -----------------------------------------------------------------------
     // 1. Registry Run & RunOnce (HKCU, HKLM, WOW6432Node)
     // -----------------------------------------------------------------------
-    fn scan_registry(running: &[ProcessInfo]) -> Vec<StartupItem> {
+    pub(crate) fn scan_registry(running: &[ProcessInfo]) -> Vec<StartupItem> {
         let mut out = Vec::new();
 
         let script = r#"
@@ -719,7 +719,7 @@ $res | ConvertTo-Json -Depth 2
     // -----------------------------------------------------------------------
     // 2. Startup Folders
     // -----------------------------------------------------------------------
-    fn scan_startup_folders(running: &[ProcessInfo]) -> Vec<StartupItem> {
+    pub(crate) fn scan_startup_folders(running: &[ProcessInfo]) -> Vec<StartupItem> {
         let mut out = Vec::new();
 
         let appdata = std::env::var("APPDATA").unwrap_or_default();

@@ -6,6 +6,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Processes } from "./pages/Processes";
 import { Startup } from "./pages/Startup";
 import { StoragePage } from "./pages/StoragePage";
+import { DebloatPage } from "./pages/DebloatPage";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { NyraChat } from "./pages/NyraChat";
@@ -102,6 +103,7 @@ function App() {
             route === "processes" ||
             route === "startup" ||
             route === "storage" ||
+            route === "debloat" ||
             route === "settings" ||
             route === "assistant"
         ) {
@@ -134,6 +136,7 @@ function App() {
       {currentRoute === "processes" && <Processes />}
       {currentRoute === "startup" && <Startup />}
       {currentRoute === "storage" && <StoragePage />}
+      {currentRoute === "debloat" && <DebloatPage />}
       {currentRoute === "settings" && <WidgetSettings />}
       {currentRoute === "assistant" && <NyraChat />}
     </AppShell>
