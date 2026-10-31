@@ -18,6 +18,7 @@ use commands::startup::{
 use commands::apps::{
     apps_get_last, apps_ignore, apps_remove, apps_scan, apps_unignore,
 };
+use commands::recycle_bin::{recycle_bin_delete, recycle_bin_list};
 use commands::residual::{
     residual_cancel_scan, residual_clean, residual_clean_empty, residual_get_ignore_list, residual_get_info,
     residual_get_last_result, residual_ignore_app, residual_ignore_folder,
@@ -205,7 +206,9 @@ pub fn run() {
             apps_get_last,
             apps_remove,
             apps_ignore,
-            apps_unignore
+            apps_unignore,
+            recycle_bin_list,
+            recycle_bin_delete
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
