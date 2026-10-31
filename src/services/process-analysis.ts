@@ -62,7 +62,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
       sustainedCpuPercent: sustainedCpu,
       memoryBytes: process.memoryBytes,
       diskBytesPerSec: process.diskBytesPerSec,
-      networkBytesPerSec: process.networkBytesPerSec,
       sustainedLoadSeconds,
       backgroundImpactScore,
       impactLevel,
@@ -80,8 +79,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
       return this.llmAdapter.explainProcessLoad(ctx);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 180));
-
     const catLabel =
       CATEGORY_METADATA[ctx.category]?.label ?? "Application Process";
     const memFormatted = formatBytes(ctx.memoryBytes);
@@ -95,7 +92,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
         recommendation:
           "Leave running. System-critical services are excluded from background load reduction.",
         impact: "low",
-        confidence: 0.98,
         estimatedImpact: "Protected OS Component",
         activityState: ctx.activityState,
         sustainedSeconds: ctx.sustainedLoadSeconds,
@@ -114,7 +110,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
         recommendation:
           "No action needed while you are actively using this application.",
         impact: "low",
-        confidence: 0.94,
         estimatedImpact: "Active Foreground Workload",
         activityState: "foreground",
         sustainedSeconds: ctx.sustainedLoadSeconds,
@@ -127,17 +122,15 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
         summary: `${ctx.name} is consuming significant resources in the background while not in active focus.`,
         reason: `Sustained ${ctx.sustainedCpuPercent.toFixed(
           1
-        )}% CPU and ${memFormatted} RAM in the background for ${Math.max(
-          3,
-          ctx.sustainedLoadSeconds
-        )}s (${catLabel}).`,
+        )}% CPU and ${memFormatted} RAM in the background${
+          ctx.sustainedLoadSeconds > 0 ? ` for ${ctx.sustainedLoadSeconds}s` : ""
+        } (${catLabel}).`,
         recommendation: ctx.isStartup
           ? `Close ${ctx.name} if you are not using it, or disable its startup launch to reduce background strain.`
           : `Consider closing ${ctx.name} when not in use to free approximately ${memFormatted} RAM and ${ctx.sustainedCpuPercent.toFixed(
               1
             )}% CPU.`,
         impact: "high",
-        confidence: 0.91,
         estimatedImpact: `~${memFormatted} RAM / ${ctx.sustainedCpuPercent.toFixed(
           1
         )}% CPU`,
@@ -155,7 +148,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
         )}% CPU and ${memFormatted} RAM in state '${ctx.activityState}' (${catLabel}).`,
         recommendation: `Safe to keep running if needed soon, or close to reclaim ${memFormatted} of system memory.`,
         impact: "moderate",
-        confidence: 0.88,
         estimatedImpact: `~${memFormatted} RAM`,
         activityState: ctx.activityState,
         sustainedSeconds: ctx.sustainedLoadSeconds,
@@ -171,8 +163,7 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
       recommendation:
         "No action required. This process is not adding noticeable background strain.",
       impact: "low",
-      confidence: 0.95,
-      estimatedImpact: "Minimal (<1% system load)",
+      estimatedImpact: `${ctx.sustainedCpuPercent.toFixed(1)}% CPU · ${memFormatted} RAM`,
       activityState: ctx.activityState,
       sustainedSeconds: ctx.sustainedLoadSeconds,
       isPlaceholder: false,
@@ -190,8 +181,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
     if (this.llmAdapter) {
       return this.llmAdapter.explainSystemStrain(metrics, bgContexts);
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 180));
 
     const bgLoad = metrics.backgroundLoadPercent ?? 0;
     const fgLoad = metrics.foregroundLoadPercent ?? 0;
@@ -222,7 +211,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
         )} RAM).`,
         recommendation: `Review ${topOffender.name} in the Process Analyzer if you are not actively using it in the background.`,
         impact: bgLoad >= 30 ? "high" : "moderate",
-        confidence: 0.92,
         isPlaceholder: false,
       };
     }
@@ -245,7 +233,6 @@ export class HybridProcessAnalysisService implements ProcessAnalysisService {
       recommendation:
         "No unnecessary background processes are weighing down your PC right now.",
       impact: "low",
-      confidence: 0.95,
       isPlaceholder: false,
     };
   }

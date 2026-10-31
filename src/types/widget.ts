@@ -32,6 +32,8 @@ export interface AsaoSettings {
   theme?: ThemeMode;
   /** Leftover cleanup skips folders with a file changed in the last N days (0 only in developer mode). */
   residualMinAgeDays: number;
+  /** Forces dry run on the Debloat page, also in release builds. Edited in settings.json only. */
+  bloatDryRun?: boolean;
 }
 
 export interface CompactProcessContext {

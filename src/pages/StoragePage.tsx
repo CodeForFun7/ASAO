@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { RefreshCw, HardDrive, AlertTriangle, PackageX, Hourglass } from "lucide-react";
+import { RefreshCw, HardDrive, AlertTriangle, PackageX, Hourglass, Trash2 } from "lucide-react";
 import { useStorageStore } from "../stores/storage-store";
 import type { WidgetRecommendation } from "../types/widget";
 import { DriveOverview } from "../components/storage/DriveOverview";
@@ -12,6 +12,7 @@ import { ScanProgress } from "../components/storage/ScanProgress";
 import { RecButtonAndModal } from "../components/common/RecommendationsModal";
 import { LeftoversView } from "../components/storage/leftovers/LeftoversView";
 import { UnusedAppsView } from "../components/storage/unused/UnusedAppsView";
+import { RecycleBinView } from "../components/storage/recycle/RecycleBinView";
 
 export const StoragePage: React.FC = () => {
   const drives = useStorageStore((s) => s.drives);
@@ -195,6 +196,7 @@ export const StoragePage: React.FC = () => {
               { id: "overview", label: "Overview", icon: HardDrive },
               { id: "leftovers", label: "Leftovers", icon: PackageX },
               { id: "unused", label: "Unused apps", icon: Hourglass },
+              { id: "recycle-bin", label: "Recycle Bin", icon: Trash2 },
             ] as const
           ).map(({ id, label, icon: Icon }) => (
             <button
@@ -223,6 +225,8 @@ export const StoragePage: React.FC = () => {
             onReviewLeftovers={() => setActiveView("leftovers")}
           />
         )}
+
+        {activeView === "recycle-bin" && <RecycleBinView />}
 
         {activeView === "overview" && (
         <>

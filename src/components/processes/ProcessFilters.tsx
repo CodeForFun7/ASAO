@@ -52,20 +52,18 @@ const FILTERABLE_STATUSES: ProcessStatus[] = [
   "protected",
 ];
 
-type MetricKey = "cpu" | "memory" | "disk" | "network";
+type MetricKey = "cpu" | "memory" | "disk";
 
 const METRIC_OPTIONS: Array<{ id: MetricKey; label: string }> = [
   { id: "cpu", label: "CPU" },
   { id: "memory", label: "RAM" },
   { id: "disk", label: "Disk" },
-  { id: "network", label: "Network" },
 ];
 
 function getSelectedMetric(sort: SortOption): MetricKey | null {
   if (sort === "cpu-desc" || sort === "cpu-asc") return "cpu";
   if (sort === "memory-desc" || sort === "memory-asc") return "memory";
   if (sort === "disk-desc" || sort === "disk-asc") return "disk";
-  if (sort === "network-desc" || sort === "network-asc") return "network";
   return null;
 }
 
@@ -230,7 +228,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
                 </div>
               </div>
 
-              {/* Resource Usage Metric Selection (CPU, RAM, Disk, Network) */}
+              {/* Resource Usage Metric Selection (CPU, RAM, Disk) */}
               <div className="border-t border-lunar-border pt-3">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-lunar-muted mb-2">
                   Resource Usage
@@ -299,7 +297,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
           )}
         </div>
 
-        {/* Sort Menu (Right of Filter; becomes active when CPU, RAM, Disk, or Network is chosen) */}
+        {/* Sort Menu (Right of Filter; becomes active when CPU, RAM or Disk is chosen) */}
         <div className="relative" ref={sortRef}>
           <button
             type="button"
@@ -312,7 +310,7 @@ export const ProcessFilters: React.FC<ProcessFiltersProps> = ({
             title={
               selectedMetric
                 ? "Sort selected metric"
-                : "Select a metric (CPU, RAM, Disk, or Network) in Filter to enable Sort"
+                : "Select a metric (CPU, RAM or Disk) in Filter to enable Sort"
             }
             className={`h-9 px-3 rounded-md border text-xs font-medium flex items-center gap-2 transition-colors ${
               !selectedMetric

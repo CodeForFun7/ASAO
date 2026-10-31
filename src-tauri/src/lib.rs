@@ -1,5 +1,6 @@
 pub mod analyzer;
 pub mod apps;
+pub mod bloat;
 pub mod bridge;
 pub mod collector;
 pub mod commands;
@@ -17,9 +18,14 @@ use commands::startup::{
     disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
     wpr_cancel_boot_trace, wpr_get_status, wpr_start_boot_trace,
 };
+use commands::bloat::{
+    bloat_apply, bloat_cancel_scan, bloat_get_info, bloat_get_last_result, bloat_history, bloat_plan,
+    bloat_restart_explorer, bloat_scan, bloat_undo,
+};
 use commands::apps::{
     apps_get_last, apps_ignore, apps_remove, apps_scan, apps_unignore,
 };
+use commands::recycle_bin::{recycle_bin_delete, recycle_bin_list};
 use commands::residual::{
     residual_cancel_scan, residual_clean, residual_clean_empty, residual_get_ignore_list, residual_get_info,
     residual_get_last_result, residual_ignore_app, residual_ignore_folder,
@@ -197,6 +203,17 @@ pub fn run() {
             apps_remove,
             apps_ignore,
             apps_unignore,
+            bloat_scan,
+            bloat_cancel_scan,
+            bloat_get_last_result,
+            bloat_get_info,
+            bloat_plan,
+            bloat_apply,
+            bloat_history,
+            bloat_undo,
+            bloat_restart_explorer,
+            recycle_bin_list,
+            recycle_bin_delete,
             cache_get_latest,
             cache_get_run,
             cache_list_runs,

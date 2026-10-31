@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, Cpu, HardDrive, Settings, Rocket, Sparkles } from "lucide-react";
+import { LayoutGrid, Cpu, HardDrive, PackageMinus, Settings, Rocket, Sparkles } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
 import { useStartupStore } from "../../stores/startup-store";
 import type { AppRoute } from "../../types/process";
@@ -21,7 +21,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="w-56 bg-lunar-surface border-r border-lunar-border flex flex-col justify-between p-3 shrink-0 select-none">
-      {/* Top Navigation: Dashboard, Processes & Storage */}
+      {/* Top Navigation: Dashboard, Processes, Startup, Storage & Debloat */}
       <nav className="space-y-1">
         <button
           type="button"
@@ -79,6 +79,17 @@ export const Sidebar: React.FC = () => {
           <span className="flex items-center gap-2.5">
             <HardDrive className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Storage</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setRoute("debloat")}
+          className={navItemClass("debloat")}
+        >
+          <span className="flex items-center gap-2.5">
+            <PackageMinus className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <span>Debloat</span>
           </span>
         </button>
       </nav>

@@ -12,7 +12,9 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::residual::normalize::path_key;
+use super::UsageSource;
+use crate::residual::evidence::{is_installer_like, RunRecord};
+use crate::residual::normalize::{is_same_or_inside, path_key};
 use crate::residual::roots::system_time_ms;
 
 /// Programs ASAO has seen running, by path key, with the last time seen.
@@ -130,4 +132,54 @@ mod tests {
         assert_eq!(prefetch_exe_name("Layout.ini"), None);
         assert_eq!(prefetch_exe_name("AgGlFaultHistory.db"), None);
     }
+}
+
+/// Last use of anything inside these folders (path keys), or of a Store app's launch id,
+/// from the launch record, ASAO's monitor and Prefetch. The newest wins.
+pub fn last_use_in(
+    runs: &[RunRecord],
+    usage: &UsageStore,
+    prefetch: Option<&HashMap<String, u64>>,
+    list_exes: &dyn Fn(&str) -> Vec<String>,
+    dirs: &[String],
+    store_family: Option<&str>,
+) -> Option<(u64, UsageSource)> {
+    let mut best: Option<(u64, UsageSource)> = None;
+    let mut bump = |t: Option<u64>, src: UsageSource| {
+        if let Some(t) = t {
+            if t > 0 && best.map(|b| t > b.0).unwrap_or(true) {
+                best = Some((t, src));
+            }
+        }
+    };
+    let inside = |key: &str| dirs.iter().any(|d| is_same_or_inside(key, d));
+    let family_prefix = store_family.map(|f| format!("{}!", f.to_lowercase()));
+    for r in runs {
+        if r.is_program {
+            if inside(&path_key(&r.target)) {
+                bump(r.last_run_ms, UsageSource::LaunchRecord);
+            }
+        } else if let Some(prefix) = &family_prefix {
+            if r.target.to_lowercase().starts_with(prefix.as_str()) {
+                bump(r.last_run_ms, UsageSource::LaunchRecord);
+            }
+        }
+    }
+    for (exe, t) in &usage.last_seen {
+        if inside(exe) {
+            bump(Some(*t), UsageSource::AsaoMonitor);
+        }
+    }
+    if let Some(prefetch) = prefetch {
+        for d in dirs.iter().take(3) {
+            for name in list_exes(d).into_iter().take(60) {
+                let stem = name.trim_end_matches(".exe");
+                if is_installer_like(stem) {
+                    continue;
+                }
+                bump(prefetch.get(&name).copied(), UsageSource::Prefetch);
+            }
+        }
+    }
+    best
 }

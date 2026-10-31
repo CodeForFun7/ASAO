@@ -51,7 +51,6 @@ pub fn determine_activity_state(
     sustained_cpu: f32,
     memory_bytes: u64,
     disk_bytes_per_sec: u64,
-    network_bytes_per_sec: u64,
 ) -> ProcessActivityState {
     if is_foreground_family || seconds_since_foreground.is_some_and(|secs| secs <= 15) {
         return ProcessActivityState::Foreground;
@@ -61,7 +60,6 @@ pub fn determine_activity_state(
         || current_cpu >= 0.8
         || memory_bytes >= 180 * 1024 * 1024
         || disk_bytes_per_sec >= 128 * 1024
-        || network_bytes_per_sec >= 64 * 1024
     {
         ProcessActivityState::Background
     } else {

@@ -545,7 +545,7 @@ impl StartupScanner {
     // -----------------------------------------------------------------------
     // 1. Registry Run & RunOnce (HKCU, HKLM, WOW6432Node)
     // -----------------------------------------------------------------------
-    fn scan_registry(running: &[ProcessInfo]) -> Vec<StartupItem> {
+    pub(crate) fn scan_registry(running: &[ProcessInfo]) -> Vec<StartupItem> {
         let mut out = Vec::new();
 
         let script = r#"
@@ -719,7 +719,7 @@ $res | ConvertTo-Json -Depth 2
     // -----------------------------------------------------------------------
     // 2. Startup Folders
     // -----------------------------------------------------------------------
-    fn scan_startup_folders(running: &[ProcessInfo]) -> Vec<StartupItem> {
+    pub(crate) fn scan_startup_folders(running: &[ProcessInfo]) -> Vec<StartupItem> {
         let mut out = Vec::new();
 
         let appdata = std::env::var("APPDATA").unwrap_or_default();
@@ -1486,4 +1486,24 @@ impl WprController {
             boot_phases,
         }
     }
+}
+
+/// Programs that start by themselves: enabled Run keys, Startup folder shortcuts, automatic
+/// services and boot or sign-in tasks, as path keys. Shared hosts (svchost, rundll32, ...)
+/// are left out, since they run many unrelated things.
+pub fn startup_executables(items: &[StartupItem]) -> std::collections::HashSet<String> {
+    const SHARED_HOSTS: &[&str] = &[
+        "svchost.exe", "rundll32.exe", "dllhost.exe", "taskhostw.exe", "conhost.exe", "cmd.exe",
+        "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe", "mshta.exe", "explorer.exe",
+    ];
+    items
+        .iter()
+        .filter(|i| i.is_enabled)
+        .filter_map(|i| i.executable_path.as_deref())
+        .filter(|p| {
+            let file = p.rsplit('\\').next().unwrap_or(p).to_lowercase();
+            !SHARED_HOSTS.contains(&file.as_str())
+        })
+        .map(crate::residual::normalize::path_key)
+        .collect()
 }

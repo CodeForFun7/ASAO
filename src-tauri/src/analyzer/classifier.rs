@@ -3,7 +3,6 @@ use crate::analyzer::ProcessCategory;
 pub struct ClassificationResult {
     pub category: ProcessCategory,
     pub is_system_critical: bool,
-    pub is_startup: bool,
     pub fallback_publisher: Option<String>,
     pub fallback_product: Option<String>,
     pub description: Option<String>,
@@ -114,7 +113,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::WindowsCore,
             is_system_critical: critical,
-            is_startup: true,
             fallback_publisher: Some("Microsoft Corporation".to_string()),
             fallback_product: Some("Microsoft® Windows® Operating System".to_string()),
             description: Some(desc.to_string()),
@@ -159,7 +157,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Browser,
             is_system_critical: false,
-            is_startup: lower_name.contains("update") || lower_name.contains("crashhandler"),
             fallback_publisher: Some(pub_name.to_string()),
             fallback_product: Some(prod_name.to_string()),
             description: Some(desc.to_string()),
@@ -214,7 +211,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Drivers,
             is_system_critical: lower_path.contains("\\system32\\") || lower_path.contains("\\driverstore\\"),
-            is_startup: true,
             fallback_publisher: Some(pub_fallback.to_string()),
             fallback_product: Some("Hardware Driver & Telemetry Container".to_string()),
             description: Some("Hardware Driver Service / Device Daemon".to_string()),
@@ -276,7 +272,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Development,
             is_system_critical: false,
-            is_startup: lower_name.contains("docker") || lower_name.contains("wslservice"),
             fallback_publisher: Some(pub_fallback.to_string()),
             fallback_product: Some(prod_fallback.to_string()),
             description: Some(desc.to_string()),
@@ -315,7 +310,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Communication,
             is_system_critical: false,
-            is_startup: true,
             fallback_publisher: Some(pub_fallback.to_string()),
             fallback_product: Some(prod_fallback.to_string()),
             description: Some("Real-Time Voice & Messaging Client".to_string()),
@@ -358,7 +352,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Gaming,
             is_system_critical: false,
-            is_startup: true,
             fallback_publisher: Some(pub_fallback.to_string()),
             fallback_product: Some(prod_fallback.to_string()),
             description: Some("Gaming Platform & Overlay Runtime".to_string()),
@@ -399,7 +392,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::Productivity,
             is_system_critical: false,
-            is_startup: lower_name.contains("onedrive") || lower_name.contains("clicktorun") || lower_name.contains("adobe"),
             fallback_publisher: publisher.map(|s| s.to_string()).or_else(|| Some("Productivity Software Vendor".to_string())),
             fallback_product: product_name.map(|s| s.to_string()).or_else(|| Some("Workspace & Productivity Suite".to_string())),
             description: Some("Productivity & Workspace Application".to_string()),
@@ -412,7 +404,6 @@ pub fn classify_process(
         return ClassificationResult {
             category: ProcessCategory::WindowsCore,
             is_system_critical: is_crit,
-            is_startup: is_crit,
             fallback_publisher: Some("Microsoft Corporation".to_string()),
             fallback_product: Some("Microsoft® Windows® Operating System".to_string()),
             description: Some("Windows System Service / Background Host".to_string()),
@@ -423,7 +414,6 @@ pub fn classify_process(
     ClassificationResult {
         category: ProcessCategory::Unknown,
         is_system_critical: false,
-        is_startup: false,
         fallback_publisher: None,
         fallback_product: None,
         description: Some("Unclassified User or Background Process".to_string()),

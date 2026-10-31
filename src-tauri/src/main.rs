@@ -7,5 +7,9 @@ fn main() {
     if asao_lib::residual::elevated::maybe_run_from_args() {
         return;
     }
+    // The same for the Debloat page's batches and undo.
+    if asao_lib::bloat::elevated::maybe_run_from_args() {
+        return;
+    }
     asao_lib::run()
 }
