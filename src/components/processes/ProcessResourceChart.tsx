@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { ProcessResourceSample } from "../../types/process";
 import { formatBytes, formatRate } from "../../services/tauri";
 
-type ChartMetricTab = "cpu" | "memory" | "disk" | "network";
+type ChartMetricTab = "cpu" | "memory" | "disk";
 
 interface ProcessResourceChartProps {
   samples: ProcessResourceSample[];
@@ -23,8 +23,6 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
           return s.memoryBytes / (1024 * 1024); // MB
         case "disk":
           return s.diskBytesPerSec / 1024; // KB/s
-        case "network":
-          return s.networkBytesPerSec / 1024; // KB/s
       }
     });
 
@@ -94,7 +92,6 @@ export const ProcessResourceChart: React.FC<ProcessResourceChartProps> = ({
               { id: "cpu", label: "CPU" },
               { id: "memory", label: "Memory" },
               { id: "disk", label: "Disk" },
-              { id: "network", label: "Network" },
             ] as const
           ).map((tab) => (
             <button

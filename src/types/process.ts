@@ -33,7 +33,6 @@ export interface ProcessInfo {
   sustainedCpuPercent?: number;
   memoryBytes: number;
   diskBytesPerSec: number;
-  networkBytesPerSec: number;
   threadCount: number;
   category: ProcessCategory;
   status: ProcessStatus;
@@ -57,10 +56,14 @@ export interface SystemMetrics {
   memoryUsedBytes: number;
   memoryTotalBytes: number;
   memoryDeltaPercent: number;
-  gpuUsagePercent: number;
-  gpuDeltaPercent: number;
+  /** Null when Windows' GPU counters are not available on this PC. */
+  gpuUsagePercent: number | null;
+  gpuDeltaPercent: number | null;
   diskBytesPerSec?: number;
-  networkBytesPerSec?: number;
+  /** Download plus upload over the physical network adapters. Null when they cannot be read. */
+  networkBytesPerSec?: number | null;
+  networkDownloadBytesPerSec?: number | null;
+  networkUploadBytesPerSec?: number | null;
   foregroundLoadPercent?: number;
   backgroundLoadPercent?: number;
   systemStrainPercent?: number;
@@ -93,7 +96,6 @@ export interface ProcessResourceSample {
   cpuPercent: number;
   memoryBytes: number;
   diskBytesPerSec: number;
-  networkBytesPerSec: number;
 }
 
 export interface StructuredProcessContext {
@@ -106,7 +108,6 @@ export interface StructuredProcessContext {
   sustainedCpuPercent: number;
   memoryBytes: number;
   diskBytesPerSec: number;
-  networkBytesPerSec: number;
   sustainedLoadSeconds: number;
   backgroundImpactScore: number;
   impactLevel: LoadImpactLevel;
@@ -145,8 +146,6 @@ export type SortOption =
   | "memory-asc"
   | "disk-desc"
   | "disk-asc"
-  | "network-desc"
-  | "network-asc"
   | "name-asc"
   | "name-desc"
   | "category"

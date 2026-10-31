@@ -1487,3 +1487,23 @@ impl WprController {
         }
     }
 }
+
+/// Programs that start by themselves: enabled Run keys, Startup folder shortcuts, automatic
+/// services and boot or sign-in tasks, as path keys. Shared hosts (svchost, rundll32, ...)
+/// are left out, since they run many unrelated things.
+pub fn startup_executables(items: &[StartupItem]) -> std::collections::HashSet<String> {
+    const SHARED_HOSTS: &[&str] = &[
+        "svchost.exe", "rundll32.exe", "dllhost.exe", "taskhostw.exe", "conhost.exe", "cmd.exe",
+        "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe", "mshta.exe", "explorer.exe",
+    ];
+    items
+        .iter()
+        .filter(|i| i.is_enabled)
+        .filter_map(|i| i.executable_path.as_deref())
+        .filter(|p| {
+            let file = p.rsplit('\\').next().unwrap_or(p).to_lowercase();
+            !SHARED_HOSTS.contains(&file.as_str())
+        })
+        .map(crate::residual::normalize::path_key)
+        .collect()
+}

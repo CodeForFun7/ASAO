@@ -108,7 +108,7 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
         }`}
       >
         {/* Process Name & Publisher */}
-        <div className="col-span-4 sm:col-span-3 flex items-center gap-3 min-w-0">
+        <div className="col-span-4 sm:col-span-3 lg:col-span-4 flex items-center gap-3 min-w-0">
           <div className="flex items-center justify-center w-7 h-7 rounded bg-lunar-bg border border-lunar-border shrink-0">
             {getCategoryIcon(process.category)}
           </div>
@@ -180,14 +180,6 @@ export const ProcessRow: React.FC<ProcessRowProps> = React.memo(
             {formatRate(process.diskBytesPerSec)}
           </div>
           <div className="text-[10px] text-lunar-muted">Disk</div>
-        </div>
-
-        {/* Network */}
-        <div className="hidden lg:block lg:col-span-1 text-right font-mono">
-          <div className="text-xs text-lunar-text-sec">
-            {formatRate(process.networkBytesPerSec)}
-          </div>
-          <div className="text-[10px] text-lunar-muted">Net</div>
         </div>
 
         {/* Resource */}

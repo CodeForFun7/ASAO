@@ -134,6 +134,11 @@ impl AppMonitoringState {
                         .unwrap_or_default();
 
                     let startup_items = StartupScanner::scan(&procs);
+                    // Mark processes as "startup" only when Windows really starts them.
+                    let exes = crate::startup::scanner::startup_executables(&startup_items);
+                    if let Ok(mut engine) = bg_engine_ref.lock() {
+                        engine.set_startup_exes(exes);
+                    }
                     let s_recs = RecommendationEngine::evaluate_startup_recommendations(&startup_items);
                     if let Ok(mut guard) = bg_startup_recs.lock() {
                         *guard = s_recs;

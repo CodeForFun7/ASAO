@@ -32,7 +32,6 @@ pub struct RawProcessRecord {
     pub memory_bytes: u64,
     pub total_cpu_time_100ns: u64,
     pub disk_io_bytes: u64,
-    pub other_io_bytes: u64,
     pub started_seconds_ago: Option<u64>,
     pub is_restricted: bool,
 }
@@ -122,7 +121,6 @@ impl ProcessCollector {
                 memory_bytes: 0,
                 total_cpu_time_100ns: 0,
                 disk_io_bytes: 0,
-                other_io_bytes: 0,
                 started_seconds_ago: None,
                 is_restricted: true,
             };
@@ -189,19 +187,16 @@ impl ProcessCollector {
             (0, None)
         };
 
-        // 4. Query process I/O counters (Disk Read+Write and Other/Network I/O)
+        // 4. Query process I/O counters (disk reads and writes). Windows has no per-process
+        // network counter here: "other" transfers are device control traffic, not network.
         let mut io_counters = IO_COUNTERS::default();
-        let (disk_io_bytes, other_io_bytes) =
-            if GetProcessIoCounters(handle, &mut io_counters).is_ok() {
-                (
-                    io_counters
-                        .ReadTransferCount
-                        .saturating_add(io_counters.WriteTransferCount),
-                    io_counters.OtherTransferCount,
-                )
-            } else {
-                (0, 0)
-            };
+        let disk_io_bytes = if GetProcessIoCounters(handle, &mut io_counters).is_ok() {
+            io_counters
+                .ReadTransferCount
+                .saturating_add(io_counters.WriteTransferCount)
+        } else {
+            0
+        };
 
         let _ = CloseHandle(handle);
 
@@ -230,7 +225,6 @@ impl ProcessCollector {
             memory_bytes,
             total_cpu_time_100ns,
             disk_io_bytes,
-            other_io_bytes,
             started_seconds_ago,
             is_restricted: false,
         }

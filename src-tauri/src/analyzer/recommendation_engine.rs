@@ -138,7 +138,7 @@ impl RecommendationEngine {
             memory_usage: m.memory_usage_percent,
             memory_used_bytes: m.memory_used_bytes,
             memory_total_bytes: m.memory_total_bytes,
-            gpu_usage: m.gpu_usage_percent,
+            gpu_usage: m.gpu_usage_percent.unwrap_or(0.0),
             foreground_load: m.foreground_load_percent,
             background_load: m.background_load_percent,
             system_strain: m.system_strain_percent,

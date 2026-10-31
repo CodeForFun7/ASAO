@@ -320,7 +320,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
         <div className="md:pr-2">
           <ActivityColumnChart
             title="GPU"
-            badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
+            badgeText={metrics.gpuUsagePercent == null ? "N/A" : `${metrics.gpuUsagePercent.toFixed(0)}%`}
             currentPercent={metrics.gpuUsagePercent ?? 0}
             values={gpuSeries}
             strokeColor="var(--color-lunar-white)"

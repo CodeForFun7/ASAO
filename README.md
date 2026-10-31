@@ -111,8 +111,12 @@ that wraps the matching `invoke`/`listen` calls.
 Five metric cards (CPU, RAM, GPU, network, disk) each compared against a
 rolling average, plus system health, system strain, and battery panels.
 Clicking CPU/RAM cards deep-links into Processes with a matching sort/filter.
-GPU usage falls back to an estimate from compositor/browser CPU use when the
-hardware counter reports zero. The battery panel reads Windows directly
+GPU usage comes from Windows' "GPU Engine" 3D counters (0% when idle, "N/A" if the
+counters are missing). Network is real download plus upload over the physical adapters
+(`collector/network.rs`); Windows has no simple per-process network counter, so the
+Processes page shows CPU, memory and disk per process only. A process is marked
+"Startup" only when it is in the real startup list (Run keys, Startup folders, automatic
+services, sign-in tasks) from the startup scan. The battery panel reads Windows directly
 (`collector/battery.rs`, `get_battery_status`, polled every 5 s): charge level,
 state (charging, on battery, plugged in), the real charge or discharge rate in
 watts from the battery driver, time left or time to full, and health

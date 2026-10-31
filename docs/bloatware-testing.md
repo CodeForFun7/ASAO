@@ -33,7 +33,7 @@ Scanning never changes anything.
 | Tab | Shows |
 | --- | --- |
 | Recommended | Apps Win11Debloat rates safe to remove |
-| All apps | Every app ASAO knows or that is visible in Settings, Apps, with the **Win11Debloat presets** (Xbox gaming apps, OEM software) to tick a whole set |
+| All apps | Every app ASAO knows or that is visible in Settings, Apps, with **Quick select** buttons (Xbox gaming apps, PC maker apps) that tick a whole group from Win11Debloat's presets |
 | Services | Apps with services, plus standalone services |
 | Windows tweaks | Win11Debloat's settings, grouped by category, with their current state |
 | Recent changes | Every real batch, with Undo per change |

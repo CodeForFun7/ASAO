@@ -141,13 +141,6 @@ export const Processes: React.FC = () => {
           );
         case "disk-asc":
           return a.diskBytesPerSec - b.diskBytesPerSec;
-        case "network-desc":
-          return (
-            b.networkBytesPerSec - a.networkBytesPerSec ||
-            b.cpuPercent - a.cpuPercent
-          );
-        case "network-asc":
-          return a.networkBytesPerSec - b.networkBytesPerSec;
         case "name-asc":
           return a.name.localeCompare(b.name);
         case "name-desc":

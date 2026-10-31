@@ -187,7 +187,6 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
           cpuPercent: proc.cpuPercent,
           memoryBytes: proc.memoryBytes,
           diskBytesPerSec: proc.diskBytesPerSec,
-          networkBytesPerSec: proc.networkBytesPerSec,
         };
         const updated =
           existing.length >= MAX_HISTORY_SAMPLES
@@ -218,17 +217,13 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
         (acc, p) => acc + (p.diskBytesPerSec || 0),
         0
       );
-      const fallbackNet = procs.reduce(
-        (acc, p) => acc + (p.networkBytesPerSec || 0),
-        0
-      );
       const point: SystemTelemetryPoint = {
         timestamp: metrics.timestampMs || Date.now(),
         cpuPercent: metrics.cpuUsagePercent,
         memoryPercent: metrics.memoryUsagePercent,
         gpuPercent: metrics.gpuUsagePercent ?? 0,
         diskBytesPerSec: metrics.diskBytesPerSec ?? fallbackDisk,
-        networkBytesPerSec: metrics.networkBytesPerSec ?? fallbackNet,
+        networkBytesPerSec: metrics.networkBytesPerSec ?? 0,
       };
       const nextSys =
         prevSys.length >= MAX_HISTORY_SAMPLES
@@ -239,7 +234,6 @@ export const useProcessStore = create<ProcessStoreState>((set, get) => ({
         systemMetrics: {
           ...metrics,
           diskBytesPerSec: metrics.diskBytesPerSec ?? fallbackDisk,
-          networkBytesPerSec: metrics.networkBytesPerSec ?? fallbackNet,
         },
         systemHistory: nextSys,
         monitoringStatus:

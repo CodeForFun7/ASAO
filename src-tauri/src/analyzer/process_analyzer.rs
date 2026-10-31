@@ -8,19 +8,20 @@ use crate::analyzer::resource_analyzer::{
     compute_background_impact_score, determine_activity_state, determine_process_status,
 };
 use crate::analyzer::{
-    ProcessActivityState, ProcessCategory, ProcessInfo, ProcessSnapshotPayload, ProcessStatus,
+    ProcessActivityState, ProcessInfo, ProcessSnapshotPayload, ProcessStatus,
     SystemMetrics,
 };
 use crate::collector::activity::UserActivityCollector;
 use crate::collector::cpu::CpuCollector;
 use crate::collector::gpu::GpuCollector;
+use crate::collector::network::NetworkCollector;
+use crate::residual::normalize::path_key;
 use crate::collector::memory::MemoryCollector;
 use crate::collector::processes::ProcessCollector;
 
 struct PidSampleState {
     prev_cpu_time_100ns: u64,
     prev_disk_io_bytes: u64,
-    prev_other_io_bytes: u64,
     recent_cpu_samples: VecDeque<f32>,
     sustained_load_seconds: u64,
 }
@@ -29,7 +30,14 @@ pub struct ProcessAnalyzerEngine {
     cpu_collector: CpuCollector,
     memory_collector: MemoryCollector,
     gpu_collector: GpuCollector,
+    network_collector: NetworkCollector,
     process_collector: ProcessCollector,
+    /// Path keys of programs Windows starts automatically (Run keys, Startup folders,
+    /// automatic services, sign-in tasks), from the startup scan.
+    startup_exes: std::collections::HashSet<String>,
+    /// Their file names, for processes whose path Windows hides (services running as SYSTEM
+    /// when ASAO is not elevated).
+    startup_names: std::collections::HashSet<String>,
     activity_collector: UserActivityCollector,
     pid_states: HashMap<u32, PidSampleState>,
     last_sample_instant: Option<Instant>,
@@ -42,6 +50,9 @@ impl ProcessAnalyzerEngine {
             cpu_collector: CpuCollector::new(),
             memory_collector: MemoryCollector::new(),
             gpu_collector: GpuCollector::new(),
+            network_collector: NetworkCollector::new(),
+            startup_exes: std::collections::HashSet::new(),
+            startup_names: std::collections::HashSet::new(),
             process_collector: ProcessCollector::new(),
             activity_collector: UserActivityCollector::new(),
             pid_states: HashMap::with_capacity(512),
@@ -51,6 +62,15 @@ impl ProcessAnalyzerEngine {
         // Prime initial baseline so the very first UI request already has valid deltas
         let _ = engine.collect_and_analyze();
         engine
+    }
+
+    /// Replaces the set of programs Windows starts automatically. Called after each startup scan.
+    pub fn set_startup_exes(&mut self, exes: std::collections::HashSet<String>) {
+        self.startup_names = exes
+            .iter()
+            .filter_map(|p| p.rsplit('\\').next().map(|n| n.to_string()))
+            .collect();
+        self.startup_exes = exes;
     }
 
     pub fn get_latest_or_collect(&mut self) -> Result<ProcessSnapshotPayload, String> {
@@ -113,7 +133,7 @@ impl ProcessAnalyzerEngine {
                 .activity_collector
                 .seconds_since_foreground(pid, now_instant);
 
-            let (cpu_percent, sustained_cpu, disk_bps, net_bps, sustained_load_seconds) =
+            let (cpu_percent, sustained_cpu, disk_bps, sustained_load_seconds) =
                 if let Some(prev_state) = self.pid_states.remove(&pid) {
                     let cpu_delta_100ns = raw
                         .total_cpu_time_100ns
@@ -130,12 +150,8 @@ impl ProcessAnalyzerEngine {
                     let disk_delta = raw
                         .disk_io_bytes
                         .saturating_sub(prev_state.prev_disk_io_bytes);
-                    let other_delta = raw
-                        .other_io_bytes
-                        .saturating_sub(prev_state.prev_other_io_bytes);
 
                     let disk_rate = (disk_delta as f64 / elapsed_secs) as u64;
-                    let net_rate = ((other_delta as f64 / elapsed_secs) * 0.35) as u64;
 
                     let mut samples = prev_state.recent_cpu_samples;
                     if samples.len() >= 8 {
@@ -162,13 +178,12 @@ impl ProcessAnalyzerEngine {
                         PidSampleState {
                             prev_cpu_time_100ns: raw.total_cpu_time_100ns,
                             prev_disk_io_bytes: raw.disk_io_bytes,
-                            prev_other_io_bytes: raw.other_io_bytes,
                             recent_cpu_samples: samples,
                             sustained_load_seconds: next_sustained_secs,
                         },
                     );
 
-                    (rounded_cpu, avg_cpu, disk_rate, net_rate, next_sustained_secs)
+                    (rounded_cpu, avg_cpu, disk_rate, next_sustained_secs)
                 } else {
                     let mut samples = VecDeque::with_capacity(8);
                     samples.push_back(0.0);
@@ -177,14 +192,17 @@ impl ProcessAnalyzerEngine {
                         PidSampleState {
                             prev_cpu_time_100ns: raw.total_cpu_time_100ns,
                             prev_disk_io_bytes: raw.disk_io_bytes,
-                            prev_other_io_bytes: raw.other_io_bytes,
                             recent_cpu_samples: samples,
                             sustained_load_seconds: 0,
                         },
                     );
-                    (0.0, 0.0, 0, 0, 0)
+                    (0.0, 0.0, 0, 0)
                 };
 
+            let is_startup = match raw.executable_path.as_deref() {
+                Some(p) => self.startup_exes.contains(&path_key(p)),
+                None => self.startup_names.contains(&raw.name.to_lowercase()),
+            };
             let classification = classify_process(
                 raw.pid,
                 &raw.name,
@@ -200,7 +218,6 @@ impl ProcessAnalyzerEngine {
                 sustained_cpu,
                 raw.memory_bytes,
                 disk_bps,
-                net_bps,
             );
 
             let background_impact_score = compute_background_impact_score(
@@ -264,7 +281,6 @@ impl ProcessAnalyzerEngine {
                 sustained_cpu_percent: sustained_cpu,
                 memory_bytes: raw.memory_bytes,
                 disk_bytes_per_sec: disk_bps,
-                network_bytes_per_sec: net_bps,
                 thread_count: raw.thread_count,
                 category: classification.category,
                 status,
@@ -274,7 +290,7 @@ impl ProcessAnalyzerEngine {
                 impact_level,
                 cpu_level,
                 memory_level,
-                is_startup: classification.is_startup,
+                is_startup,
                 is_system_critical: classification.is_system_critical,
                 is_restricted: raw.is_restricted,
                 started_seconds_ago: raw.started_seconds_ago,
@@ -298,19 +314,8 @@ impl ProcessAnalyzerEngine {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
 
-        // Compute graphics/compositor process CPU sum as fallback input for GPU collector
-        let dwm_and_gpu_cpu: f32 = analyzed_processes
-            .iter()
-            .filter(|p| {
-                p.category == ProcessCategory::Drivers
-                    || p.category == ProcessCategory::Gaming
-                    || p.category == ProcessCategory::Browser
-                    || p.name.eq_ignore_ascii_case("dwm.exe")
-            })
-            .map(|p| p.cpu_percent)
-            .sum();
-
-        let gpu_sample = self.gpu_collector.sample(sys_cpu_percent, dwm_and_gpu_cpu);
+        let gpu_sample = self.gpu_collector.sample();
+        let net_sample = self.network_collector.sample();
 
         // Layer 3: System Load / Background Load
         let bg_mem_share_pct = if mem_sample.total_bytes > 0 {
@@ -325,7 +330,7 @@ impl ProcessAnalyzerEngine {
         // Layer 4: System Strain (combining overall resource pressure with unnecessary background load)
         let system_strain_percent = ((sys_cpu_percent * 0.40)
             + (mem_sample.usage_percent * 0.35)
-            + (gpu_sample.usage_percent * 0.10)
+            + (gpu_sample.map(|g| g.usage_percent).unwrap_or(0.0) * 0.10)
             + (background_load_percent * 0.15))
             .clamp(1.0, 100.0);
 
@@ -348,10 +353,6 @@ impl ProcessAnalyzerEngine {
             .iter()
             .map(|p| p.disk_bytes_per_sec)
             .fold(0u64, |acc, v| acc.saturating_add(v));
-        let total_net_bps: u64 = analyzed_processes
-            .iter()
-            .map(|p| p.network_bytes_per_sec)
-            .fold(0u64, |acc, v| acc.saturating_add(v));
 
         let timestamp_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -365,10 +366,12 @@ impl ProcessAnalyzerEngine {
             memory_used_bytes: mem_sample.used_bytes,
             memory_total_bytes: mem_sample.total_bytes,
             memory_delta_percent: mem_sample.delta_percent,
-            gpu_usage_percent: gpu_sample.usage_percent,
-            gpu_delta_percent: gpu_sample.delta_percent,
+            gpu_usage_percent: gpu_sample.map(|g| g.usage_percent),
+            gpu_delta_percent: gpu_sample.map(|g| g.delta_percent),
             disk_bytes_per_sec: total_disk_bps,
-            network_bytes_per_sec: total_net_bps,
+            network_bytes_per_sec: net_sample.map(|n| n.download_bytes_per_sec.saturating_add(n.upload_bytes_per_sec)),
+            network_download_bytes_per_sec: net_sample.map(|n| n.download_bytes_per_sec),
+            network_upload_bytes_per_sec: net_sample.map(|n| n.upload_bytes_per_sec),
             foreground_load_percent,
             background_load_percent,
             system_strain_percent,
@@ -398,3 +401,32 @@ impl ProcessAnalyzerEngine {
     }
 }
 
+
+#[cfg(test)]
+mod live_tests {
+    use super::*;
+
+    /// Read-only: prints real network and GPU readings and which running processes Windows
+    /// really starts by itself.
+    #[test]
+    #[ignore]
+    fn live_process_metrics() {
+        let mut engine = ProcessAnalyzerEngine::new();
+        let first = engine.collect_and_analyze().expect("snapshot");
+        let items = crate::startup::scanner::StartupScanner::scan(&first.processes);
+        let exes = crate::startup::scanner::startup_executables(&items);
+        println!("startup programs: {}", exes.len());
+        engine.set_startup_exes(exes);
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        let s = engine.collect_and_analyze().expect("snapshot");
+        let m = &s.metrics;
+        println!(
+            "gpu {:?}  network {:?} (down {:?}, up {:?})",
+            m.gpu_usage_percent, m.network_bytes_per_sec, m.network_download_bytes_per_sec, m.network_upload_bytes_per_sec
+        );
+        let mut names: Vec<&str> = s.processes.iter().filter(|p| p.is_startup).map(|p| p.name.as_str()).collect();
+        names.sort();
+        names.dedup();
+        println!("running startup processes ({}): {}", names.len(), names.join(", "));
+    }
+}

@@ -177,18 +177,13 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             </div>
           </div>
 
-          {/* Disk & Network Readouts */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* Disk readout. Windows has no simple per-process network counter, so network is
+              shown for the whole PC on the Dashboard. */}
+          <div className="grid grid-cols-1 gap-2 pt-1">
             <div className="p-2.5 rounded bg-lunar-bg border border-lunar-border flex items-center justify-between font-mono text-xs">
               <span className="text-lunar-muted">Disk</span>
               <span className="text-lunar-text">
                 {formatRate(process.diskBytesPerSec)}
-              </span>
-            </div>
-            <div className="p-2.5 rounded bg-lunar-bg border border-lunar-border flex items-center justify-between font-mono text-xs">
-              <span className="text-lunar-muted">Network</span>
-              <span className="text-lunar-text">
-                {formatRate(process.networkBytesPerSec)}
               </span>
             </div>
           </div>

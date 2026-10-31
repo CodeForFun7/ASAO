@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { AlertTriangle, FlaskConical, Info, PackageCheck, PackageSearch, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertTriangle, FlaskConical, Info, ListChecks, PackageCheck, PackageSearch, RefreshCw, Trash2, X } from "lucide-react";
 import { inPreset, isRecommended, selectedItems, selectedTweakIds, useBloatStore, type BloatTab } from "../stores/bloat-store";
 import { TweaksView } from "../components/bloat/TweaksView";
 import { restartExplorer } from "../services/bloat";
@@ -14,6 +14,14 @@ import { RecentChanges } from "../components/bloat/RecentChanges";
 import { useProcessStore } from "../stores/process-store";
 import { useStorageStore } from "../stores/storage-store";
 import { useResidualStore } from "../stores/residual-store";
+
+/** A short name for a Win11Debloat preset, and what it covers (for the tooltip). */
+function presetLabel(name: string): { label: string; covers: string | null } {
+  const covers = name.match(/\(([^)]*)\)/)?.[1] ?? null;
+  const base = name.replace(/\s*\([^)]*\)\s*/, "").trim();
+  if (/oem/i.test(base)) return { label: "PC maker apps", covers };
+  return { label: base, covers };
+}
 
 const TABS: { id: BloatTab; label: string }[] = [
   { id: "recommended", label: "Recommended" },
@@ -421,26 +429,37 @@ export const DebloatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Win11Debloat's app presets */}
+          {/* Quick select: Win11Debloat's app groups */}
           {(tab === "recommended" || tab === "apps") && (result.presets ?? []).length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] text-lunar-text-sec">Win11Debloat presets:</span>
-              {result.presets.map((p) => {
-                const count = items.filter((i) => i.selectable && inPreset(i, p.appIds)).length;
-                return (
-                  <button
-                    key={p.name}
-                    type="button"
-                    disabled={busy || count === 0}
-                    onClick={() => applyPreset(p.name)}
-                    title={count === 0 ? "None of these apps can be removed on this PC" : `Tick the ${count} removable apps in this preset`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border bg-lunar-surface hover:bg-lunar-elevated text-lunar-text border-lunar-border transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-                  >
-                    <span>{p.name}</span>
-                    <span className="font-mono text-[10px] text-lunar-muted">{count}</span>
-                  </button>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3.5 py-2.5 rounded-lg bg-lunar-surface border border-lunar-border">
+              <div className="flex items-center gap-2 min-w-0 sm:mr-auto">
+                <ListChecks className="w-3.5 h-3.5 text-lunar-text-sec shrink-0" />
+                <span className="text-xs font-medium text-lunar-white shrink-0">Quick select</span>
+                <span className="text-[11px] text-lunar-text-sec truncate">Tick a whole group of related apps at once</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {result.presets.map((p) => {
+                  const count = items.filter((i) => i.selectable && inPreset(i, p.appIds)).length;
+                  const { label, covers } = presetLabel(p.name);
+                  const tip =
+                    count === 0
+                      ? "None of these apps are on this PC, or none can be removed"
+                      : `Ticks ${count} ${count === 1 ? "app" : "apps"} on this PC${covers ? ` from ${covers}` : ""}`;
+                  return (
+                    <button
+                      key={p.name}
+                      type="button"
+                      disabled={busy || count === 0}
+                      onClick={() => applyPreset(p.name)}
+                      title={tip}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border bg-lunar-bg hover:bg-lunar-elevated text-lunar-text border-lunar-border transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                    >
+                      <span>{label}</span>
+                      <span className="font-mono text-[10px] text-lunar-muted">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

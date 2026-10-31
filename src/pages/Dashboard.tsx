@@ -76,6 +76,9 @@ export const Dashboard: React.FC = () => {
   const memDelta = systemMetrics.memoryDeltaPercent;
   const gpuDelta = systemMetrics.gpuDeltaPercent ?? 0;
   const networkRate = systemMetrics.networkBytesPerSec ?? 0;
+  const gpuAvailable = systemMetrics.gpuUsagePercent !== null && systemMetrics.gpuUsagePercent !== undefined;
+  const networkAvailable =
+    systemMetrics.networkBytesPerSec !== null && systemMetrics.networkBytesPerSec !== undefined;
   const diskRate = systemMetrics.diskBytesPerSec ?? 0;
 
   const avgNetwork =
@@ -152,36 +155,45 @@ export const Dashboard: React.FC = () => {
         {/* GPU Card */}
         <MetricCard
           label="GPU"
-          value={`${(systemMetrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
+          value={gpuAvailable ? `${(systemMetrics.gpuUsagePercent ?? 0).toFixed(0)}%` : "N/A"}
           onClick={handleSelectGpu}
           actionHint="Inspect graphics and driver processes"
           subtitle={
-            <>
-              {gpuDelta <= 0 ? (
-                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
-              ) : (
-                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
-              )}
-              <span>{Math.abs(gpuDelta).toFixed(1)}% from avg</span>
-            </>
+            gpuAvailable ? (
+              <>
+                {gpuDelta <= 0 ? (
+                  <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
+                ) : (
+                  <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
+                )}
+                <span>{Math.abs(gpuDelta).toFixed(1)}% from avg</span>
+              </>
+            ) : (
+              <span>Windows GPU counters not available</span>
+            )
           }
         />
 
         {/* Network Card */}
         <MetricCard
           label="NETWORK"
-          value={formatRate(networkRate)}
+          value={networkAvailable ? formatRate(networkRate) : "N/A"}
           onClick={navigateToCpuProcesses}
-          actionHint="Inspect active network processes"
+          actionHint="Download plus upload over your network adapters"
           subtitle={
-            <>
-              {networkDelta <= 0 ? (
-                <ArrowDown className="w-3 h-3 text-lunar-healthy shrink-0" />
-              ) : (
-                <ArrowUp className="w-3 h-3 text-lunar-warning shrink-0" />
-              )}
-              <span>{Math.abs(networkDelta).toFixed(1)}% from avg</span>
-            </>
+            networkAvailable ? (
+              <>
+                <ArrowDown className="w-3 h-3 text-lunar-text-sec shrink-0" />
+                <span>{formatRate(systemMetrics.networkDownloadBytesPerSec ?? 0)}</span>
+                <ArrowUp className="w-3 h-3 text-lunar-text-sec shrink-0 ml-1" />
+                <span>{formatRate(systemMetrics.networkUploadBytesPerSec ?? 0)}</span>
+                <span className="text-lunar-muted ml-1">
+                  {networkDelta <= 0 ? "below" : "above"} avg {Math.abs(networkDelta).toFixed(0)}%
+                </span>
+              </>
+            ) : (
+              <span>Network adapters could not be read</span>
+            )
           }
         />
 
