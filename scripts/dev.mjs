@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,7 +28,14 @@ function stop(code = 0) {
   if (stopping) return;
   stopping = true;
   for (const child of children) {
-    if (!child.killed) child.kill("SIGTERM");
+    if (child.exitCode !== null || !child.pid) continue;
+    if (process.platform === "win32") {
+      // Kill the whole tree: with `shell: true` the child is a cmd wrapper, and killing
+      // only the wrapper leaves Vite running and holding port 1420.
+      spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    } else {
+      child.kill("SIGTERM");
+    }
   }
   setTimeout(() => process.exit(code), 300);
 }

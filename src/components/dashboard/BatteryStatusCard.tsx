@@ -119,7 +119,7 @@ export const BatteryStatusCard: React.FC<BatteryStatusCardProps> = ({ metrics })
   }
 
   return (
-    <div className="rounded-xl lunar-glass-card p-4 flex flex-col justify-between gap-3 shrink-0">
+    <div className="rounded-xl lunar-glass-card px-4 py-3 h-full min-h-0 flex flex-col justify-between gap-2">
       {/* Top Row: battery state & percentage */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">

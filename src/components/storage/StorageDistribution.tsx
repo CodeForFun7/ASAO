@@ -9,14 +9,16 @@ import { formatStorageBytes } from "../../services/storage";
 interface StorageChartProps {
   slices: StorageCategorySlice[];
   totalUsedBytes: number;
+  /** Outer diameter in px. Defaults to the Storage page size. */
+  size?: number;
 }
 
 export const StorageChart: React.FC<StorageChartProps> = ({
   slices,
   totalUsedBytes,
+  size = 176,
 }) => {
-  const size = 176;
-  const strokeWidth = 15;
+  const strokeWidth = Math.round((size / 176) * 15);
   const center = size / 2;
   const radius = center - strokeWidth;
   const circumference = 2 * Math.PI * radius;
@@ -27,7 +29,10 @@ export const StorageChart: React.FC<StorageChartProps> = ({
   let cumulativeFraction = 0;
 
   return (
-    <div className="relative w-[176px] h-[176px] mx-auto flex items-center justify-center select-none shrink-0">
+    <div
+      className="relative mx-auto flex items-center justify-center select-none shrink-0"
+      style={{ width: size, height: size }}
+    >
       <svg
         width={size}
         height={size}
@@ -75,7 +80,10 @@ export const StorageChart: React.FC<StorageChartProps> = ({
 
       {/* Center Label */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-3">
-        <span className="text-base font-semibold font-mono text-lunar-white tracking-tight leading-tight">
+        <span
+          className="font-semibold font-mono text-lunar-white tracking-tight leading-tight"
+          style={{ fontSize: size < 150 ? 13 : 16 }}
+        >
           {formatStorageBytes(totalUsedBytes > 0 ? totalUsedBytes : sumBytes)}
         </span>
         <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-lunar-muted mt-0.5">

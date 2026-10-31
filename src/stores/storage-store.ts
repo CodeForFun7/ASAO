@@ -62,6 +62,8 @@ interface StorageStoreState {
 
   // Actions
   initializeStorage: () => Promise<() => void>;
+  /** Loads drives and the cached scan result only. Never starts a scan. */
+  loadCachedStorage: () => Promise<void>;
   selectDrive: (drive: string) => Promise<void>;
   triggerScan: (drive?: string) => Promise<void>;
   cancelScan: () => Promise<void>;
@@ -168,6 +170,30 @@ export const useStorageStore = create<StorageStoreState>((set, get) => ({
         unlistenProgress();
       }
     };
+  },
+
+  loadCachedStorage: async () => {
+    try {
+      const detectedDrives = await getStorageDrives();
+      const drive =
+        get().selectedDrive ??
+        (detectedDrives.length > 0 ? detectedDrives[0].drive : null);
+      set({ drives: detectedDrives, selectedDrive: drive });
+
+      if (!drive || get().snapshot) return;
+      const cached = await getStorageSnapshot(drive);
+      if (cached && !get().snapshot) {
+        set({
+          snapshot: cached,
+          drives: cached.drives.length > 0 ? cached.drives : detectedDrives,
+          scanState: "ready",
+          currentPath: get().currentPath || cached.initialDirectory.path,
+          directoryListing: get().directoryListing || cached.initialDirectory,
+        });
+      }
+    } catch {
+      // Outside Tauri, or the drive list is unavailable: the dashboard card shows its empty state.
+    }
   },
 
   selectDrive: async (drive: string) => {

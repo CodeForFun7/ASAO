@@ -1,19 +1,17 @@
-import json
-from urllib.error import URLError
-from urllib.request import Request, urlopen
+"""Every tool Nyra can call, grouped by area.
 
-from langchain_core.tools import tool
+Each tool is a LangChain StructuredTool that reaches the system through the Rust bridge.
+Add a tool by declaring it with `nyra_tool` in the matching module and listing it there.
+"""
 
+from . import apps, leftovers, processes, startup, storage
 
-@tool
-def get_info() -> str:
-    """Get current system metrics from the Rust system monitor."""
-    request = Request("http://127.0.0.1:8766/get_info", method="GET")
-    try:
-        with urlopen(request, timeout=8) as response:
-            return json.dumps(json.loads(response.read().decode("utf-8")))
-    except (URLError, TimeoutError, ValueError) as exc:
-        return f"System metrics are unavailable: {exc}"
+PROCESS_TOOLS = processes.TOOLS
+STARTUP_TOOLS = startup.TOOLS
+STORAGE_TOOLS = storage.TOOLS
+APP_TOOLS = apps.TOOLS
+LEFTOVER_TOOLS = leftovers.TOOLS
 
+ALL_TOOLS = PROCESS_TOOLS + STARTUP_TOOLS + STORAGE_TOOLS + APP_TOOLS + LEFTOVER_TOOLS
 
-TOOLS = [get_info]
+__all__ = ["ALL_TOOLS", "APP_TOOLS", "LEFTOVER_TOOLS", "PROCESS_TOOLS", "STARTUP_TOOLS", "STORAGE_TOOLS"]

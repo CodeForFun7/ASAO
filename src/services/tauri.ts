@@ -6,6 +6,7 @@ import type {
   SystemMetrics,
 } from "../types/process";
 import type { BatteryStatus } from "../types/battery";
+import type { SystemTemperatures } from "../types/thermal";
 
 export const TAURI_EVENTS = {
   PROCESS_SNAPSHOT: "PROCESS_SNAPSHOT",
@@ -23,6 +24,10 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
 
 export async function getBatteryStatus(): Promise<BatteryStatus> {
   return invoke<BatteryStatus>("get_battery_status");
+}
+
+export async function getSystemTemperatures(): Promise<SystemTemperatures> {
+  return invoke<SystemTemperatures>("get_system_temperatures");
 }
 
 export async function getFullSnapshot(): Promise<ProcessSnapshotPayload> {

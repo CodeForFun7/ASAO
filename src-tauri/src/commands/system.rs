@@ -34,6 +34,15 @@ pub fn get_battery_status() -> crate::collector::battery::BatteryStatus {
     crate::collector::battery::read_battery_status()
 }
 
+/// Current CPU, GPU and RAM temperatures. A sensor Windows does not expose comes back empty.
+#[tauri::command]
+pub async fn get_system_temperatures(
+) -> Result<crate::collector::thermal::SystemTemperatures, String> {
+    tauri::async_runtime::spawn_blocking(crate::collector::thermal::read_temperatures)
+        .await
+        .map_err(|e| format!("Temperature thread error: {}", e))
+}
+
 #[tauri::command]
 pub fn get_full_snapshot(
     state: State<'_, AppMonitoringState>,

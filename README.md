@@ -54,12 +54,15 @@ ASAO/
 │   ├── services/                Thin typed wrappers over Tauri invoke/listen
 │   └── types/                   Shared TS types mirroring the Rust payloads
 │
-├── src-python/              Optional local chat backend ("Nyra")
+├── src-python/              Nyra agent service (FastAPI + LangGraph)
 │   └── chatbot/
-│       ├── main.py            FastAPI app, POST /chat
-│       ├── graph.py           LangGraph loop around gpt-4o-mini
-│       ├── tools/              get_info tool → Rust bridge on 127.0.0.1:8766
-│       └── prompts.py          System prompt
+│       ├── main.py            API: streamed chat (SSE), confirmations, stop, conversations
+│       ├── graph.py           Orchestrator + 4 specialist agents (LangGraph)
+│       ├── tools/              34 system tools, all calling the Rust bridge
+│       ├── run_context.py      Live activity feed and confirmation cards for one turn
+│       ├── history.py          Saved conversations (+ LangGraph SQLite checkpoints)
+│       ├── bridge.py           Client for the authenticated Rust tool bridge
+│       └── prompts.py          System prompts
 │
 └── scripts/dev.mjs          Dev-only launcher: starts Vite + the Python API together
 ```
@@ -79,7 +82,7 @@ Three background threads run for the lifetime of the app:
 | --- | --- | --- |
 | Telemetry loop | 1 s | Collect + analyze processes, emit events to both windows, keep the widget topmost |
 | Recommendation refresh | 30 s | Re-run the PowerShell startup scan, recompute startup/storage suggestions |
-| Local tool bridge | on request | Serve the latest snapshot on `127.0.0.1:8766/get_info` for Nyra's tool call |
+| Nyra tool bridge (`bridge.rs`) | on request | Authenticated `POST /tool/<name>` on 127.0.0.1 (port 8766+) for the Nyra agent; one thread per request |
 
 Any Tauri command that reads the snapshot (`get_full_snapshot`,
 `get_processes`, etc.) reuses the cached result if it is under 750 ms old, so
@@ -192,13 +195,44 @@ show/hide the widget, open the main window, open Settings, or quit. The
 Settings page covers theme, start-with-Windows, widget enable/opacity/position,
 launch-on-startup, always-on-top, show-recommendations, and notifications.
 
-### Nyra chat
-A simple chat page posts the full conversation plus an OpenAI API key (kept in
-`localStorage`) to a local FastAPI service, which runs a one-tool LangGraph
-agent (`gpt-4o-mini`) that can call `get_info` to fetch live metrics from the
-Rust tool bridge. No streaming, no persisted history, no ability to take
-actions. The Python service only runs in `pnpm tauri dev` (via
-`scripts/dev.mjs`) — it is not started in production builds.
+### Nyra agent
+Nyra is a LangGraph agent in `src-python/chatbot` that manages the PC through
+natural language.
+
+- **Agents.** An orchestrator handles simple requests with tools directly. For
+  broad requests it publishes a plan (`update_plan`) and delegates to four
+  specialists exposed as tools: Process & Startup, Storage, Application, and
+  Cleanup. Each specialist is its own LangGraph loop with a focused prompt and
+  tool subset.
+- **Parallelism.** `ToolNode` runs every tool call from one model response
+  concurrently (tools and specialists alike). The Rust bridge serves each
+  request on its own thread.
+- **Tools.** Processes (list, inspect, end), startup (list, inspect,
+  `disable_Autostart` / `enable_Autostart`, boot performance), storage (drives,
+  overview, folder contents and details, search by name terms / kind /
+  extension / size / date, file details, large files and folders, duplicates
+  by SHA-256, temporary files and cleaning, Recycle Bin, file categories,
+  unused files, remove file or folder, open in Explorer), unused apps (list,
+  detail, uninstall), and leftovers (list, detail, remove). Rust
+  implementations are in `src-tauri/src/commands/agent.rs` and the existing
+  command modules. Routing is in `src-tauri/src/bridge.rs`.
+- **Safety.** Every destructive tool shows a confirmation card in the chat and
+  waits for the user. Rust refuses protected targets regardless:
+  - Windows, Program Files, drive roots, profile roots, and ASAO's own data
+  - Windows-critical processes
+
+  Deletion goes to the Recycle Bin unless the user asks for permanent deletion.
+- **Live feed.** `POST /chat/stream` is a Server-Sent Events stream of tokens,
+  activities (agents, tools, notes), progress lines, plan updates and
+  confirmations. Long Rust operations also emit `AGENT_TOOL_PROGRESS` Tauri
+  events, keyed by activity id.
+- **History.** Model state, including tool calls, is checkpointed per
+  conversation with `AsyncSqliteSaver`. The chat transcript, including each
+  turn's activity trace, is saved alongside it. Both live in
+  `%APPDATA%\com.asao.app\nyra.db`.
+
+The Python service only runs in `pnpm tauri dev` (via `scripts/dev.mjs`). It is
+not started in production builds.
 
 ---
 
@@ -229,8 +263,8 @@ actions. The Python service only runs in `pnpm tauri dev` (via
    `getBootPerformanceSummary` each trigger a full PowerShell scan), and every
    open REC modal polls `get_categorized_recommendations` every 10 seconds
    even while closed.
-6. **Nyra's tool bridge has no auth** and its one tool dumps the entire
-   process list on every call, which is expensive in tokens for no filtering.
+6. **The Nyra agent service is dev-only.** Nothing starts the Python service
+   in a release build yet.
 7. **Dead code:** `AIInsight.tsx`, `ProcessAttention.tsx`,
    `services/process-analysis.ts`, and the SQLite schema in `db/mod.rs` are
    never imported/used (no `sqlite` crate is even in `Cargo.toml`).
@@ -262,9 +296,12 @@ python -m venv .venv
 pip install -r src-python\requirements.txt
 ```
 `scripts/dev.mjs` uses `.venv\Scripts\python.exe` if that virtual environment
-exists, otherwise it falls back to `python` on `PATH`. The Rust app exposes a
-local `get_info` tool bridge on `127.0.0.1:8766`; the Python side only calls it
-when the model requests that tool. Add an OpenAI API key from Nyra's settings
+exists, otherwise it falls back to `python` on `PATH`. At launch the Rust app
+starts the tool bridge on the first free port from `127.0.0.1:8766`. It writes
+the port and a random per-launch token to `%APPDATA%\com.asao.app\nyra-bridge.json`.
+The Python service reads that file, so ASAO must be running for Nyra's tools
+to work. Add an OpenAI API key (and optionally a model or an OpenAI-compatible
+endpoint) from Nyra's settings
 button — it is stored in frontend `localStorage` and sent to the local Python
 API with every chat request. **Do not reuse this storage approach on a
 shared-device or production build.**

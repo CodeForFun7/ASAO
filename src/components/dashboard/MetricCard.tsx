@@ -33,7 +33,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             }
           : undefined
       }
-      className={`group relative rounded-xl p-4 flex flex-col justify-between min-h-[124px] ${
+      className={`group relative rounded-xl px-4 py-3 flex flex-col justify-between gap-1 min-w-0 ${
         onClick
           ? "lunar-glass-card-interactive cursor-pointer"
           : "lunar-glass-card"
@@ -53,18 +53,18 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         )}
       </div>
 
-      <div className="my-2 flex items-baseline gap-2">
+      <div className="flex items-baseline gap-2">
         {statusDotColor && (
           <span
             className={`w-2.5 h-2.5 rounded-full shrink-0 self-center ${statusDotColor}`}
           />
         )}
-        <div className="text-2xl font-semibold tracking-tight text-lunar-white font-mono">
+        <div className="text-2xl font-semibold tracking-tight text-lunar-white font-mono leading-none">
           {value}
         </div>
       </div>
 
-      <div className="text-xs text-lunar-text-sec flex items-center gap-1.5 font-mono">
+      <div className="text-xs text-lunar-text-sec flex items-center gap-1.5 font-mono truncate">
         {subtitle}
       </div>
     </div>

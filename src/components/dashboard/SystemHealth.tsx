@@ -1,18 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   SystemMetrics,
   SystemTelemetryPoint,
 } from "../../types/process";
-import { formatRate } from "../../services/tauri";
 
 interface SystemHealthProps {
   metrics: SystemMetrics;
   history: SystemTelemetryPoint[];
   onSelectCpu: () => void;
   onSelectMemory: () => void;
-  onSelectGpu: () => void;
-  onSelectNetwork?: () => void;
-  onSelectDisk?: () => void;
 }
 
 interface ActivityColumnChartProps {
@@ -45,6 +41,31 @@ function buildSmoothCurvePath(coords: { x: number; y: number }[]): string {
   return d;
 }
 
+/** Tracks an element's pixel size so the SVG can be drawn 1:1 instead of being stretched. */
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setSize((prev) =>
+        Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1
+          ? prev
+          : { width, height }
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, size] as const;
+}
+
 const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
   title,
   badgeText,
@@ -57,7 +78,13 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
   averageValue,
   onClick,
 }) => {
+  const [chartRef, { width, height }] = useElementSize<HTMLDivElement>();
+
   const { curvePath, areaPath, highlightPoint } = useMemo(() => {
+    if (width < 8 || height < 8) {
+      return { curvePath: "", areaPath: "", highlightPoint: null };
+    }
+
     const targetCount = 18;
     const fillVal = values[0] ?? currentPercent;
     const sampled =
@@ -65,11 +92,9 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
         ? [...Array(targetCount - values.length).fill(fillVal), ...values]
         : values.slice(values.length - targetCount);
 
-    const width = 240;
-    const height = 96;
-    const topPad = 24;
-    const bottomPad = 8;
-    const usableHeight = height - topPad - bottomPad;
+    const topPad = 26;
+    const bottomPad = 6;
+    const usableHeight = Math.max(8, height - topPad - bottomPad);
 
     const coords = sampled.map((v, i) => {
       const x = (i / (targetCount - 1)) * width;
@@ -97,7 +122,7 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
       areaPath: area,
       highlightPoint: coords[peakIdx] ?? coords[coords.length - 1],
     };
-  }, [values, currentPercent]);
+  }, [values, currentPercent, width, height]);
 
   const badgeWidth = Math.max(38, badgeText.length * 6.2 + 12);
 
@@ -112,97 +137,93 @@ const ActivityColumnChart: React.FC<ActivityColumnChartProps> = ({
           onClick();
         }
       }}
-      className="group flex flex-col justify-between rounded-lg p-2 -m-2 hover:bg-lunar-elevated/30 transition-colors cursor-pointer"
+      className="group flex flex-col min-h-0 min-w-0 h-full rounded-lg hover:bg-lunar-elevated/30 transition-colors cursor-pointer"
     >
-      {/* Top: Smooth Curve Chart with Floating Usage Callout Badge */}
-      <div className="relative h-[96px] w-full mb-2">
-        <svg
-          viewBox="0 0 240 96"
-          preserveAspectRatio="none"
-          className="w-full h-full overflow-visible"
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.24" />
-              <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-
-          {/* Soft Area Fill */}
-          <path d={areaPath} fill={`url(#${gradientId})`} />
-
-          {/* Smooth Curve Line */}
-          <path
-            d={curvePath}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Highlighted Point Vertical Dashed Line + Usage Callout Badge */}
-          {highlightPoint && (
-            <g>
-              <line
-                x1={highlightPoint.x}
-                y1={highlightPoint.y + 4}
-                x2={highlightPoint.x}
-                y2={88}
-                stroke={strokeColor}
-                strokeWidth="1.25"
-                strokeDasharray="2,4"
-                strokeOpacity="0.75"
-              />
-              <circle
-                cx={highlightPoint.x}
-                cy={highlightPoint.y}
-                r="4"
-                fill={strokeColor}
-                stroke="var(--color-lunar-surface)"
-                strokeWidth="1.5"
-              />
-              <rect
-                x={highlightPoint.x - badgeWidth / 2}
-                y={Math.max(1, highlightPoint.y - 22)}
-                width={badgeWidth}
-                height="16"
-                rx="8"
-                fill={strokeColor}
-              />
-              <text
-                x={highlightPoint.x}
-                y={Math.max(1, highlightPoint.y - 22) + 11}
-                textAnchor="middle"
-                fill={badgeTextColor}
-                fontSize="9"
-                fontWeight="700"
-                fontFamily="IBM Plex Mono, monospace"
-              >
-                {badgeText}
-              </text>
-            </g>
-          )}
-        </svg>
-      </div>
-
-      {/* Label Centered Below Graph (without duplicate big usage number) */}
-      <div className="text-center mb-2">
+      <div className="flex items-center justify-between gap-2 mb-1 shrink-0">
         <span className="text-xs font-semibold text-lunar-text tracking-wide group-hover:text-lunar-white transition-colors">
           {title}
         </span>
+        <span className="text-[11px] font-mono text-lunar-muted truncate">
+          Peak {peakValue} · Avg {averageValue}
+        </span>
       </div>
 
-      {/* Bottom: Peak & Average Rows */}
-      <div className="space-y-1 pt-2 border-t border-lunar-border/50 text-[11px] font-mono">
-        <div className="flex items-center justify-between text-lunar-muted">
-          <span>Peak</span>
-          <span className="text-lunar-text-sec">{peakValue}</span>
-        </div>
-        <div className="flex items-center justify-between text-lunar-muted">
-          <span>Average</span>
-          <span className="text-lunar-text-sec">{averageValue}</span>
-        </div>
+      {/* Chart fills the remaining height; the SVG is sized to the measured box */}
+      <div ref={chartRef} className="relative flex-1 min-h-[64px] w-full">
+        {width > 0 && height > 0 && (
+          <svg
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            className="absolute inset-0 overflow-visible"
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={strokeColor} stopOpacity="0.24" />
+                <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            <path d={areaPath} fill={`url(#${gradientId})`} />
+
+            <path
+              d={curvePath}
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {highlightPoint && (
+              <g>
+                <line
+                  x1={highlightPoint.x}
+                  y1={highlightPoint.y + 4}
+                  x2={highlightPoint.x}
+                  y2={height - 6}
+                  stroke={strokeColor}
+                  strokeWidth="1.25"
+                  strokeDasharray="2,4"
+                  strokeOpacity="0.75"
+                />
+                <circle
+                  cx={highlightPoint.x}
+                  cy={highlightPoint.y}
+                  r="4"
+                  fill={strokeColor}
+                  stroke="var(--color-lunar-surface)"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x={Math.min(
+                    Math.max(0, highlightPoint.x - badgeWidth / 2),
+                    width - badgeWidth
+                  )}
+                  y={Math.max(1, highlightPoint.y - 22)}
+                  width={badgeWidth}
+                  height="16"
+                  rx="8"
+                  fill={strokeColor}
+                />
+                <text
+                  x={Math.min(
+                    Math.max(badgeWidth / 2, highlightPoint.x),
+                    width - badgeWidth / 2
+                  )}
+                  y={Math.max(1, highlightPoint.y - 22) + 11}
+                  textAnchor="middle"
+                  fill={badgeTextColor}
+                  fontSize="9"
+                  fontWeight="700"
+                  fontFamily="IBM Plex Mono, monospace"
+                >
+                  {badgeText}
+                </text>
+              </g>
+            )}
+          </svg>
+        )}
       </div>
     </div>
   );
@@ -213,22 +234,10 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
   history,
   onSelectCpu,
   onSelectMemory,
-  onSelectGpu,
-  onSelectNetwork,
-  onSelectDisk,
 }) => {
   const cpuSeries = useMemo(() => history.map((h) => h.cpuPercent), [history]);
   const memSeries = useMemo(
     () => history.map((h) => h.memoryPercent),
-    [history]
-  );
-  const gpuSeries = useMemo(() => history.map((h) => h.gpuPercent), [history]);
-  const netBytesSeries = useMemo(
-    () => history.map((h) => h.networkBytesPerSec ?? 0),
-    [history]
-  );
-  const diskBytesSeries = useMemo(
-    () => history.map((h) => h.diskBytesPerSec ?? 0),
     [history]
   );
 
@@ -246,124 +255,37 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({
     return { avg, peak };
   }, [memSeries, metrics.memoryUsagePercent]);
 
-  const gpuStats = useMemo(() => {
-    const cur = metrics.gpuUsagePercent ?? 0;
-    const arr = gpuSeries.length ? gpuSeries : [cur];
-    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-    const peak = Math.max(...arr, cur);
-    return { avg, peak };
-  }, [gpuSeries, metrics.gpuUsagePercent]);
-
-  const netStats = useMemo(() => {
-    const cur = metrics.networkBytesPerSec ?? 0;
-    const arr = netBytesSeries.length ? netBytesSeries : [cur];
-    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-    const peak = Math.max(...arr, cur);
-    const scaleMax = Math.max(peak, 256 * 1024); // normalize to 0..100% for curve
-    const normalized = arr.map((v) =>
-      Math.min(100, Math.max(4, (v / scaleMax) * 85))
-    );
-    const curPct = Math.min(100, Math.max(4, (cur / scaleMax) * 85));
-    return { avg, peak, normalized, curPct, cur };
-  }, [netBytesSeries, metrics.networkBytesPerSec]);
-
-  const diskStats = useMemo(() => {
-    const cur = metrics.diskBytesPerSec ?? 0;
-    const arr = diskBytesSeries.length ? diskBytesSeries : [cur];
-    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-    const peak = Math.max(...arr, cur);
-    const scaleMax = Math.max(peak, 1024 * 1024); // normalize to 0..100% for curve
-    const normalized = arr.map((v) =>
-      Math.min(100, Math.max(4, (v / scaleMax) * 85))
-    );
-    const curPct = Math.min(100, Math.max(4, (cur / scaleMax) * 85));
-    return { avg, peak, normalized, curPct, cur };
-  }, [diskBytesSeries, metrics.diskBytesPerSec]);
-
   return (
-    <section className="flex-1 rounded-xl lunar-glass-card p-5 flex flex-col justify-between">
-      {/* Top Row Inside Card: CPU & RAM (2 columns as in sketch) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:divide-x md:divide-lunar-border/60">
-        <div className="md:pr-3">
-          <ActivityColumnChart
-            title="CPU"
-            badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
-            currentPercent={metrics.cpuUsagePercent}
-            values={cpuSeries}
-            strokeColor="var(--color-lunar-white)"
-            badgeTextColor="var(--color-lunar-bg)"
-            gradientId="gradCpuActivity"
-            peakValue={`${cpuStats.peak.toFixed(0)}%`}
-            averageValue={`${cpuStats.avg.toFixed(1)}%`}
-            onClick={onSelectCpu}
-          />
-        </div>
-
-        <div className="md:pl-6">
-          <ActivityColumnChart
-            title="RAM"
-            badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
-            currentPercent={metrics.memoryUsagePercent}
-            values={memSeries}
-            strokeColor="var(--color-lunar-white)"
-            badgeTextColor="var(--color-lunar-bg)"
-            gradientId="gradRamActivity"
-            peakValue={`${memStats.peak.toFixed(0)}%`}
-            averageValue={`${memStats.avg.toFixed(1)}%`}
-            onClick={onSelectMemory}
-          />
-        </div>
+    <section className="h-full min-h-0 rounded-xl lunar-glass-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 sm:divide-x sm:divide-lunar-border/60">
+      <div className="min-h-[120px] sm:min-h-0 sm:pr-3 min-w-0">
+        <ActivityColumnChart
+          title="CPU"
+          badgeText={`${metrics.cpuUsagePercent.toFixed(0)}%`}
+          currentPercent={metrics.cpuUsagePercent}
+          values={cpuSeries}
+          strokeColor="var(--color-lunar-white)"
+          badgeTextColor="var(--color-lunar-bg)"
+          gradientId="gradCpuActivity"
+          peakValue={`${cpuStats.peak.toFixed(0)}%`}
+          averageValue={`${cpuStats.avg.toFixed(1)}%`}
+          onClick={onSelectCpu}
+        />
       </div>
 
-      {/* Bottom Row Inside Card: GPU, Network & Disk (3 columns as in sketch) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 mt-5 border-t border-lunar-border/60 md:divide-x md:divide-lunar-border/60">
-        <div className="md:pr-2">
-          <ActivityColumnChart
-            title="GPU"
-            badgeText={`${(metrics.gpuUsagePercent ?? 0).toFixed(0)}%`}
-            currentPercent={metrics.gpuUsagePercent ?? 0}
-            values={gpuSeries}
-            strokeColor="var(--color-lunar-white)"
-            badgeTextColor="var(--color-lunar-bg)"
-            gradientId="gradGpuActivity"
-            peakValue={`${gpuStats.peak.toFixed(0)}%`}
-            averageValue={`${gpuStats.avg.toFixed(1)}%`}
-            onClick={onSelectGpu}
-          />
-        </div>
-
-        <div className="md:px-4">
-          <ActivityColumnChart
-            title="Network"
-            badgeText={formatRate(netStats.cur)}
-            currentPercent={netStats.curPct}
-            values={netStats.normalized}
-            strokeColor="var(--color-lunar-white)"
-            badgeTextColor="var(--color-lunar-bg)"
-            gradientId="gradNetActivity"
-            peakValue={formatRate(netStats.peak)}
-            averageValue={formatRate(Math.round(netStats.avg))}
-            onClick={onSelectNetwork ?? onSelectCpu}
-          />
-        </div>
-
-        <div className="md:pl-4">
-          <ActivityColumnChart
-            title="Disk"
-            badgeText={formatRate(diskStats.cur)}
-            currentPercent={diskStats.curPct}
-            values={diskStats.normalized}
-            strokeColor="var(--color-lunar-white)"
-            badgeTextColor="var(--color-lunar-bg)"
-            gradientId="gradDiskActivity"
-            peakValue={formatRate(diskStats.peak)}
-            averageValue={formatRate(Math.round(diskStats.avg))}
-            onClick={onSelectDisk ?? onSelectCpu}
-          />
-        </div>
+      <div className="min-h-[120px] sm:min-h-0 sm:pl-6 min-w-0">
+        <ActivityColumnChart
+          title="RAM"
+          badgeText={`${metrics.memoryUsagePercent.toFixed(0)}%`}
+          currentPercent={metrics.memoryUsagePercent}
+          values={memSeries}
+          strokeColor="var(--color-lunar-white)"
+          badgeTextColor="var(--color-lunar-bg)"
+          gradientId="gradRamActivity"
+          peakValue={`${memStats.peak.toFixed(0)}%`}
+          averageValue={`${memStats.avg.toFixed(1)}%`}
+          onClick={onSelectMemory}
+        />
       </div>
     </section>
   );
 };
-
-
