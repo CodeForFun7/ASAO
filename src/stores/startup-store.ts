@@ -144,6 +144,7 @@ export const useStartupStore = create<StartupStoreState>((set, get) => ({
       if (isCurrentlyEnabled) {
         await disableStartupItem(
           item.id,
+          item.name,
           item.source,
           item.registryKey,
           item.serviceName,
@@ -152,6 +153,7 @@ export const useStartupStore = create<StartupStoreState>((set, get) => ({
       } else {
         await enableStartupItem(
           item.id,
+          item.name,
           item.source,
           item.registryKey,
           item.serviceName,

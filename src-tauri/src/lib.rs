@@ -11,6 +11,7 @@ pub mod tray;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
+use commands::cache::{cache_clear, cache_get_latest, cache_get_run, cache_list_runs};
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
 use commands::startup::{
     disable_startup_item, enable_startup_item, get_boot_performance_summary, get_startup_items,
@@ -23,6 +24,7 @@ use commands::bloat::{
 use commands::apps::{
     apps_get_last, apps_ignore, apps_remove, apps_scan, apps_unignore,
 };
+use commands::recycle_bin::{recycle_bin_delete, recycle_bin_list};
 use commands::residual::{
     residual_cancel_scan, residual_clean, residual_clean_empty, residual_get_ignore_list, residual_get_info,
     residual_get_last_result, residual_ignore_app, residual_ignore_folder,
@@ -82,6 +84,19 @@ pub fn run() {
                     let _ = request.respond(response);
                 }
             });
+
+            // 0. Open the SQLite scan cache (scans still work without it)
+            match handle
+                .path()
+                .app_data_dir()
+                .map_err(|e| e.to_string())
+                .and_then(|dir| db::Database::open(&dir.join("asao.db")))
+            {
+                Ok(database) => {
+                    let _ = monitoring_state.scan_cache.set(db::ScanCache::new(database));
+                }
+                Err(e) => eprintln!("Scan cache disabled: {}", e),
+            }
 
             // 1. Load persisted settings
             let loaded_settings = load_settings(&handle);
@@ -219,7 +234,13 @@ pub fn run() {
             bloat_apply,
             bloat_history,
             bloat_undo,
-            bloat_restart_explorer
+            bloat_restart_explorer,
+            recycle_bin_list,
+            recycle_bin_delete,
+            cache_get_latest,
+            cache_get_run,
+            cache_list_runs,
+            cache_clear
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

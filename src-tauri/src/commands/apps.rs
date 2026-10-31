@@ -18,6 +18,7 @@ use crate::apps::{
 };
 use crate::commands::residual::{protected_paths, refresh_storage_recommendations, residual_files, running_exes};
 use crate::commands::AppMonitoringState;
+use crate::db::ScanKind;
 use crate::residual::engine::refresh_history;
 use crate::residual::evidence::userassist_records;
 use crate::residual::exclusions::ExclusionList;
@@ -161,6 +162,7 @@ pub(crate) fn list_exes(dir: &str) -> Vec<String> {
 }
 
 fn scan_blocking(app: &AppHandle, state: &AppMonitoringState) -> Result<UnusedAppsResult, String> {
+    let timer = std::time::Instant::now();
     let files = residual_files(app)?;
     ensure_usage_loaded(app, state);
 
@@ -210,12 +212,20 @@ fn scan_blocking(app: &AppHandle, state: &AppMonitoringState) -> Result<UnusedAp
     if let Ok(mut rt) = state.apps.lock() {
         rt.last = Some(result.clone());
     }
-    start_sizing(app.clone(), state.clone(), &result);
+    let run_id = state.cache_run(
+        ScanKind::UnusedApps,
+        "",
+        result.scan_id,
+        timer.elapsed().as_millis() as u64,
+        result.apps.len() as u64,
+        &result,
+    );
+    start_sizing(app.clone(), state.clone(), &result, run_id);
     Ok(result)
 }
 
 /// Measures install folders that have no size from the registry, in the background.
-fn start_sizing(app: AppHandle, state: AppMonitoringState, result: &UnusedAppsResult) {
+fn start_sizing(app: AppHandle, state: AppMonitoringState, result: &UnusedAppsResult, run_id: Option<i64>) {
     let scan_id = result.scan_id;
     let todo: Vec<(String, String)> = result
         .apps
@@ -239,6 +249,12 @@ fn start_sizing(app: AppHandle, state: AppMonitoringState, result: &UnusedAppsRe
                 }
             }
             let _ = app.emit(EVENT_APPS_SIZE_UPDATE, AppSizeUpdate { scan_id, id, size_bytes: size });
+        }
+        // Save the measured sizes into the cached run (only if this scan is still current).
+        if let Ok(rt) = state.apps.lock() {
+            if let Some(r) = rt.last.as_ref().filter(|r| r.scan_id == scan_id) {
+                state.cache_update(run_id, r.apps.len() as u64, r);
+            }
         }
     });
 }

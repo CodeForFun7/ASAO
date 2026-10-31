@@ -1,95 +1,15 @@
-use crate::analyzer::{ProcessInfo, SystemMetrics};
+//! SQLite persistence.
+//!
+//! - `connection`: opens the database file and owns the shared connection.
+//! - `migrations`: versioned schema (tracked with `PRAGMA user_version`).
+//! - `scan_cache`: stores the result of every Startup, Storage, Leftover and Unused apps run.
+//! - `telemetry`: reserved contract for live process telemetry (not persisted today).
 
-/// SQLite-ready persistence schema & repository contract.
-///
-/// In the current live-analyzer phase, metrics are maintained in bounded memory
-/// and streamed over Tauri events without writing to SQLite every second.
-/// When historical persistence is activated, `SqliteStorageRepository` can implement
-/// `TelemetryRepository` using the DDL below.
-pub const SQLITE_SCHEMA_DDL: &str = r#"
-CREATE TABLE IF NOT EXISTS applications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    executable_name TEXT NOT NULL,
-    executable_path TEXT UNIQUE,
-    publisher TEXT,
-    product_name TEXT,
-    category TEXT NOT NULL,
-    is_system_critical INTEGER NOT NULL DEFAULT 0,
-    first_seen_at INTEGER NOT NULL,
-    last_seen_at INTEGER NOT NULL
-);
+pub mod connection;
+pub mod migrations;
+pub mod scan_cache;
+pub mod telemetry;
 
-CREATE TABLE IF NOT EXISTS process_samples (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    application_id INTEGER NOT NULL,
-    pid INTEGER NOT NULL,
-    cpu_percent REAL NOT NULL,
-    memory_bytes INTEGER NOT NULL,
-    disk_bytes_per_sec INTEGER NOT NULL,
-    network_bytes_per_sec INTEGER NOT NULL,
-    status TEXT NOT NULL,
-    sampled_at INTEGER NOT NULL,
-    FOREIGN KEY(application_id) REFERENCES applications(id)
-);
-
-CREATE TABLE IF NOT EXISTS application_usage (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    application_id INTEGER NOT NULL,
-    date_bucket TEXT NOT NULL,
-    avg_cpu_percent REAL NOT NULL,
-    peak_memory_bytes INTEGER NOT NULL,
-    active_seconds INTEGER NOT NULL,
-    FOREIGN KEY(application_id) REFERENCES applications(id)
-);
-
-CREATE TABLE IF NOT EXISTS recommendations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    application_id INTEGER NOT NULL,
-    summary TEXT NOT NULL,
-    reason TEXT NOT NULL,
-    recommendation TEXT,
-    impact_level TEXT,
-    confidence REAL,
-    created_at INTEGER NOT NULL,
-    FOREIGN KEY(application_id) REFERENCES applications(id)
-);
-
-CREATE TABLE IF NOT EXISTS optimization_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    recommendation_id INTEGER,
-    action_type TEXT NOT NULL,
-    backup_payload TEXT NOT NULL,
-    applied_at INTEGER NOT NULL,
-    rolled_back_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS widget_settings (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    start_with_windows INTEGER NOT NULL DEFAULT 0,
-    widget_enabled INTEGER NOT NULL DEFAULT 1,
-    launch_widget_on_startup INTEGER NOT NULL DEFAULT 0,
-    always_on_top INTEGER NOT NULL DEFAULT 1,
-    show_recommendations INTEGER NOT NULL DEFAULT 1,
-    notifications INTEGER NOT NULL DEFAULT 1,
-    widget_position TEXT NOT NULL DEFAULT 'bottom-right',
-    custom_x INTEGER,
-    custom_y INTEGER,
-    widget_opacity INTEGER NOT NULL DEFAULT 80,
-    updated_at INTEGER NOT NULL
-);
-"#;
-
-pub trait TelemetryRepository: Send + Sync {
-    fn record_batch_summary(&mut self, metrics: &SystemMetrics, top_processes: &[ProcessInfo]);
-}
-
-#[derive(Default)]
-pub struct InMemoryTelemetryBuffer {
-    pub recent_system_samples: usize,
-}
-
-impl TelemetryRepository for InMemoryTelemetryBuffer {
-    fn record_batch_summary(&mut self, _metrics: &SystemMetrics, _top_processes: &[ProcessInfo]) {
-        self.recent_system_samples = self.recent_system_samples.saturating_add(1);
-    }
-}
+pub use connection::Database;
+pub use scan_cache::{CachedRun, RunSummary, ScanCache, ScanKind};
+pub use telemetry::{InMemoryTelemetryBuffer, TelemetryRepository, SQLITE_SCHEMA_DDL};
