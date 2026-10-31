@@ -32,6 +32,9 @@ pub struct AsaoSettings {
     /// Zero is only accepted in developer mode.
     #[serde(default = "default_residual_min_age_days")]
     pub residual_min_age_days: u32,
+    /// Forces dry run on the Debloat page, also in release builds.
+    #[serde(default)]
+    pub bloat_dry_run: bool,
 }
 
 impl Default for AsaoSettings {
@@ -49,6 +52,7 @@ impl Default for AsaoSettings {
             widget_opacity: 80,
             theme: "dark".to_string(),
             residual_min_age_days: crate::residual::DEFAULT_MIN_AGE_DAYS,
+            bloat_dry_run: false,
         }
     }
 }
