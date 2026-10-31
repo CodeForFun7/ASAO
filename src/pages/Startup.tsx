@@ -288,6 +288,7 @@ export const Startup: React.FC = () => {
         <StartupDetails
           item={selectedItem}
           isActionLoading={actionInProgressId === selectedItem.id}
+          actionError={error}
           onClose={() => selectItem(null)}
           onToggleState={() => void toggleItemState(selectedItem)}
         />

@@ -1,4 +1,5 @@
 pub mod apps;
+pub mod cache;
 pub mod process;
 pub mod recycle_bin;
 pub mod residual;
@@ -7,10 +8,11 @@ pub mod storage;
 pub mod system;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+use crate::db::{ScanCache, ScanKind};
 use crate::analyzer::process_analyzer::ProcessAnalyzerEngine;
 use crate::analyzer::recommendation_engine::RecommendationEngine;
 use crate::analyzer::storage_analyzer::StorageAnalyzerEngine;
@@ -43,6 +45,8 @@ pub struct AppMonitoringState {
     pub residual_cancel: Arc<AtomicBool>,
     pub apps: Arc<Mutex<AppsRuntime>>,
     pub apps_busy: Arc<AtomicBool>,
+    /// SQLite cache of scan runs. Set once at startup; empty if the database could not open.
+    pub scan_cache: Arc<OnceLock<ScanCache>>,
 }
 
 impl AppMonitoringState {
@@ -63,6 +67,35 @@ impl AppMonitoringState {
             residual_cancel: Arc::new(AtomicBool::new(false)),
             apps: Arc::new(Mutex::new(AppsRuntime::default())),
             apps_busy: Arc::new(AtomicBool::new(false)),
+            scan_cache: Arc::new(OnceLock::new()),
+        }
+    }
+
+    /// Saves one scan run to the SQLite cache. Never fails the scan: problems are logged.
+    pub fn cache_run<T: serde::Serialize>(
+        &self,
+        kind: ScanKind,
+        scope: &str,
+        started_at_ms: u64,
+        duration_ms: u64,
+        item_count: u64,
+        result: &T,
+    ) -> Option<i64> {
+        let cache = self.scan_cache.get()?;
+        match cache.record(kind, scope, started_at_ms, duration_ms, item_count, result) {
+            Ok(id) => Some(id),
+            Err(e) => {
+                eprintln!("Could not cache {} run: {}", kind.as_str(), e);
+                None
+            }
+        }
+    }
+
+    /// Updates a cached run with data that finished later (background sizing).
+    pub fn cache_update<T: serde::Serialize>(&self, run_id: Option<i64>, item_count: u64, result: &T) {
+        let (Some(cache), Some(id)) = (self.scan_cache.get(), run_id) else { return };
+        if let Err(e) = cache.update_result(id, item_count, result) {
+            eprintln!("Could not update cached run: {}", e);
         }
     }
 

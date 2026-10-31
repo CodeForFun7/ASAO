@@ -28,6 +28,7 @@ import { formatBytes } from "../../services/tauri";
 interface StartupDetailsProps {
   item: StartupItem;
   isActionLoading: boolean;
+  actionError?: string | null;
   onClose: () => void;
   onToggleState: () => void;
 }
@@ -53,6 +54,7 @@ function getGroupIcon(group: StartupGroup) {
 export const StartupDetails: React.FC<StartupDetailsProps> = ({
   item,
   isActionLoading,
+  actionError,
   onClose,
   onToggleState,
 }) => {
@@ -310,6 +312,11 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
                       </>
                     )}
                   </button>
+                )}
+                {actionError && (
+                  <p className="text-[11px] text-lunar-critical max-w-xs break-words">
+                    {actionError}
+                  </p>
                 )}
               </div>
             </div>

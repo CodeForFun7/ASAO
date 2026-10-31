@@ -8,6 +8,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::commands::AppMonitoringState;
+use crate::db::ScanKind;
 use crate::residual::cleaner::{freed_bytes, process_items, CleanItem, CleanOptions, CleanOutcome, CleanReport};
 use crate::residual::elevated::{is_process_elevated, run_elevated, ElevatedJob, ElevationError};
 use crate::residual::engine::{build_live_context, refresh_history, Engine, LiveOptions};
@@ -182,12 +183,20 @@ pub fn run_scan_blocking(app: &AppHandle, state: &AppMonitoringState) -> Result<
     if let Ok(mut guard) = state.residual.lock() {
         guard.last_result = Some(result.clone());
     }
-    start_sizing(app.clone(), state.clone(), result.clone());
+    let run_id = state.cache_run(
+        ScanKind::Leftover,
+        "",
+        result.started_ms,
+        result.finished_ms.saturating_sub(result.started_ms),
+        result.candidates().count() as u64,
+        &result,
+    );
+    start_sizing(app.clone(), state.clone(), result.clone(), run_id);
     Ok(result)
 }
 
 /// Measures every flagged folder in the background and streams the sizes to the UI.
-fn start_sizing(app: AppHandle, state: AppMonitoringState, result: ResidualScanResult) {
+fn start_sizing(app: AppHandle, state: AppMonitoringState, result: ResidualScanResult, run_id: Option<i64>) {
     std::thread::spawn(move || {
         let scan_id = result.scan_id;
         let mut total = 0u64;
@@ -222,6 +231,12 @@ fn start_sizing(app: AppHandle, state: AppMonitoringState, result: ResidualScanR
                     newest_modified_ms: size.newest_modified_ms,
                 },
             );
+        }
+        // Save the measured sizes into the cached run (only if this scan is still current).
+        if let Ok(guard) = state.residual.lock() {
+            if let Some(r) = guard.last_result.as_ref().filter(|r| r.scan_id == scan_id) {
+                state.cache_update(run_id, r.candidates().count() as u64, r);
+            }
         }
         let _ = app.emit(
             EVENT_RESIDUAL_SIZING_DONE,
