@@ -74,6 +74,8 @@ pub async fn start_storage_scan(
     let handle_clone = app_handle.clone();
     let mount_clone = target_mount.clone();
 
+    let started_at = crate::residual::now_ms();
+    let timer = std::time::Instant::now();
     let scan_result = tauri::async_runtime::spawn_blocking(move || {
         perform_drive_scan(&mount_clone, &cancel_flag, Some(&handle_clone))
     })
@@ -84,6 +86,14 @@ pub async fn start_storage_scan(
 
     match scan_result {
         Ok((index, snapshot)) => {
+            state.cache_run(
+                crate::db::ScanKind::Storage,
+                &snapshot.selected_drive.trim_end_matches('\\').to_uppercase(),
+                started_at,
+                timer.elapsed().as_millis() as u64,
+                snapshot.files_analyzed,
+                &snapshot,
+            );
             let key = snapshot.selected_drive.trim_end_matches('\\').to_uppercase();
             if let Ok(mut guard) = storage_engine.lock() {
                 guard.active_drive = Some(key.clone());

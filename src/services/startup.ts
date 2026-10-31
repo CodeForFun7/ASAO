@@ -15,6 +15,7 @@ export async function getBootPerformanceSummary(): Promise<BootPerformanceSummar
 
 export async function disableStartupItem(
   itemId: string,
+  name: string,
   source: string,
   registryKey?: string | null,
   serviceName?: string | null,
@@ -22,6 +23,7 @@ export async function disableStartupItem(
 ): Promise<void> {
   return invoke<void>("disable_startup_item", {
     itemId,
+    name,
     source,
     registryKey: registryKey ?? null,
     serviceName: serviceName ?? null,
@@ -31,6 +33,7 @@ export async function disableStartupItem(
 
 export async function enableStartupItem(
   itemId: string,
+  name: string,
   source: string,
   registryKey?: string | null,
   serviceName?: string | null,
@@ -39,6 +42,7 @@ export async function enableStartupItem(
 ): Promise<void> {
   return invoke<void>("enable_startup_item", {
     itemId,
+    name,
     source,
     registryKey: registryKey ?? null,
     serviceName: serviceName ?? null,
