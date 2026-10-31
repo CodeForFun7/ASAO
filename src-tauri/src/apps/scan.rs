@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use super::usage::UsageStore;
+use super::usage::{last_use_in, UsageStore};
 use super::{AppInternal, AppKind, RemovalMethod, UnusedApp, UnusedAppsResult, UsageSource};
 use crate::residual::evidence::{app_folder_for, is_ignored_location, is_installer_like, RunRecord};
 use crate::residual::exclusions::{ExclusionDecision, ExclusionList};
@@ -120,36 +120,9 @@ impl<'a> ScanInputs<'a> {
 
     /// Last use of anything inside these folders, plus a Store app's launch id.
     fn last_use(&self, dirs: &[String], store_family: Option<&str>) -> Usage {
-        let mut u = Usage::new();
-        let family_prefix = store_family.map(|f| format!("{}!", f.to_lowercase()));
-        for r in self.runs {
-            if r.is_program {
-                if self.inside_any(&path_key(&r.target), dirs) {
-                    u.bump(r.last_run_ms, UsageSource::LaunchRecord);
-                }
-            } else if let Some(prefix) = &family_prefix {
-                if r.target.to_lowercase().starts_with(prefix.as_str()) {
-                    u.bump(r.last_run_ms, UsageSource::LaunchRecord);
-                }
-            }
+        Usage {
+            best: last_use_in(self.runs, self.usage, self.prefetch, self.list_exes, dirs, store_family),
         }
-        for (exe, t) in &self.usage.last_seen {
-            if self.inside_any(exe, dirs) {
-                u.bump(Some(*t), UsageSource::AsaoMonitor);
-            }
-        }
-        if let Some(prefetch) = self.prefetch {
-            for d in dirs.iter().take(3) {
-                for name in (self.list_exes)(d).into_iter().take(60) {
-                    let stem = name.trim_end_matches(".exe");
-                    if is_installer_like(stem) {
-                        continue;
-                    }
-                    u.bump(prefetch.get(&name).copied(), UsageSource::Prefetch);
-                }
-            }
-        }
-        u
     }
 
     fn excluded_registered(&self, app: &InstalledApp, details: Option<&AppDetails>) -> bool {

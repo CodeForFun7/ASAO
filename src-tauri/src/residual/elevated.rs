@@ -74,9 +74,10 @@ pub fn is_process_elevated() -> bool {
     false
 }
 
-/// Starts the administrator helper and waits for it. Windows shows its permission prompt.
+/// Starts `asao.exe <arg> "<job_path>"` as administrator (Windows shows its permission prompt)
+/// and waits up to `timeout_ms` for it to finish.
 #[cfg(target_os = "windows")]
-pub fn run_elevated(mut job: ElevatedJob, files: &ResidualFiles) -> Result<Vec<CleanOutcome>, ElevationError> {
+pub fn launch_as_admin(arg: &str, job_path: &Path, timeout_ms: u32) -> Result<(), ElevationError> {
     use windows::core::PCWSTR;
     use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
     use windows::Win32::System::Threading::WaitForSingleObject;
@@ -86,19 +87,10 @@ pub fn run_elevated(mut job: ElevatedJob, files: &ResidualFiles) -> Result<Vec<C
         s.encode_utf16().chain(std::iter::once(0)).collect()
     }
 
-    let jobs = files.jobs_dir();
-    fs::create_dir_all(&jobs).map_err(|e| ElevationError::Failed(e.to_string()))?;
-    let stamp = now_ms();
-    let job_path = jobs.join(format!("job-{}.json", stamp));
-    let result_path = jobs.join(format!("job-{}.result.json", stamp));
-    job.result_path = result_path.to_string_lossy().to_string();
-    let json = serde_json::to_string(&job).map_err(|e| ElevationError::Failed(e.to_string()))?;
-    fs::write(&job_path, json).map_err(|e| ElevationError::Failed(e.to_string()))?;
-
     let exe = std::env::current_exe().map_err(|e| ElevationError::Failed(e.to_string()))?;
     let verb = wide("runas");
     let file = wide(&exe.to_string_lossy());
-    let params = wide(&format!("{} \"{}\"", ELEVATED_ARG, job_path.to_string_lossy()));
+    let params = wide(&format!("{} \"{}\"", arg, job_path.to_string_lossy()));
 
     let mut info = SHELLEXECUTEINFOW {
         cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
@@ -110,14 +102,8 @@ pub fn run_elevated(mut job: ElevatedJob, files: &ResidualFiles) -> Result<Vec<C
         ..Default::default()
     };
 
-    let cleanup = |job_path: &Path, result_path: &Path| {
-        let _ = fs::remove_file(job_path);
-        let _ = fs::remove_file(result_path);
-    };
-
     unsafe {
         if let Err(e) = ShellExecuteExW(&mut info) {
-            cleanup(&job_path, &result_path);
             // ERROR_CANCELLED (1223) as an HRESULT: the user said no to the prompt.
             if (e.code().0 as u32) == 0x800704C7 {
                 return Err(ElevationError::Declined);
@@ -125,13 +111,40 @@ pub fn run_elevated(mut job: ElevatedJob, files: &ResidualFiles) -> Result<Vec<C
             return Err(ElevationError::Failed(e.message().to_string()));
         }
         if !info.hProcess.is_invalid() {
-            let waited = WaitForSingleObject(info.hProcess, 15 * 60 * 1000);
+            let waited = WaitForSingleObject(info.hProcess, timeout_ms);
             let _ = CloseHandle(info.hProcess);
             if waited != WAIT_OBJECT_0 {
-                cleanup(&job_path, &result_path);
                 return Err(ElevationError::Failed("The administrator helper did not finish in time".into()));
             }
         }
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn launch_as_admin(_arg: &str, _job_path: &Path, _timeout_ms: u32) -> Result<(), ElevationError> {
+    Err(ElevationError::Failed("Not supported".into()))
+}
+
+/// Starts the administrator helper and waits for it. Windows shows its permission prompt.
+#[cfg(target_os = "windows")]
+pub fn run_elevated(mut job: ElevatedJob, files: &ResidualFiles) -> Result<Vec<CleanOutcome>, ElevationError> {
+    let jobs = files.jobs_dir();
+    fs::create_dir_all(&jobs).map_err(|e| ElevationError::Failed(e.to_string()))?;
+    let stamp = now_ms();
+    let job_path = jobs.join(format!("job-{}.json", stamp));
+    let result_path = jobs.join(format!("job-{}.result.json", stamp));
+    job.result_path = result_path.to_string_lossy().to_string();
+    let json = serde_json::to_string(&job).map_err(|e| ElevationError::Failed(e.to_string()))?;
+    fs::write(&job_path, json).map_err(|e| ElevationError::Failed(e.to_string()))?;
+
+    let cleanup = |job_path: &Path, result_path: &Path| {
+        let _ = fs::remove_file(job_path);
+        let _ = fs::remove_file(result_path);
+    };
+    if let Err(e) = launch_as_admin(ELEVATED_ARG, &job_path, 15 * 60 * 1000) {
+        cleanup(&job_path, &result_path);
+        return Err(e);
     }
 
     let result = fs::read_to_string(&result_path)
