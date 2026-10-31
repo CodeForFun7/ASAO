@@ -161,7 +161,8 @@ export const DebloatPage: React.FC = () => {
   const dryRunLocked = Boolean(info?.dryRunForced);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-5">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+    <div className="flex-1 min-w-0 overflow-y-auto p-6 space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
@@ -500,7 +501,8 @@ export const DebloatPage: React.FC = () => {
                   item={i}
                   selected={Boolean(selected[i.id])}
                   onToggle={() => toggle(i)}
-                  onOpen={() => openDetail(i.id)}
+                  open={detailId === i.id}
+                  onOpen={() => openDetail(detailId === i.id ? null : i.id)}
                 />
               ))}
             </div>
@@ -509,6 +511,10 @@ export const DebloatPage: React.FC = () => {
         </>
       )}
 
+
+    </div>
+
+      {/* Right-hand details panel, the same as on the Processes page */}
       {detail && <BloatDetails item={detail} onClose={() => openDetail(null)} />}
 
       {confirmOpen && plan && (

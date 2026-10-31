@@ -18,17 +18,17 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 const ImpactRow: React.FC<{ label: string; part: ImpactPart }> = ({ label, part }) => (
-  <div className="flex items-center gap-3">
-    <span className="w-36 text-[11px] text-lunar-text-sec shrink-0">{label}</span>
-    <div className="flex-1 h-1.5 rounded-full bg-lunar-elevated overflow-hidden">
+  <div className="space-y-1">
+    <div className="flex items-center justify-between text-[11px]">
+      <span className="text-lunar-text-sec">{label}</span>
+      <span className="font-mono text-lunar-white">
+        {part.points}/{part.max}
+      </span>
+    </div>
+    <div className="h-1.5 rounded-full bg-lunar-elevated overflow-hidden">
       <div className="h-full bg-lunar-white" style={{ width: `${part.max ? (part.points / part.max) * 100 : 0}%` }} />
     </div>
-    <span className="w-14 text-right text-[11px] font-mono text-lunar-white shrink-0">
-      {part.points}/{part.max}
-    </span>
-    <span className="w-64 text-[11px] text-lunar-text-sec truncate shrink-0" title={part.value}>
-      {part.value}
-    </span>
+    <div className="text-[10px] text-lunar-muted leading-relaxed">{part.value}</div>
   </div>
 );
 
@@ -55,27 +55,20 @@ export const BloatDetails: React.FC<BloatDetailsProps> = ({ item, onClose }) => 
   const lastUsedDays = item.lastUsedMs ? Math.floor((Date.now() - item.lastUsedMs) / 86_400_000) : null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
+    <aside
+      className="w-96 bg-lunar-surface border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden"
       aria-labelledby="bloat-detail-title"
     >
-      <div
-        className="w-full max-w-3xl h-[88vh] max-h-[820px] bg-lunar-surface border border-lunar-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 border-b border-lunar-border flex items-center justify-between bg-lunar-surface-2/60 shrink-0">
+        <div className="p-4 border-b border-lunar-border flex items-start justify-between gap-3 bg-lunar-surface-2/50 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-lunar-elevated border border-lunar-border flex items-center justify-center shrink-0">
               {kindIcon(item)}
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <h2 id="bloat-detail-title" className="text-sm font-semibold text-lunar-white tracking-tight truncate">
-                  {item.name}
-                </h2>
+              <h2 id="bloat-detail-title" className="text-sm font-semibold text-lunar-white tracking-tight truncate" title={item.name}>
+                {item.name}
+              </h2>
+              <div className="mt-1">
                 <SafetyBadge safety={item.safety} />
               </div>
               <p className="text-[11px] text-lunar-text-sec truncate font-mono mt-0.5">
@@ -84,22 +77,17 @@ export const BloatDetails: React.FC<BloatDetailsProps> = ({ item, onClose }) => 
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <kbd className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-lunar-surface-2 border border-lunar-border text-lunar-muted">
-              ESC
-            </kbd>
-            <button
-              type="button"
-              onClick={onClose}
-              title="Close (Esc)"
-              className="p-1.5 rounded-md hover:bg-lunar-elevated text-lunar-muted hover:text-lunar-white transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close details (Esc)"
+            className="p-1 rounded hover:bg-lunar-elevated text-lunar-muted hover:text-lunar-white transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 divide-y divide-lunar-border/30">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5 divide-y divide-lunar-border/30">
           <Section title="What it is">
             <p className="text-xs text-lunar-text leading-relaxed">
               {item.whatItDoes ?? "ASAO has no description for it."}
@@ -221,7 +209,6 @@ export const BloatDetails: React.FC<BloatDetailsProps> = ({ item, onClose }) => 
             </div>
           </Section>
         </div>
-      </div>
-    </div>
+    </aside>
   );
 };

@@ -9,11 +9,13 @@ import { CategoryChip, ImpactScore, SafetyBadge } from "./BloatPrimitives";
 interface BloatRowProps {
   item: BloatItem;
   selected: boolean;
+  /** Its details are showing in the side panel. */
+  open?: boolean;
   onToggle: () => void;
   onOpen: () => void;
 }
 
-export const BloatRow: React.FC<BloatRowProps> = ({ item, selected, onToggle, onOpen }) => {
+export const BloatRow: React.FC<BloatRowProps> = ({ item, selected, open = false, onToggle, onOpen }) => {
   const extras = [
     item.services.length > 0 && `${item.services.length} ${item.services.length === 1 ? "service" : "services"}`,
     item.startup.length > 0 && `${item.startup.length} startup`,
@@ -28,7 +30,10 @@ export const BloatRow: React.FC<BloatRowProps> = ({ item, selected, onToggle, on
       onKeyDown={(e) => {
         if (e.key === "Enter") onOpen();
       }}
-      className="flex items-center gap-3 px-4 py-3 rounded-lg lunar-glass-card hover:border-lunar-text-sec/40 transition-colors cursor-pointer"
+      aria-pressed={open}
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg lunar-glass-card transition-colors cursor-pointer ${
+        open ? "border-lunar-white/50 bg-lunar-elevated/40" : "hover:border-lunar-text-sec/40"
+      }`}
     >
       <div className="w-4 shrink-0">
         {item.selectable && (
