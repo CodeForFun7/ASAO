@@ -18,7 +18,7 @@ const MIGRATIONS: &[&str] = &[
     "#,
     // 2: audit log of every change made by or through ASAO, with the data needed to reverse it
     r#"
-    CREATE TABLE audit_log (
+    CREATE TABLE IF NOT EXISTS audit_log (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at  INTEGER NOT NULL,
         category    TEXT    NOT NULL,
@@ -29,7 +29,23 @@ const MIGRATIONS: &[&str] = &[
         ref_key     TEXT,
         restored_at INTEGER
     );
-    CREATE INDEX idx_audit_log_ref ON audit_log (ref_key);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_ref ON audit_log (ref_key);
+    "#,
+    // 3: some existing databases were already at version 2 (made by another build) without the
+    // audit log, so migration 2 never ran there. Same statements, safe to repeat.
+    r#"
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at  INTEGER NOT NULL,
+        category    TEXT    NOT NULL,
+        title       TEXT    NOT NULL,
+        detail      TEXT    NOT NULL DEFAULT '',
+        undo        TEXT,
+        undo_note   TEXT,
+        ref_key     TEXT,
+        restored_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_log_ref ON audit_log (ref_key);
     "#,
 ];
 
@@ -47,4 +63,20 @@ pub fn run(conn: &mut Connection) -> Result<(), String> {
         tx.commit().map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adds_audit_log_to_a_database_already_at_version_2() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("CREATE TABLE other (id INTEGER); PRAGMA user_version = 2;").unwrap();
+        run(&mut conn).unwrap();
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM sqlite_master WHERE name = 'audit_log'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 1);
+    }
 }
