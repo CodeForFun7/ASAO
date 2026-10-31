@@ -1,6 +1,7 @@
 pub mod apps;
 pub mod cache;
 pub mod process;
+pub mod recycle_bin;
 pub mod residual;
 pub mod startup;
 pub mod storage;
