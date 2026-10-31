@@ -1519,6 +1519,17 @@ pub async fn agent_clean_temp(
             report.skipped_recent += loc.skipped_recent;
             report.locations.push(loc);
         }
+        if report.deleted_files > 0 {
+            let places: Vec<&str> = report.locations.iter().map(|l| l.label.as_str()).collect();
+            crate::audit::record(
+                "files",
+                &format!("Deleted {} temporary file(s)", report.deleted_files),
+                &format!("{} freed from {}", crate::audit::human_bytes(report.freed_bytes), places.join(", ")),
+                None,
+                Some("Temporary files were deleted permanently. ASAO cannot bring them back."),
+                None,
+            );
+        }
         Ok(report)
     })
     .await
@@ -1547,6 +1558,14 @@ pub async fn agent_empty_recycle_bin() -> Result<u64, String> {
             )
             .map_err(|e| format!("Windows could not empty the Recycle Bin: {}", e))?;
         }
+        crate::audit::record(
+            "recycle-bin",
+            &format!("Emptied the Recycle Bin ({} item(s))", items),
+            &format!("Freed {}", crate::audit::human_bytes(before)),
+            None,
+            Some("The Recycle Bin was emptied. ASAO cannot bring the items back."),
+            None,
+        );
         Ok(before)
     })
     .await
@@ -1675,6 +1694,11 @@ pub async fn agent_delete_paths(
             }
             report.outcomes.push(outcome);
         }
+        // Items removed with their parent folder are covered by the parent's entry.
+        for o in report.outcomes.iter().filter(|o| o.status == "deleted" && o.reason.is_none()) {
+            let label = if o.is_dir { "folder" } else { "file" };
+            crate::audit::record_deletion("files", label, &o.path, Some(o.size_bytes), o.recycled);
+        }
         Ok(report)
     })
     .await
@@ -1769,7 +1793,16 @@ pub async fn agent_terminate_process(
         .await
         .map_err(|e| format!("Terminate thread error: {}", e))?;
     Ok(match result {
-        Ok(exited) => TerminateOutcome {
+        Ok(exited) => {
+            crate::audit::record(
+                "processes",
+                &format!("Ended process \"{}\"", name),
+                &format!("Process ID {}", pid),
+                None,
+                Some("An ended process cannot be restored. Start the program again yourself."),
+                None,
+            );
+            TerminateOutcome {
             pid,
             name,
             status: "terminated".into(),
@@ -1778,7 +1811,8 @@ pub async fn agent_terminate_process(
             } else {
                 "Windows accepted the request; the process is shutting down.".into()
             },
-        },
+        }
+        }
         Err(message) => TerminateOutcome { pid, name, status: "failed".into(), message },
     })
 }

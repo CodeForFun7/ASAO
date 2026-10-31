@@ -84,9 +84,114 @@ pub fn wpr_cancel_boot_trace() -> Result<String, String> {
 // Mutation commands (Disable / Enable)
 // ---------------------------------------------------------------------------
 
-/// Disable a startup entry.
+/// Disable a startup entry. The change is written to the audit log with its reverse.
 #[tauri::command]
 pub fn disable_startup_item(
+    item_id: String,
+    source: String,
+    name: Option<String>,
+    registry_key: Option<String>,
+    service_name: Option<String>,
+    task_path: Option<String>,
+) -> Result<(), String> {
+    let prior = prior_service_start(&source, service_name.as_deref());
+    do_disable_startup_item(
+        item_id.clone(),
+        source.clone(),
+        name.clone(),
+        registry_key.clone(),
+        service_name.clone(),
+        task_path.clone(),
+    )?;
+    audit_startup_toggle(false, item_id, source, name, registry_key, service_name, task_path, None, prior);
+    Ok(())
+}
+
+/// Re-enable a previously disabled startup entry. The change is written to the audit log.
+#[tauri::command]
+pub fn enable_startup_item(
+    item_id: String,
+    source: String,
+    name: Option<String>,
+    registry_key: Option<String>,
+    service_name: Option<String>,
+    task_path: Option<String>,
+    command_line: Option<String>,
+) -> Result<(), String> {
+    let prior = prior_service_start(&source, service_name.as_deref());
+    do_enable_startup_item(
+        item_id.clone(),
+        source.clone(),
+        name.clone(),
+        registry_key.clone(),
+        service_name.clone(),
+        task_path.clone(),
+        command_line.clone(),
+    )?;
+    audit_startup_toggle(true, item_id, source, name, registry_key, service_name, task_path, command_line, prior);
+    Ok(())
+}
+
+/// Start type of a service before ASAO changes it, so the audit log can put it back exactly.
+fn prior_service_start(source: &str, service_name: Option<&str>) -> Option<String> {
+    let name = service_name.filter(|_| source == "windows-service")?;
+    if name.contains('\'') {
+        return None;
+    }
+    let out = std::process::Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            &format!("(Get-Service -Name '{}' -ErrorAction Stop).StartType.ToString()", name),
+        ])
+        .output()
+        .ok()?;
+    let value = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    matches!(value.as_str(), "Automatic" | "Manual" | "Disabled").then_some(value)
+}
+
+/// Puts a service back to a start type read by `prior_service_start`.
+pub fn restore_service_start(name: &str, start_type: &str) -> Result<(), String> {
+    let value = match start_type {
+        "Automatic" => 2,
+        "Manual" => 3,
+        "Disabled" => 4,
+        other => return Err(format!("Unknown service start type: {}", other)),
+    };
+    set_service_start(name, start_type, value)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn audit_startup_toggle(
+    enabled_now: bool,
+    item_id: String,
+    source: String,
+    name: Option<String>,
+    registry_key: Option<String>,
+    service_name: Option<String>,
+    task_path: Option<String>,
+    command_line: Option<String>,
+    service_start: Option<String>,
+) {
+    let display = name.clone().unwrap_or_else(|| clean_item_name(&item_id));
+    let title = format!("{} startup item \"{}\"", if enabled_now { "Enabled" } else { "Disabled" }, display);
+    let undo = crate::audit::AuditUndo::Startup {
+        enable: !enabled_now,
+        item_id,
+        source: source.clone(),
+        name,
+        registry_key,
+        service_name,
+        task_path,
+        command_line,
+        service_start,
+    };
+    crate::audit::record("startup", &title, &format!("Source: {}", source), Some(undo), None, None);
+}
+
+/// Disable a startup entry without writing to the audit log.
+pub fn do_disable_startup_item(
     item_id: String,
     source: String,
     name: Option<String>,
@@ -123,9 +228,8 @@ pub fn disable_startup_item(
     }
 }
 
-/// Re-enable a previously disabled startup entry.
-#[tauri::command]
-pub fn enable_startup_item(
+/// Re-enable a startup entry without writing to the audit log.
+pub fn do_enable_startup_item(
     item_id: String,
     source: String,
     name: Option<String>,

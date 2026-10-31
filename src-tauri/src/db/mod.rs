@@ -5,11 +5,13 @@
 //! - `scan_cache`: stores the result of every Startup, Storage, Leftover and Unused apps run.
 //! - `telemetry`: reserved contract for live process telemetry (not persisted today).
 
+pub mod audit_log;
 pub mod connection;
 pub mod migrations;
 pub mod scan_cache;
 pub mod telemetry;
 
+pub use audit_log::AuditLog;
 pub use connection::Database;
 pub use scan_cache::{CachedRun, RunSummary, ScanCache, ScanKind};
 pub use telemetry::{InMemoryTelemetryBuffer, TelemetryRepository, SQLITE_SCHEMA_DDL};

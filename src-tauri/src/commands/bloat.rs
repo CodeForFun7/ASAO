@@ -402,7 +402,39 @@ fn apply_blocking(
             }
         }
     }
+    if !report.dry_run {
+        audit_batch(&report);
+    }
     Ok(report)
+}
+
+/// Writes every change of a real batch to the audit log. Restoring goes through the Debloat
+/// change history, which holds the original values.
+fn audit_batch(report: &ApplyReport) {
+    use crate::audit::{record, AuditUndo};
+    use crate::bloat::executor::OutcomeStatus;
+    use crate::bloat::planner::ActionKind;
+
+    for o in &report.outcomes {
+        if !matches!(o.status, OutcomeStatus::Done | OutcomeStatus::NotConfirmed) {
+            continue;
+        }
+        let ref_key = format!("bloat:{}:{}", report.batch_id, o.action.id);
+        let undo = undo_for(o).map(|_| AuditUndo::Bloat {
+            batch_id: report.batch_id.clone(),
+            action_id: o.action.id.clone(),
+        });
+        let note = match &o.action.kind {
+            ActionKind::UninstallStore { .. } | ActionKind::RemoveProvisioned { .. } => {
+                "ASAO cannot reinstall it. Get it again from the Microsoft Store."
+            }
+            ActionKind::UninstallWin32 { .. } => {
+                "ASAO cannot reinstall it. Download it again from the publisher or use the Windows restore point made before the change."
+            }
+            _ => "ASAO did not keep the original state for this change.",
+        };
+        record("debloat", &o.action.description, &o.action.item_name, undo, Some(note), Some(ref_key));
+    }
 }
 
 /// Runs the ticked changes: restore point, startup entries, tasks, services, uninstalls.
@@ -429,7 +461,7 @@ pub fn bloat_history(app: AppHandle) -> Result<ChangeHistory, String> {
     Ok(ChangeHistory::load(&history_path(&bloat_dir(&app)?)))
 }
 
-fn undo_blocking(app: &AppHandle, batch_id: String, action_id: String) -> Result<UndoResult, String> {
+pub fn undo_blocking(app: &AppHandle, batch_id: String, action_id: String) -> Result<UndoResult, String> {
     let dir = bloat_dir(app)?;
     let history = ChangeHistory::load(&history_path(&dir));
     let record = history
@@ -464,9 +496,29 @@ fn undo_blocking(app: &AppHandle, batch_id: String, action_id: String) -> Result
 /// Puts one recorded change back. Store apps: opens their Store page.
 #[tauri::command]
 pub async fn bloat_undo(app: AppHandle, batch_id: String, action_id: String) -> Result<UndoResult, String> {
-    tauri::async_runtime::spawn_blocking(move || undo_blocking(&app, batch_id, action_id))
-        .await
-        .map_err(|e| format!("Thread error: {}", e))?
+    tauri::async_runtime::spawn_blocking(move || {
+        let ref_key = format!("bloat:{}:{}", batch_id, action_id);
+        let result = undo_blocking(&app, batch_id, action_id)?;
+        // Undo from the Debloat page counts as a restore in the audit log as well.
+        if result.ok {
+            let marked = crate::db::audit_log::global()
+                .and_then(|log| log.mark_restored_by_ref(&ref_key, now_ms()).ok())
+                .unwrap_or(0);
+            if marked > 0 {
+                crate::audit::record(
+                    "restore",
+                    "Restored a Debloat change",
+                    &result.message,
+                    None,
+                    Some("Restoring is not reversed from here. Apply the change again if you need it."),
+                    None,
+                );
+            }
+        }
+        Ok(result)
+    })
+    .await
+    .map_err(|e| format!("Thread error: {}", e))?
 }
 
 /// Restarts File Explorer so taskbar, Start and File Explorer settings show at once, as

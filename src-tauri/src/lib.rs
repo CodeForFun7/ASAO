@@ -1,5 +1,6 @@
 pub mod analyzer;
 pub mod apps;
+pub mod audit;
 pub mod bloat;
 pub mod bridge;
 pub mod collector;
@@ -12,6 +13,7 @@ pub mod tray;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
+use commands::audit::{audit_list, audit_restore};
 use commands::cache::{cache_clear, cache_get_latest, cache_get_run, cache_list_runs};
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
 use commands::startup::{
@@ -69,9 +71,10 @@ pub fn run() {
                 .and_then(|dir| db::Database::open(&dir.join("asao.db")))
             {
                 Ok(database) => {
+                    db::audit_log::install(db::AuditLog::new(database.clone()));
                     let _ = monitoring_state.scan_cache.set(db::ScanCache::new(database));
                 }
-                Err(e) => eprintln!("Scan cache disabled: {}", e),
+                Err(e) => eprintln!("Scan cache and audit log disabled: {}", e),
             }
 
             // 1. Load persisted settings
@@ -217,7 +220,9 @@ pub fn run() {
             cache_get_latest,
             cache_get_run,
             cache_list_runs,
-            cache_clear
+            cache_clear,
+            audit_list,
+            audit_restore
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -16,6 +16,21 @@ const MIGRATIONS: &[&str] = &[
     );
     CREATE INDEX idx_scan_runs_kind_scope_id ON scan_runs (kind, scope, id DESC);
     "#,
+    // 2: audit log of every change made by or through ASAO, with the data needed to reverse it
+    r#"
+    CREATE TABLE audit_log (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at  INTEGER NOT NULL,
+        category    TEXT    NOT NULL,
+        title       TEXT    NOT NULL,
+        detail      TEXT    NOT NULL DEFAULT '',
+        undo        TEXT,
+        undo_note   TEXT,
+        ref_key     TEXT,
+        restored_at INTEGER
+    );
+    CREATE INDEX idx_audit_log_ref ON audit_log (ref_key);
+    "#,
 ];
 
 pub fn run(conn: &mut Connection) -> Result<(), String> {

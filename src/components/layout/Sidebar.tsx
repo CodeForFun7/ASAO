@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, Cpu, HardDrive, PackageMinus, Settings, Rocket, Sparkles } from "lucide-react";
+import { LayoutGrid, Cpu, HardDrive, PackageMinus, Settings, Rocket, Sparkles, History } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
 import { useStartupStore } from "../../stores/startup-store";
 import type { AppRoute } from "../../types/process";
@@ -90,6 +90,17 @@ export const Sidebar: React.FC = () => {
           <span className="flex items-center gap-2.5">
             <PackageMinus className="w-3.5 h-3.5 text-lunar-text-sec" />
             <span>Debloat</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setRoute("audit")}
+          className={navItemClass("audit")}
+        >
+          <span className="flex items-center gap-2.5">
+            <History className="w-3.5 h-3.5 text-lunar-text-sec" />
+            <span>Audit log</span>
           </span>
         </button>
       </nav>

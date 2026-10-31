@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::audit::IgnoreOp;
 use crate::commands::AppMonitoringState;
 use crate::db::ScanKind;
 use crate::residual::cleaner::{freed_bytes, process_items, CleanItem, CleanOptions, CleanOutcome, CleanReport};
@@ -297,6 +298,26 @@ pub fn residual_get_last_result(
     Ok(guard.last_result.clone())
 }
 
+/// Writes an ignore-list change to the audit log. `added` is the change that was made; the
+/// restore does the opposite.
+pub fn audit_ignore(title: &str, op: IgnoreOp, added: bool) {
+    crate::audit::record(
+        "ignore-list",
+        title,
+        "Ignore list",
+        Some(crate::audit::AuditUndo::Ignore { op, add: !added }),
+        None,
+        None,
+    );
+}
+
+/// Writes each removed folder to the audit log. Recycled folders can be restored.
+fn audit_deleted(outcomes: &[crate::residual::cleaner::CleanOutcome]) {
+    for o in outcomes.iter().filter(|o| o.status == crate::residual::cleaner::CleanStatus::Deleted) {
+        crate::audit::record_deletion("leftovers", &format!("leftover folder \"{}\"", o.name), &o.path, o.size_bytes, o.recycled);
+    }
+}
+
 #[tauri::command]
 pub async fn residual_clean(
     app: AppHandle,
@@ -435,6 +456,7 @@ fn clean_blocking(
                 r.remove_paths(&removed);
             }
         }
+        audit_deleted(&outcomes);
         refresh_storage_recommendations(state);
     }
 
@@ -525,6 +547,7 @@ fn clean_empty_blocking(app: &AppHandle, state: &AppMonitoringState, dry_run: bo
                 r.remove_empty_folders(&removed);
             }
         }
+        audit_deleted(&outcomes);
     }
 
     Ok(CleanReport {
@@ -554,6 +577,11 @@ pub fn residual_ignore_folder(
     let mut list = IgnoreList::load(&files.ignore_list());
     list.add_folder(&path, now_ms());
     list.save(&files.ignore_list())?;
+    audit_ignore(
+        &format!("Ignored leftover folder \"{}\"", path),
+        IgnoreOp::Folder { path: path.clone() },
+        true,
+    );
     if let Ok(mut guard) = state.residual.lock() {
         if let Some(r) = guard.last_result.as_mut() {
             r.remove_paths(&[path]);
@@ -577,6 +605,11 @@ pub fn residual_ignore_app(
     let mut list = IgnoreList::load(&files.ignore_list());
     list.add_app(&key, &name, now_ms());
     list.save(&files.ignore_list())?;
+    audit_ignore(
+        &format!("Ignored leftovers of \"{}\"", name),
+        IgnoreOp::App { key: key.clone(), name: name.clone() },
+        true,
+    );
     if let Ok(mut guard) = state.residual.lock() {
         if let Some(r) = guard.last_result.as_mut() {
             r.remove_app_group(&key);
@@ -592,6 +625,11 @@ pub fn residual_unignore_folder(app: AppHandle, path: String) -> Result<IgnoreLi
     let mut list = IgnoreList::load(&files.ignore_list());
     list.remove_folder(&path);
     list.save(&files.ignore_list())?;
+    audit_ignore(
+        &format!("Stopped ignoring leftover folder \"{}\"", path),
+        IgnoreOp::Folder { path: path.clone() },
+        false,
+    );
     Ok(list)
 }
 
@@ -599,8 +637,19 @@ pub fn residual_unignore_folder(app: AppHandle, path: String) -> Result<IgnoreLi
 pub fn residual_unignore_app(app: AppHandle, key: String) -> Result<IgnoreList, String> {
     let files = residual_files(&app)?;
     let mut list = IgnoreList::load(&files.ignore_list());
+    let name = list
+        .apps
+        .iter()
+        .find(|a| a.key.eq_ignore_ascii_case(&key))
+        .map(|a| a.name.clone())
+        .unwrap_or_else(|| key.clone());
     list.remove_app(&key);
     list.save(&files.ignore_list())?;
+    audit_ignore(
+        &format!("Stopped ignoring leftovers of \"{}\"", name),
+        IgnoreOp::App { key: key.clone(), name },
+        false,
+    );
     Ok(list)
 }
 

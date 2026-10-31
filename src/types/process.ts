@@ -160,7 +160,7 @@ export type ResourceUsageFilter =
 
 export type CriticalityFilter = "all" | "system-critical" | "user-space";
 
-export type AppRoute = "dashboard" | "processes" | "startup" | "storage" | "debloat" | "settings" | "assistant";
+export type AppRoute = "dashboard" | "processes" | "startup" | "storage" | "debloat" | "audit" | "settings" | "assistant";
 
 export const CATEGORY_METADATA: Record<
   ProcessCategory | "all",

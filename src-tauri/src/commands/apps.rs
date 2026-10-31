@@ -416,6 +416,14 @@ fn remove_blocking(app: &AppHandle, state: &AppMonitoringState, id: &str, use_fa
             };
             match remove_store_package(&full) {
                 Ok(()) => {
+                    crate::audit::record(
+                        "apps",
+                        &format!("Removed Store app \"{}\"", target.name),
+                        &full,
+                        None,
+                        Some("ASAO cannot reinstall it. Get it again from the Microsoft Store."),
+                        None,
+                    );
                     if let Ok(files) = residual_files(app) {
                         let _ = refresh_history(&files);
                     }
@@ -454,6 +462,7 @@ fn remove_blocking(app: &AppHandle, state: &AppMonitoringState, id: &str, use_fa
             }
             match recycle_folder(&dir) {
                 Ok(()) => {
+                    crate::audit::record_deletion("apps", &format!("folder of \"{}\"", target.name), &dir, None, true);
                     if let Ok(files) = residual_files(app) {
                         let mut history = InventoryHistory::load(&files.history());
                         history.record_folder_removal(&target.name, &path_key(&dir), now_ms());
@@ -499,6 +508,11 @@ pub fn apps_ignore(app: AppHandle, state: State<'_, AppMonitoringState>, key: St
     let mut list = IgnoreList::load(&files.ignore_list());
     list.add_unused_app(&key, &name, now_ms());
     list.save(&files.ignore_list())?;
+    crate::commands::residual::audit_ignore(
+        &format!("Stopped suggesting unused app \"{}\"", name),
+        crate::audit::IgnoreOp::UnusedApp { key: key.clone(), name: name.clone() },
+        true,
+    );
     if let Ok(mut rt) = state.apps.lock() {
         if let Some(r) = rt.last.as_mut() {
             r.apps.retain(|a| !a.key.eq_ignore_ascii_case(&key));
@@ -511,7 +525,18 @@ pub fn apps_ignore(app: AppHandle, state: State<'_, AppMonitoringState>, key: St
 pub fn apps_unignore(app: AppHandle, key: String) -> Result<IgnoreList, String> {
     let files = residual_files(&app)?;
     let mut list = IgnoreList::load(&files.ignore_list());
+    let name = list
+        .unused_apps
+        .iter()
+        .find(|a| a.key.eq_ignore_ascii_case(&key))
+        .map(|a| a.name.clone())
+        .unwrap_or_else(|| key.clone());
     list.remove_unused_app(&key);
     list.save(&files.ignore_list())?;
+    crate::commands::residual::audit_ignore(
+        &format!("Suggesting unused app \"{}\" again", name),
+        crate::audit::IgnoreOp::UnusedApp { key: key.clone(), name },
+        false,
+    );
     Ok(list)
 }

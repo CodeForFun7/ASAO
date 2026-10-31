@@ -226,6 +226,16 @@ fn delete_blocking(paths: Vec<String>) -> Result<RecycleBinDeleteReport, String>
             Err(reason) => failed.push(RecycleBinDeleteFailure { path, reason }),
         }
     }
+    if deleted > 0 {
+        crate::audit::record(
+            "recycle-bin",
+            &format!("Permanently deleted {} item(s) from the Recycle Bin", deleted),
+            &format!("Freed {}", crate::audit::human_bytes(freed_bytes)),
+            None,
+            Some("Deleted permanently. ASAO cannot bring it back."),
+            None,
+        );
+    }
     Ok(RecycleBinDeleteReport {
         deleted,
         freed_bytes,
