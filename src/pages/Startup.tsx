@@ -278,12 +278,12 @@ export const Startup: React.FC = () => {
         <StartupTable
           items={filteredAndSortedItems}
           selectedId={selectedItemId}
-          onSelectItem={(id) => selectItem(id)}
+          onSelectItem={(id) => selectItem(selectedItemId === id ? null : id)}
           onResetFilters={resetFilters}
         />
       </div>
 
-      {/* Obsidian-Style Centered Startup Details Modal Window */}
+      {/* Right-Hand Startup Details Side Panel (same as the Processes page) */}
       {selectedItem && (
         <StartupDetails
           item={selectedItem}
