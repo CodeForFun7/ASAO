@@ -61,7 +61,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
 
-  // Close on Escape key press (Obsidian window behavior)
+  // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -165,20 +165,12 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
   const ClassIcon = classConfig.icon;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-startup-title"
+    <aside
+      className="w-96 bg-lunar-surface border-l border-lunar-border flex flex-col h-full shrink-0 overflow-hidden"
+      aria-labelledby="startup-details-title"
     >
-      {/* Obsidian-Style Modal Window */}
-      <div
-        className="w-full max-w-3xl h-[88vh] max-h-[820px] bg-lunar-surface border border-lunar-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Window Title Bar */}
-        <div className="px-6 py-4 border-b border-lunar-border flex items-center justify-between bg-lunar-surface-2/60 shrink-0">
+        {/* Panel Header */}
+        <div className="p-4 border-b border-lunar-border flex items-start justify-between gap-3 bg-lunar-surface-2/50 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-lunar-elevated border border-lunar-border flex items-center justify-center shrink-0">
               {getGroupIcon(item.startupGroup)}
@@ -187,7 +179,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2
-                  id="modal-startup-title"
+                  id="startup-details-title"
                   className="text-sm font-semibold text-lunar-white tracking-tight truncate"
                 >
                   {item.name}
@@ -209,26 +201,21 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <kbd className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-lunar-surface-2 border border-lunar-border text-lunar-muted">
-              ESC
-            </kbd>
-            <button
-              type="button"
-              onClick={onClose}
-              title="Close window (Esc)"
-              className="p-1.5 rounded-md hover:bg-lunar-elevated text-lunar-muted hover:text-lunar-white transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close startup details (Esc)"
+            className="p-1 rounded hover:bg-lunar-elevated text-lunar-muted hover:text-lunar-white transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Modal Window Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 divide-y divide-lunar-border/30">
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5 divide-y divide-lunar-border/30">
           {/* Section 1: Quick Status Banner & Toggle Control */}
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-lunar-surface-2/50 border border-lunar-border/60">
+            <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-lunar-surface-2/50 border border-lunar-border/60">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Enabled / Disabled Tag */}
@@ -323,8 +310,8 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           </div>
 
           {/* Section 2: Boot Activity & Impact Telemetry */}
-          <div className="pt-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="pt-5 space-y-4">
+            <div className="flex items-start justify-between gap-2 flex-wrap">
               <div>
                 <h3 className="text-xs font-mono uppercase tracking-wider text-lunar-muted flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-lunar-text-sec" />
@@ -345,7 +332,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
             </div>
 
             {/* 4-Tile Telemetry Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <div className="p-3 rounded-lg bg-lunar-surface-2/40 border border-lunar-border/60">
                 <div className="text-[11px] text-lunar-muted font-mono flex items-center gap-1.5">
                   <Cpu className="w-3.5 h-3.5 text-lunar-text-sec" />
@@ -405,7 +392,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           </div>
 
           {/* Section 3: Assessment & Recommendation */}
-          <div className="pt-6 space-y-4">
+          <div className="pt-5 space-y-4">
             <div>
               <h3 className="text-xs font-mono uppercase tracking-wider text-lunar-muted">
                 Assessment & Recommendation
@@ -444,7 +431,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           </div>
 
           {/* Section 4: Configuration & Origin */}
-          <div className="pt-6 space-y-4">
+          <div className="pt-5 space-y-4">
             <div>
               <h3 className="text-xs font-mono uppercase tracking-wider text-lunar-muted">
                 Configuration & Origin
@@ -519,7 +506,7 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           </div>
 
           {/* Section 5: Optimization & Recovery Guidelines */}
-          <div className="pt-6 space-y-4">
+          <div className="pt-5 space-y-4">
             <div>
               <h3 className="text-xs font-mono uppercase tracking-wider text-lunar-muted">
                 Optimization & Recovery Guidelines
@@ -560,9 +547,9 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           </div>
         </div>
 
-        {/* Modal Window Footer */}
-        <div className="px-6 py-3 border-t border-lunar-border flex items-center justify-between bg-lunar-surface-2/40 shrink-0">
-          <span className="text-[11px] text-lunar-muted font-mono">
+        {/* Panel Footer */}
+        <div className="px-4 py-3 border-t border-lunar-border flex items-center justify-between gap-3 bg-lunar-surface-2/40 shrink-0">
+          <span className="text-[11px] text-lunar-muted font-mono truncate" title={sourceLabel}>
             Origin: {sourceLabel}
           </span>
           <button
@@ -573,7 +560,6 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
             Done
           </button>
         </div>
-      </div>
-    </div>
+    </aside>
   );
 };
