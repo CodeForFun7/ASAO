@@ -37,6 +37,9 @@ environment variables and never ships with the app.
 | ASAO `.env` (project root) | `ASAO_ACCOUNTS_URL` | The API address, e.g. `https://asao-accounts.vercel.app` |
 
 `ASAO_ACCOUNTS_URL` is public, so it is baked into every build, release builds included.
+Without it, sign-up and sign-in work locally: any well-formed email and password signs in on
+that PC, and nothing is checked or stored. Once the address is set, those local sessions are
+refused by the server and the user signs in for real.
 Aeon's IP allow list must include `0.0.0.0/0`, because Vercel doesn't connect from fixed
 addresses. The database is still protected by its password and TLS.
 

@@ -6,6 +6,11 @@
 //!
 //! The API's address is not a secret: it comes from `ASAO_ACCOUNTS_URL`, set in the
 //! terminal or baked in at build time from `.env` (see build.rs).
+//!
+//! Without an address, sign-up and sign-in work locally: any well-formed email and
+//! password signs in on this PC and nothing is checked or stored anywhere. Once an
+//! address is set, those local sessions are refused by the server and the user signs in
+//! for real.
 
 use std::fmt;
 use std::sync::OnceLock;
@@ -70,6 +75,13 @@ fn http() -> &'static reqwest::Client {
     })
 }
 
+/// Token of a session made without an accounts server.
+const LOCAL_TOKEN: &str = "local";
+
+fn local_session(email: &str) -> AuthSession {
+    AuthSession { user: AuthUser { email: email.trim().to_lowercase() }, token: LOCAL_TOKEN.to_string() }
+}
+
 #[derive(Serialize)]
 struct Credentials<'a> {
     email: &'a str,
@@ -104,7 +116,12 @@ fn unexpected(e: reqwest::Error) -> AuthError {
 }
 
 async fn credentials_call(action: &str, email: &str, password: &str) -> Result<AuthSession, AuthError> {
-    let url = format!("{}/api/{action}", accounts_url()?);
+    let base = match accounts_url() {
+        Ok(base) => base,
+        Err(AuthError::NotConfigured) => return Ok(local_session(email)),
+        Err(e) => return Err(e),
+    };
+    let url = format!("{base}/api/{action}");
     let res = send(http().post(url).json(&Credentials { email, password })).await?;
     if !res.status().is_success() {
         return Err(server_error(res).await);
@@ -132,6 +149,9 @@ pub async fn restore(token: &str) -> Result<Option<AuthUser>, AuthError> {
 }
 
 pub async fn sign_out(token: &str) -> Result<(), AuthError> {
+    if token == LOCAL_TOKEN {
+        return Ok(());
+    }
     let url = format!("{}/api/sign-out", accounts_url()?);
     let res = send(http().post(url).bearer_auth(token)).await?;
     if res.status().is_success() {
