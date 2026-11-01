@@ -52,7 +52,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(204).end();
     }
     if (action === "health" && method === "GET") {
-      await health();
+      try {
+        await health();
+      } catch (e) {
+        // Setup aid: says why the database can't be used. Never contains the password.
+        const err = e as { code?: string; message?: string };
+        console.error("[health]", e);
+        return res.status(503).json({ ok: false, reason: [err.code, err.message].filter(Boolean).join(": ") });
+      }
       return res.status(200).json({ ok: true });
     }
     return res.status(404).json({ error: "Not found." });

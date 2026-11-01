@@ -45,6 +45,17 @@ export function stripSslParams(url: string): string {
   return kept.length ? `${base}?${kept.join("&")}` : base;
 }
 
+/** Dashboards sometimes keep the quotes from a pasted .env line. */
+function unquote(value: string): string {
+  const v = value.trim();
+  return /^(["']).*\1$/s.test(v) ? v.slice(1, -1) : v;
+}
+
+/** Accepts the certificate with real line breaks, or written on one line with "\n". */
+export function normalisePem(value: string): string {
+  return unquote(value).replace(/\\r/g, "").replace(/\\n/g, "\n").replace(/\r/g, "").trim() + "\n";
+}
+
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
@@ -55,9 +66,8 @@ function createPool(): Pool {
   if (!ca) throw new ConfigError("DATABASE_CA_CERT is not set.");
 
   const p = new Pool({
-    connectionString: stripSslParams(url),
-    // Pasted PEM text sometimes arrives with literal "\n" instead of line breaks.
-    ssl: { ca: ca.replace(/\\n/g, "\n"), rejectUnauthorized: true },
+    connectionString: stripSslParams(unquote(url)),
+    ssl: { ca: normalisePem(ca), rejectUnauthorized: true },
     max: 3,
     idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 10_000,
