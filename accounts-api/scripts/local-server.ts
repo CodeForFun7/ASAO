@@ -24,7 +24,8 @@ createServer(async (req, res) => {
   }
 
   // The few VercelRequest/VercelResponse helpers the handler uses.
-  const vreq = Object.assign(req, { query: { action: match[1] }, body, cookies: {} }) as unknown as VercelRequest;
+  const query = { ...Object.fromEntries(url.searchParams), action: match[1] };
+  const vreq = Object.assign(req, { query, body, cookies: {} }) as unknown as VercelRequest;
   const vres = res as unknown as VercelResponse;
   vres.status = (code: number) => {
     res.statusCode = code;

@@ -317,11 +317,17 @@ def build_orchestrator(settings: LlmSettings, checkpointer: Any):
     )
 
 
-async def run_turn(run: RunContext, settings: LlmSettings, checkpointer: Any) -> str:
-    """Runs one user turn on the conversation's thread and returns the final answer."""
+async def run_turn(
+    run: RunContext, settings: LlmSettings, checkpointer: Any, seed: list[tuple[str, str]] | None = None
+) -> str:
+    """Runs one user turn on the conversation's thread and returns the final answer.
+
+    `seed` is earlier (role, text) turns to replay first, for a conversation whose model
+    state isn't on this PC (it was synced from another one)."""
     graph = build_orchestrator(settings, checkpointer)
+    history: list[BaseMessage] = [HumanMessage(t) if role == "user" else AIMessage(t) for role, t in seed or []]
     result = await graph.ainvoke(
-        {"messages": [HumanMessage(run.user_request)]},
+        {"messages": [*history, HumanMessage(run.user_request)]},
         {"configurable": {"thread_id": run.conversation_id}, "recursion_limit": 2 * ORCHESTRATOR_MAX_ROUNDS + 10},
     )
     return text_of(result["messages"][-1])

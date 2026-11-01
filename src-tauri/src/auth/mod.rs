@@ -47,7 +47,7 @@ impl fmt::Display for AuthError {
 }
 
 /// Runtime environment first, then a value baked in at build time, then the deployed API.
-fn accounts_url() -> String {
+pub fn accounts_url() -> String {
     std::env::var("ASAO_ACCOUNTS_URL")
         .ok()
         .or_else(|| option_env!("ASAO_ACCOUNTS_URL").map(str::to_string))

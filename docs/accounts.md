@@ -28,6 +28,30 @@ environment variables and never ships with the app.
 - On the desktop side, `src-tauri/src/auth/mod.rs` is an HTTPS client for the API, and the
   Tauri commands are `auth_sign_up`, `auth_sign_in`, `auth_restore_session`, `auth_sign_out`.
 
+## Nyra chats saved to the account
+
+Nyra's chats follow the user to other PCs. The local `nyra.db` stays the source of truth;
+`src-python/chatbot/cloud.py` syncs it with the account in the background.
+
+- ASAO sends the signed-in account to Nyra with every request (`X-Asao-User`,
+  `X-Asao-Session`, `X-Asao-Accounts-Url`, `X-Asao-Sync`). Each conversation belongs to the
+  account signed in when it started, and only that account sees it. Chats from before
+  accounts existed go to the first account that signs in on that PC.
+- After every change (new message, rename, delete) Nyra pushes what isn't sent yet. On
+  sign-in, and at most once a minute when the chat list is opened, it pulls chats from other
+  PCs and removes chats deleted elsewhere. Offline changes stay marked and go out later.
+- When a chat that came from another PC is continued, Nyra replays its last 30 turns (as
+  text) to the model, since the model's own state only exists on the PC that ran it.
+- Messages are capped at 256 KiB online (large activity traces are trimmed; the answer is
+  kept) and each account at 50 MB.
+- API endpoints, all with `Authorization: Bearer <token>`: `GET /api/chats`,
+  `GET /api/chat?id=`, `POST /api/chat-sync`, `POST /api/chat-delete`,
+  `POST /api/chats-delete-all`. Tables: `asao_chats` (a deleted chat keeps an empty row with
+  `deleted_at`, so other PCs learn of it) and `asao_chat_messages`.
+- Nyra settings has a **Save chats to my account** switch (on by default), sync status, a
+  **Sync now** button, and, with syncing off, **Delete chats saved online**. That removes
+  the online copy only; chats on the PC stay.
+
 ## Settings
 
 | Where | Variable | Value |
@@ -69,7 +93,8 @@ npm run smoke -- https://<project>.vercel.app   # against the deployed API
 
 The smoke test creates a throwaway `asao-test-…@example.com` account and checks sign-up,
 duplicate sign-up, short password, wrong password, unknown email, sign-in, session restore
-and sign-out. With `DATABASE_URL` in `.env.local` it deletes the account afterwards.
+and sign-out, then saving, listing, opening, renaming, deleting and wiping chats, including
+that another account can't see them and oversized messages are refused. With `DATABASE_URL` in `.env.local` it deletes the account afterwards.
 
 `cargo test --lib auth::tests::live_round_trip -- --ignored` (in `src-tauri`) runs the same
 round trip through ASAO's own client against the deployed API (or `ASAO_ACCOUNTS_URL`). It

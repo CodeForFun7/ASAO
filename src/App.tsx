@@ -13,6 +13,9 @@ import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { NyraChat } from "./pages/NyraChat";
 import { AuthPage } from "./pages/AuthPage";
 import { useAuthStore } from "./stores/auth-store";
+import { useNyraStore } from "./stores/nyra-store";
+import { setNyraAccount, setNyraAccountsUrl } from "./services/nyra";
+import { invoke } from "@tauri-apps/api/core";
 import { useProcessStore } from "./stores/process-store";
 import { useStorageStore } from "./stores/storage-store";
 import type { AppRoute } from "./types/process";
@@ -41,6 +44,17 @@ function App() {
   const initializeMonitoring = useProcessStore((s) => s.initializeMonitoring);
   const signedIn = useAuthStore((s) => s.session !== null);
   const verifySession = useAuthStore((s) => s.verifySession);
+  const accountEmail = useAuthStore((s) => s.session?.user.email ?? null);
+  const accountToken = useAuthStore((s) => s.session?.token ?? null);
+
+  // Nyra keeps each account's chats apart and syncs them with the account.
+  useEffect(() => {
+    void invoke<string>("auth_accounts_url").then(setNyraAccountsUrl, () => undefined);
+  }, []);
+  useEffect(() => {
+    setNyraAccount(accountEmail && accountToken ? { email: accountEmail, token: accountToken } : null);
+    useNyraStore.getState().accountChanged();
+  }, [accountEmail, accountToken]);
 
   useEffect(() => {
     if (!isWidgetWindow) void verifySession();

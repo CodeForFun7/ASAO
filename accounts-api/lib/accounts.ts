@@ -162,15 +162,21 @@ export async function signIn(rawEmail: unknown, password: unknown, ip: string): 
   return createSession(row.id, email);
 }
 
-/** The account a token belongs to, or null when it expired or was signed out. */
-export async function restore(token: string): Promise<AuthUser | null> {
+/** The account a token belongs to, with its id, or null when it expired or was signed out. */
+export async function sessionUser(token: string): Promise<{ id: string; email: string } | null> {
   const pool = await db();
-  const r = await pool.query<{ email: string }>(
-    `SELECT u.email FROM asao_sessions s JOIN asao_users u ON u.id = s.user_id
+  const r = await pool.query<{ id: string; email: string }>(
+    `SELECT u.id::text AS id, u.email FROM asao_sessions s JOIN asao_users u ON u.id = s.user_id
      WHERE s.token_hash = $1 AND s.expires_at > now()`,
     [tokenHash(token)],
   );
-  return r.rows[0] ? { email: r.rows[0].email } : null;
+  return r.rows[0] ?? null;
+}
+
+/** The account a token belongs to, or null when it expired or was signed out. */
+export async function restore(token: string): Promise<AuthUser | null> {
+  const user = await sessionUser(token);
+  return user ? { email: user.email } : null;
 }
 
 export async function signOut(token: string): Promise<void> {

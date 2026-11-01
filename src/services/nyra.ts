@@ -2,6 +2,7 @@
 
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  CloudStatus,
   ConversationRecord,
   ConversationSummary,
   NyraSettings,
@@ -18,7 +19,31 @@ const SETTINGS_KEYS = {
   apiKey: "nyra_openai_api_key",
   model: "nyra_model",
   baseUrl: "nyra_base_url",
+  syncChats: "nyra_sync_chats",
 } as const;
+
+// Who is signed in to ASAO, sent with every request so Nyra keeps each account's chats
+// separate and can sync them with the account (see src-python/chatbot/cloud.py).
+let account: { email: string; token: string } | null = null;
+let accountsUrl = "";
+
+export function setNyraAccount(next: { email: string; token: string } | null): void {
+  account = next;
+}
+
+export function setNyraAccountsUrl(url: string): void {
+  accountsUrl = url;
+}
+
+function headers(): Record<string, string> {
+  const h: Record<string, string> = { ...HEADERS, "X-Asao-Sync": loadNyraSettings().syncChats ? "1" : "0" };
+  if (account) {
+    h["X-Asao-User"] = encodeURIComponent(account.email);
+    h["X-Asao-Session"] = account.token;
+    if (accountsUrl) h["X-Asao-Accounts-Url"] = accountsUrl;
+  }
+  return h;
+}
 
 export const DEFAULT_MODEL = "gpt-4o-mini";
 
@@ -28,9 +53,10 @@ export function loadNyraSettings(): NyraSettings {
       apiKey: localStorage.getItem(SETTINGS_KEYS.apiKey) ?? "",
       model: localStorage.getItem(SETTINGS_KEYS.model) || DEFAULT_MODEL,
       baseUrl: localStorage.getItem(SETTINGS_KEYS.baseUrl) ?? "",
+      syncChats: localStorage.getItem(SETTINGS_KEYS.syncChats) !== "0",
     };
   } catch {
-    return { apiKey: "", model: DEFAULT_MODEL, baseUrl: "" };
+    return { apiKey: "", model: DEFAULT_MODEL, baseUrl: "", syncChats: true };
   }
 }
 
@@ -40,12 +66,13 @@ export function saveNyraSettings(settings: NyraSettings): void {
   set(SETTINGS_KEYS.apiKey, settings.apiKey.trim());
   set(SETTINGS_KEYS.model, settings.model.trim() === DEFAULT_MODEL ? "" : settings.model.trim());
   set(SETTINGS_KEYS.baseUrl, settings.baseUrl.trim());
+  set(SETTINGS_KEYS.syncChats, settings.syncChats ? "" : "0");
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, { ...init, headers: { ...HEADERS, ...(init?.headers ?? {}) } });
+    response = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers(), ...(init?.headers ?? {}) } });
   } catch {
     throw new Error("The Nyra agent service is not running. Start it with `pnpm tauri dev` (it runs on port 18743).");
   }
@@ -77,6 +104,19 @@ export function deleteConversation(id: string): Promise<void> {
   return request(`/conversations/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export function getCloudStatus(): Promise<CloudStatus> {
+  return request("/cloud/status");
+}
+
+export function syncChatsNow(): Promise<CloudStatus> {
+  return request("/cloud/sync", { method: "POST" });
+}
+
+/** Removes the account's online copy of the chats. Chats on this PC stay. */
+export function deleteOnlineChats(): Promise<void> {
+  return request("/cloud/delete-all", { method: "POST" });
+}
+
 export function answerConfirmation(runId: string, confirmationId: string, approved: boolean): Promise<void> {
   return request(`/chat/${encodeURIComponent(runId)}/confirm`, {
     method: "POST",
@@ -100,7 +140,7 @@ export async function streamChat(
   try {
     response = await fetch(`${BASE}/chat/stream`, {
       method: "POST",
-      headers: HEADERS,
+      headers: headers(),
       body: JSON.stringify({
         api_key: settings.apiKey,
         model: settings.model || DEFAULT_MODEL,
