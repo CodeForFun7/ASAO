@@ -1,0 +1,24 @@
+{
+  "name": "asao-accounts-api",
+  "private": true,
+  "description": "Sign-up and sign-in for ASAO. Runs as a Vercel Function in front of YugabyteDB.",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "tsx --env-file=.env.local scripts/local-server.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx --env-file=.env.local scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@vercel/node": "^29.0.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

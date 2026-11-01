@@ -11,6 +11,8 @@ import { AuditLogPage } from "./pages/AuditLogPage";
 import { AsaoWidget } from "./components/widget/AsaoWidget";
 import { WidgetSettings } from "./components/widget/WidgetSettings";
 import { NyraChat } from "./pages/NyraChat";
+import { AuthPage } from "./pages/AuthPage";
+import { useAuthStore } from "./stores/auth-store";
 import { useProcessStore } from "./stores/process-store";
 import { useStorageStore } from "./stores/storage-store";
 import type { AppRoute } from "./types/process";
@@ -37,6 +39,12 @@ function App() {
   const setRoute = useProcessStore((s) => s.setRoute);
   const selectProcess = useProcessStore((s) => s.selectProcess);
   const initializeMonitoring = useProcessStore((s) => s.initializeMonitoring);
+  const signedIn = useAuthStore((s) => s.session !== null);
+  const verifySession = useAuthStore((s) => s.verifySession);
+
+  useEffect(() => {
+    if (!isWidgetWindow) void verifySession();
+  }, [isWidgetWindow, verifySession]);
 
   // Transparent background override for the frameless widget window
   useEffect(() => {
@@ -129,6 +137,10 @@ function App() {
 
   if (isWidgetWindow) {
     return <AsaoWidget />;
+  }
+
+  if (!signedIn) {
+    return <AuthPage />;
   }
 
   return (

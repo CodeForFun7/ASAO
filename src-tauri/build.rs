@@ -22,8 +22,39 @@ fn embed_win11debloat_regfiles() {
     .expect("write w11d_regfiles.rs");
 }
 
+/// Takes the accounts API address from `.env` in the project root, so it needn't be set in
+/// every terminal. It is a public web address, not a secret, so release builds bake it in
+/// too. A variable set in the terminal wins.
+fn load_dotenv() {
+    const KEYS: [&str; 1] = ["ASAO_ACCOUNTS_URL"];
+    let path = std::path::Path::new("../.env");
+    println!("cargo:rerun-if-changed={}", path.display());
+    let Ok(text) = std::fs::read_to_string(path) else { return };
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('#') {
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else { continue };
+        let key = key.trim().trim_start_matches("export ").trim();
+        let value = value.trim();
+        let value = value
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .or_else(|| value.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')))
+            .unwrap_or(value);
+        if KEYS.contains(&key) && !value.is_empty() && std::env::var_os(key).is_none() {
+            println!("cargo:rustc-env={key}={value}");
+        }
+    }
+}
+
 fn main() {
     embed_win11debloat_regfiles();
+
+    // The accounts API address is baked in at build time (read with option_env!).
+    println!("cargo:rerun-if-env-changed=ASAO_ACCOUNTS_URL");
+    load_dotenv();
 
     // Debug builds (`tauri dev`) can't be launched by cargo when the exe demands elevation
     // (os error 740), so they keep the default manifest. In dev, run the terminal as

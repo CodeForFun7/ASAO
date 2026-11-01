@@ -1,7 +1,8 @@
 import React from "react";
-import { LayoutGrid, Cpu, HardDrive, PackageMinus, Settings, Rocket, Sparkles, History } from "lucide-react";
+import { LayoutGrid, Cpu, HardDrive, PackageMinus, Settings, Rocket, Sparkles, History, LogOut } from "lucide-react";
 import { useProcessStore } from "../../stores/process-store";
 import { useStartupStore } from "../../stores/startup-store";
+import { useAuthStore } from "../../stores/auth-store";
 import type { AppRoute } from "../../types/process";
 
 export const Sidebar: React.FC = () => {
@@ -9,6 +10,8 @@ export const Sidebar: React.FC = () => {
   const setRoute = useProcessStore((s) => s.setRoute);
   const systemMetrics = useProcessStore((s) => s.systemMetrics);
   const startupItemsCount = useStartupStore((s) => s.items.length);
+  const email = useAuthStore((s) => s.session?.user.email);
+  const signOut = useAuthStore((s) => s.signOut);
 
   const totalProcs = systemMetrics?.totalProcesses ?? 0;
 
@@ -127,6 +130,22 @@ export const Sidebar: React.FC = () => {
             <span>Settings</span>
           </span>
         </button>
+        {email && (
+          <div className="flex items-center gap-2 pl-3 pr-1 pt-2 mt-1 border-t border-lunar-border/60">
+            <span className="flex-1 min-w-0 text-[11px] text-lunar-text-sec truncate" title={email}>
+              {email}
+            </span>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              title="Sign out"
+              aria-label="Sign out"
+              className="p-1.5 rounded text-lunar-muted hover:text-lunar-white hover:bg-lunar-surface-2 transition-colors cursor-pointer shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -1,5 +1,6 @@
 pub mod analyzer;
 pub mod apps;
+pub mod auth;
 pub mod audit;
 pub mod bloat;
 pub mod bridge;
@@ -14,6 +15,7 @@ pub mod tray;
 use tauri::{Emitter, Manager, WindowEvent};
 
 use commands::audit::{audit_list, audit_restore};
+use commands::auth::{auth_restore_session, auth_sign_in, auth_sign_out, auth_sign_up};
 use commands::cache::{cache_clear, cache_get_latest, cache_get_run, cache_list_runs};
 use commands::process::{get_processes, start_monitoring, stop_monitoring};
 use commands::startup::{
@@ -156,6 +158,10 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            auth_sign_up,
+            auth_sign_in,
+            auth_restore_session,
+            auth_sign_out,
             get_processes,
             get_system_metrics,
             get_battery_status,

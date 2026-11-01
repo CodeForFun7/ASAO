@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod apps;
 pub mod audit;
+pub mod auth;
 pub mod bloat;
 pub mod cache;
 pub mod process;
