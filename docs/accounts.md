@@ -34,12 +34,16 @@ environment variables and never ships with the app.
 |---|---|---|
 | Vercel project | `DATABASE_URL` | Aeon's YSQL connection string (special password characters as `%XX`) |
 | Vercel project | `DATABASE_CA_CERT` | The full text of Aeon's `root.crt` |
-| ASAO `.env` (project root) | `ASAO_ACCOUNTS_URL` | The API address, e.g. `https://asao-accounts.vercel.app` |
+| ASAO `.env` (optional) | `ASAO_ACCOUNTS_URL` | Overrides the API address, e.g. `http://localhost:3000` |
 
-`ASAO_ACCOUNTS_URL` is public, so it is baked into every build, release builds included.
-Without it, sign-up and sign-in work locally: any well-formed email and password signs in on
-that PC, and nothing is checked or stored. Once the address is set, those local sessions are
-refused by the server and the user signs in for real.
+The deployed API, `https://asao-accounts-api-two.vercel.app`, is written into
+`src-tauri/src/auth/mod.rs` (`DEFAULT_ACCOUNTS_URL`), so ASAO needs no settings. It is a
+public address, not a secret.
+
+On Vercel the project's Root Directory is `accounts-api`, the framework preset is Other, and
+pushing to `main` redeploys it. `GET /api/health` returns `{ "ok": false, "reason": ... }`
+when the database can't be used.
+
 Aeon's IP allow list must include `0.0.0.0/0`, because Vercel doesn't connect from fixed
 addresses. The database is still protected by its password and TLS.
 
@@ -68,7 +72,8 @@ duplicate sign-up, short password, wrong password, unknown email, sign-in, sessi
 and sign-out. With `DATABASE_URL` in `.env.local` it deletes the account afterwards.
 
 `cargo test --lib auth::tests::live_round_trip -- --ignored` (in `src-tauri`) runs the same
-round trip through ASAO's own client, using `ASAO_ACCOUNTS_URL`.
+round trip through ASAO's own client against the deployed API (or `ASAO_ACCOUNTS_URL`). It
+leaves its `asao-test-…` account behind.
 
 ## Before a public release
 
