@@ -4,6 +4,7 @@
 // Creates a throwaway asao-test-…@example.com account. With DATABASE_URL in .env.local it is
 // deleted afterwards; otherwise it stays (harmless, and it can't be signed in to by anyone).
 import { randomUUID } from "node:crypto";
+import { db } from "../lib/db";
 
 const BASE = (process.argv[2] ?? "http://localhost:3000").replace(/\/+$/, "");
 
@@ -57,7 +58,6 @@ async function main() {
   expect("signed-out session is refused", gone.status === 401, gone);
 
   if (process.env.DATABASE_URL) {
-    const { db } = await import("../lib/db");
     const pool = await db();
     await pool.query("DELETE FROM asao_users WHERE email = $1", [email]);
     await pool.query("DELETE FROM asao_auth_attempts WHERE key IN ($1, $2)", [email, `nobody-${email}`]);
