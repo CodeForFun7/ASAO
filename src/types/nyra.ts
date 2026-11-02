@@ -78,6 +78,17 @@ export interface NyraSettings {
   apiKey: string;
   model: string;
   baseUrl: string;
+  /** Save chats to the ASAO account so they appear on the user's other PCs. */
+  syncChats: boolean;
+}
+
+/** Syncing of chats with the ASAO account (GET /cloud/status). */
+export interface CloudStatus {
+  enabled: boolean;
+  signedIn: boolean;
+  syncing: boolean;
+  lastSyncAt: number | null;
+  error: string | null;
 }
 
 export type StreamEvent =

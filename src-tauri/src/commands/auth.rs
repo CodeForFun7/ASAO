@@ -20,3 +20,9 @@ pub async fn auth_restore_session(token: String) -> Result<Option<AuthUser>, Str
 pub async fn auth_sign_out(token: String) -> Result<(), String> {
     auth::sign_out(&token).await.map_err(|e| e.to_string())
 }
+
+/// The accounts API address, for Nyra's chat syncing.
+#[tauri::command]
+pub fn auth_accounts_url() -> String {
+    auth::accounts_url()
+}

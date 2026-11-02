@@ -58,6 +58,8 @@ interface NyraState {
   removeConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   updateSettings(settings: NyraSettings): void;
+  /** Another account signed in, or the user signed out: show that account's chats. */
+  accountChanged(): void;
   clearError(): void;
 }
 
@@ -321,6 +323,14 @@ export const useNyraStore = create<NyraState>((set, get) => ({
   updateSettings(settings) {
     saveNyraSettings(settings);
     set({ settings: loadNyraSettings(), error: "" });
+    // Sends the new sync setting to Nyra and shows chats pulled from the account.
+    void get().refreshConversations();
+  },
+
+  accountChanged() {
+    get().live?.controller.abort();
+    set({ activeId: null, messages: [], liveMessage: null, live: null, conversations: [], error: "" });
+    if (initialised) void get().refreshConversations();
   },
 
   clearError() {
