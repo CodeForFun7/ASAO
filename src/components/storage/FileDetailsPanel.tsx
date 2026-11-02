@@ -15,6 +15,8 @@ import {
   formatStorageBytes,
   formatStorageTimestampDetailed,
 } from "../../services/storage";
+import { filePrompt } from "../../services/ask-nyra";
+import { AskNyraButton } from "../common/AskNyraButton";
 
 interface FileDetailsPanelProps {
   item: StorageItem;
@@ -160,6 +162,8 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({
 
       {/* Footer Actions */}
       <div className="p-4 border-t border-lunar-border bg-lunar-surface-2/40 space-y-2 shrink-0">
+        <AskNyraButton buildPrompt={() => filePrompt(item)} className="w-full" />
+
         {item.isDir && (
           <button
             type="button"

@@ -7,6 +7,8 @@ import {
 } from "../../types/process";
 import { formatBytes, formatRate, formatUptime } from "../../services/tauri";
 import { ProcessResourceChart } from "./ProcessResourceChart";
+import { AskNyraButton } from "../common/AskNyraButton";
+import { processPrompt } from "../../services/ask-nyra";
 
 interface ProcessDetailsProps {
   process: ProcessInfo;
@@ -267,6 +269,10 @@ export const ProcessDetails: React.FC<ProcessDetailsProps> = ({
             </div>
           </div>
         </section>
+      </div>
+
+      <div className="p-4 border-t border-lunar-border bg-lunar-surface-2/40 shrink-0">
+        <AskNyraButton buildPrompt={() => processPrompt(process)} className="w-full" />
       </div>
     </aside>
   );

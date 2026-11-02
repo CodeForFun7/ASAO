@@ -17,6 +17,8 @@ import {
   LeftoverCheckbox,
   checkStateFor,
 } from "./LeftoverPrimitives";
+import { leftoverPrompt } from "../../../services/ask-nyra";
+import { AskNyraButton } from "../../common/AskNyraButton";
 
 interface LeftoverGroupCardProps {
   group: ResidualGroup;
@@ -197,6 +199,7 @@ export const LeftoverGroupCard: React.FC<LeftoverGroupCardProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
+                <AskNyraButton buildPrompt={() => leftoverPrompt(group, f)} variant="icon" />
                 <button
                   type="button"
                   onClick={() => onOpenFolder(f.path)}

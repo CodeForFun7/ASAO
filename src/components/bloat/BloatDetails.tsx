@@ -4,6 +4,8 @@ import type { BloatItem, ImpactPart } from "../../types/bloat";
 import { KIND_LABELS, SAFETY_LABELS } from "../../types/bloat";
 import { formatStorageBytes } from "../../services/storage";
 import { CategoryChip, SafetyBadge } from "./BloatPrimitives";
+import { AskNyraButton } from "../common/AskNyraButton";
+import { bloatPrompt } from "../../services/ask-nyra";
 
 interface BloatDetailsProps {
   item: BloatItem;
@@ -208,6 +210,10 @@ export const BloatDetails: React.FC<BloatDetailsProps> = ({ item, onClose }) => 
               </p>
             </div>
           </Section>
+        </div>
+
+        <div className="p-4 border-t border-lunar-border bg-lunar-surface-2/40 shrink-0">
+          <AskNyraButton buildPrompt={() => bloatPrompt(item)} className="w-full" />
         </div>
     </aside>
   );

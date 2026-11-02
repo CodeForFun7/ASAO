@@ -40,7 +40,13 @@ interface NyraState {
   service: "unknown" | "online" | "offline";
   bridge: boolean;
   error: string;
+  /** A message queued by "Ask Nyra" buttons. The chat page sends it once it is mounted. */
+  pendingPrompt: string | null;
 
+  /** Starts a fresh conversation and queues `prompt` for the chat page to send. */
+  queuePrompt(prompt: string): void;
+  /** Returns the queued prompt and clears it. */
+  takePendingPrompt(): string | null;
   init(): Promise<void>;
   checkHealth(): Promise<void>;
   refreshConversations(): Promise<void>;
@@ -103,6 +109,17 @@ export const useNyraStore = create<NyraState>((set, get) => ({
   service: "unknown",
   bridge: false,
   error: "",
+  pendingPrompt: null,
+
+  queuePrompt(prompt) {
+    set({ activeId: null, messages: [], error: "", pendingPrompt: prompt });
+  },
+
+  takePendingPrompt() {
+    const prompt = get().pendingPrompt;
+    if (prompt !== null) set({ pendingPrompt: null });
+    return prompt;
+  },
 
   async init() {
     if (initialised) {

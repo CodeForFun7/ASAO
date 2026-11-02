@@ -24,6 +24,8 @@ import {
 import type { StartupGroup, StartupItem } from "../../types/startup";
 import { SOURCE_LABELS } from "../../types/startup";
 import { formatBytes } from "../../services/tauri";
+import { startupPrompt } from "../../services/ask-nyra";
+import { AskNyraButton } from "../common/AskNyraButton";
 
 interface StartupDetailsProps {
   item: StartupItem;
@@ -552,13 +554,16 @@ export const StartupDetails: React.FC<StartupDetailsProps> = ({
           <span className="text-[11px] text-lunar-muted font-mono truncate" title={sourceLabel}>
             Origin: {sourceLabel}
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg text-xs font-medium bg-lunar-surface-2 hover:bg-lunar-elevated text-lunar-white border border-lunar-border transition-colors cursor-pointer"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <AskNyraButton buildPrompt={() => startupPrompt(item)} className="!py-1.5" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg text-xs font-medium bg-lunar-surface-2 hover:bg-lunar-elevated text-lunar-white border border-lunar-border transition-colors cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
         </div>
     </aside>
   );

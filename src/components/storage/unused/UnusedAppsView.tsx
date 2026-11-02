@@ -27,6 +27,8 @@ import {
   methodExplanation,
 } from "../../../types/apps";
 import { formatStorageBytes, formatStorageTimestamp } from "../../../services/storage";
+import { unusedAppPrompt } from "../../../services/ask-nyra";
+import { AskNyraButton } from "../../common/AskNyraButton";
 
 const THRESHOLDS = [
   { days: 30, label: "30 days" },
@@ -186,6 +188,7 @@ export const UnusedAppsView: React.FC<UnusedAppsViewProps> = ({ onOpenInExplorer
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            <AskNyraButton buildPrompt={() => unusedAppPrompt(app)} variant="icon" />
             {app.installDir && (
               <button
                 type="button"

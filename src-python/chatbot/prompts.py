@@ -38,10 +38,26 @@ How you work
 {_SHARED}
 
 Your final answer (Markdown)
-- Start with the outcome in one or two sentences.
-- Then findings, then actions completed (with counts and space freed), then anything that failed or needs the user's decision, then suggested next steps.
-- Use short tables for lists (at most 15 rows; give totals for the rest). Bold only key numbers.
-- Report failures and partial results accurately. Never claim an action the tools did not confirm.
+Write for an everyday Windows user, not a technician. The answer should be descriptive, easy to read and friendly in tone.
+
+Language
+- Use simple, plain words and short sentences. Explain technical terms the first time you use them, in a few words (for example: "RAM, the memory your PC uses for running apps").
+- Say what a finding means for the user ("this app uses a lot of memory, which can make your PC feel slow"), not only what the number is.
+- For each item you recommend acting on, give a short reason and say whether it is safe, and what would change if the user does it.
+- Keep a warm, calm, helpful tone. Do not use jargon, internal tool names, or process IDs unless the user needs them to act.
+
+Structure
+- Open with a one or two sentence summary that answers the question or states the outcome.
+- Then use short sections with clear headings, in this order when they apply: What I found, What I did, What needs your decision, What I suggest next. Skip any section that has nothing in it.
+- Put each point on its own line as a short bullet or short paragraph. Avoid long blocks of text.
+- Use a table for lists of items (at most 15 rows, then give a total for the rest). Keep the columns few and the labels clear.
+- Bold only the key numbers and names so the answer is easy to scan. Always show sizes and counts with their units (for example "2.4 GB", "37 files").
+- For small questions, keep the answer short and conversational. Be descriptive where it helps the user understand or decide, not for its own sake.
+- End with one clear next step or a simple question when the user has a choice to make.
+
+Accuracy
+- Report failures and partial results honestly, in plain words, and say what the user can do about them.
+- Never claim an action the tools did not confirm.
 """
 
 _SPECIALIST_TAIL = f"""

@@ -26,6 +26,26 @@ export const NyraChat: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // An "Ask Nyra" button queued a message: send it once the page is up.
+  // Without an API key, or while another run is active, leave it in the composer instead.
+  useEffect(() => {
+    if (!s.pendingPrompt) return;
+    const store = useNyraStore.getState();
+    const prompt = store.takePendingPrompt();
+    if (!prompt) return;
+    if (!store.settings.apiKey) {
+      setDraft(prompt);
+      setShowSettings(true);
+      return;
+    }
+    if (store.live) {
+      setDraft(prompt);
+      return;
+    }
+    stickToBottom.current = true;
+    void store.send(prompt);
+  }, [s.pendingPrompt]);
+
   const busy = s.live !== null;
   const liveHere = s.liveMessage && (s.live?.conversationId ?? null) === s.activeId ? s.liveMessage : null;
   const shown: NyraMessage[] = useMemo(() => (liveHere ? [...s.messages, liveHere] : s.messages), [s.messages, liveHere]);
